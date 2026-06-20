@@ -598,6 +598,11 @@ button:disabled {
 }
 
 @media (max-width: 560px) {
+  .game-area {
+    grid-template-rows: auto auto auto;
+    align-content: start;
+  }
+
   .game-status-bar {
     grid-template-columns: auto minmax(0, 1fr) 46px 46px;
     gap: 6px;
@@ -611,7 +616,11 @@ button:disabled {
   }
 
   .fortress-frame {
-    --cell: calc((100cqw - 64px) / 9);
+    --cell: calc((100cqw - 6px) / 9);
+    position: relative;
+    display: block;
+    padding: 0;
+    background: transparent;
   }
 
   .board {
@@ -619,17 +628,44 @@ button:disabled {
   }
 
   .board-row {
-    grid-template-columns: 16px auto 16px;
-    gap: 4px;
+    display: block;
   }
 
   .horizontal-wall {
-    height: 16px;
-    margin-inline: 20px;
+    position: absolute;
+    z-index: 2;
+    right: 0;
+    left: 0;
+    width: auto;
+    height: 10px;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .red-wall {
+    top: 0;
+  }
+
+  .blue-wall {
+    bottom: 0;
   }
 
   .vertical-wall {
-    width: 16px;
+    position: absolute;
+    z-index: 3;
+    top: 0;
+    bottom: 0;
+    width: 10px;
+    height: auto;
+    pointer-events: none;
+  }
+
+  .left-wall {
+    left: 0;
+  }
+
+  .right-wall {
+    right: 0;
   }
 
   .piece {
