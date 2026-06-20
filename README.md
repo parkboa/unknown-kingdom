@@ -30,7 +30,7 @@ http://127.0.0.1:4173/
 
 - 9x9 game board
 - Basic PvE and network-only PvP modes
-- PvE uses Blue as the human player at the bottom and Red as the AI opponent at the top
+- PvE uses White as the human player at the bottom and Black as the AI opponent at the top
 - Alternating deployment turns
 - Free deployment on any empty cell
 - Suicide placements are prohibited unless capture or a special reaction leaves the deployed unit alive

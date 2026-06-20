@@ -16,6 +16,48 @@ export function publicName(piece, unitLabels, text) {
   return unitLabels.soldier;
 }
 
+const UNIT_ICON_PATHS = {
+  soldier: [
+    "M8 9.5 12 7l4 2.5v7L12 19l-4-2.5z",
+    "M12 3v4",
+    "M8 10h8",
+    "M12 12v7",
+  ],
+  general: [
+    "m12 3 2.7 5.7 6.3.8-4.6 4.4 1.2 6.1-5.6-3-5.6 3 1.2-6.1-4.6-4.4 6.3-.8z",
+  ],
+  wizard: [
+    "m12 6 4 6-4 6-4-6z",
+    "M12 2v3M12 19v3M2 12h3M19 12h3",
+    "m4.9 4.9 2 2m10.2 10.2 2 2m0-14.2-2 2M6.9 17.1l-2 2",
+    "M12 2.5a9.5 9.5 0 0 1 9.5 9.5A9.5 9.5 0 0 1 12 21.5 9.5 9.5 0 0 1 2.5 12 9.5 9.5 0 0 1 12 2.5",
+  ],
+  diplomat: [
+    "m3 11 4-4 4 2-2 2 3 3 3-3-2-2 4-2 4 4",
+    "m3 11 5 6 2-2 2 2 2-2 2 1 5-7",
+    "m8 17 2 2m2-2 2 2m2-3 2 1",
+  ],
+  king: [
+    "m4 8 4 4 4-7 4 7 4-4-2 11H6z",
+    "M6 16h12",
+    "M12 5V2",
+  ],
+};
+
+function createPieceIcon(type) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.classList.add("piece-icon");
+
+  for (const pathData of UNIT_ICON_PATHS[type] || UNIT_ICON_PATHS.soldier) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", pathData);
+    svg.append(path);
+  }
+  return svg;
+}
+
 function pieceElement(piece, context) {
   const element = document.createElement("div");
   const canSeeIdentity = viewerOwnsPiece(context.state, context.networkPlayer, piece);
@@ -27,8 +69,10 @@ function pieceElement(piece, context) {
   if (canSeeIdentity && SPECIALS.has(piece.type) && !piece.abilityUsed) element.classList.add("special");
   if (revealedType) element.classList.add("used-special");
 
-  const initialType = revealedType || (canSeeIdentity ? piece.type : "");
-  element.textContent = piece.type === "king" ? "K" : initialType === "general" ? "G" : initialType === "wizard" ? "W" : initialType === "diplomat" ? "D" : "";
+  const visibleIconType = piece.type === "king"
+    ? "king"
+    : revealedType || (canSeeIdentity && SPECIALS.has(piece.type) ? piece.type : "soldier");
+  element.append(createPieceIcon(visibleIconType));
   const visibleName = revealedType
     ? `${context.unitLabels[revealedType]} (${context.text("used")})`
     : canSeeIdentity ? context.unitLabels[piece.type] || context.unitLabels.soldier : publicName(piece, context.unitLabels, context.text);

@@ -5,7 +5,7 @@ import {
   SPECIALS,
   createSpecialHelp,
   createUnitLabels,
-} from "./js/config.js";
+} from "./js/config.js?v=black-white";
 import {
   cellKey,
   inBounds,
@@ -24,7 +24,7 @@ import {
   chooseAiTeleportDestination,
   findAiDeployMove,
 } from "./js/ai.js";
-import { createTranslator } from "./js/i18n.js";
+import { createTranslator } from "./js/i18n.js?v=black-white";
 import {
   buildNetworkUrl,
   connectNetwork as openNetworkConnection,
@@ -41,7 +41,7 @@ import {
   publicName as getPublicName,
   renderGame,
   viewerOwnsPiece as doesViewerOwnPiece,
-} from "./js/render.js";
+} from "./js/render.js?v=unit-icons";
 
 const requestedLanguage = new URLSearchParams(location.search).get("lang") || localStorage.getItem("unknown-kingdom-language");
 const LANGUAGE = requestedLanguage === "ko" ? "ko" : "en";

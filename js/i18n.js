@@ -1,4 +1,4 @@
-import { TEXT } from "./config.js";
+import { TEXT } from "./config.js?v=black-white";
 
 export function createTranslator(language) {
   return function text(key, values = {}) {

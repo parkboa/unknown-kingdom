@@ -4,21 +4,21 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Unknown Kingdom Prototype</title>
-    <link rel="stylesheet" href="./styles.css?v=i18n" />
+    <link rel="stylesheet" href="./styles.css?v=gray-board" />
   </head>
   <body>
     <main class="app-shell">
       <section class="game-area" aria-label="Game board">
         <header class="game-status-bar" aria-label="Current match status">
           <div class="unit-counters" aria-label="Units currently on the board">
-            <div class="unit-counter red-counter" aria-label="Red units">
+            <div class="unit-counter red-counter" aria-label="Black units">
               <span id="redCount">0</span>
             </div>
-            <div class="unit-counter blue-counter" aria-label="Blue units">
+            <div class="unit-counter blue-counter" aria-label="White units">
               <span id="blueCount">0</span>
             </div>
           </div>
-          <div id="turnPill" class="turn-pill">Blue turn</div>
+          <div id="turnPill" class="turn-pill">White turn</div>
           <button id="undoBtn" class="icon-button" type="button" aria-label="Undo Last Move" title="Undo Last Move" disabled>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M19 12H5M11 6l-6 6 6 6" />
@@ -81,7 +81,7 @@
         <div class="mode-start-actions">
           <button type="button" data-start-mode="pve">
             <strong>PvE</strong>
-            <span data-i18n="pveDescription">Play as Blue against the Red AI</span>
+            <span data-i18n="pveDescription">Play as White against the Black AI</span>
           </button>
           <button type="button" data-start-mode="pvp">
             <strong data-i18n="onlinePvp">Online PvP</strong>
@@ -124,20 +124,20 @@
     <div id="resultModal" class="result-modal" hidden>
       <section class="result-card" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
         <p class="eyebrow" data-i18n="matchComplete">Match Complete</p>
-        <h2 id="resultTitle">Red Wins</h2>
+        <h2 id="resultTitle">Black Wins</h2>
         <p id="resultReason" class="result-reason"></p>
         <div class="result-grid">
-          <div><strong id="resultRedTerritory">0</strong><span data-i18n="redTerritory">Red territory</span></div>
-          <div><strong id="resultBlueTerritory">0</strong><span data-i18n="blueTerritory">Blue territory</span></div>
-          <div><strong id="resultRedCaptures">0</strong><span data-i18n="redCaptures">Red captures</span></div>
-          <div><strong id="resultBlueCaptures">0</strong><span data-i18n="blueCaptures">Blue captures</span></div>
-          <div><strong id="resultRedSpecials">0</strong><span data-i18n="redSkills">Red skills used</span></div>
-          <div><strong id="resultBlueSpecials">0</strong><span data-i18n="blueSkills">Blue skills used</span></div>
+          <div><strong id="resultRedTerritory">0</strong><span data-i18n="redTerritory">Black territory</span></div>
+          <div><strong id="resultBlueTerritory">0</strong><span data-i18n="blueTerritory">White territory</span></div>
+          <div><strong id="resultRedCaptures">0</strong><span data-i18n="redCaptures">Black captures</span></div>
+          <div><strong id="resultBlueCaptures">0</strong><span data-i18n="blueCaptures">White captures</span></div>
+          <div><strong id="resultRedSpecials">0</strong><span data-i18n="redSkills">Black skills used</span></div>
+          <div><strong id="resultBlueSpecials">0</strong><span data-i18n="blueSkills">White skills used</span></div>
         </div>
         <button id="playAgainBtn" type="button" data-i18n="playAgain">Play Again</button>
       </section>
     </div>
 
-    <script type="module" src="./app.js?v=modules"></script>
+    <script type="module" src="./app.js?v=black-white-2"></script>
   </body>
 </html>
