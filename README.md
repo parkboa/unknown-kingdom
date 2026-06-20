@@ -2,6 +2,18 @@
 
 Static local prototype for validating the MVP rules from `Unknown Kingdom: Shadow Realm`.
 
+## Structure
+
+- `app.js`: game orchestration, capture rules, and special-unit reactions
+- `js/config.js`: constants, labels, and localized text
+- `js/state.js`: initial state and piece creation
+- `js/board.js`: board-coordinate helpers
+- `js/ai.js`: PvE move selection
+- `js/network.js`: WebSocket connection lifecycle
+- `js/protocol.js`: WebSocket message and server-state validation
+- `js/render.js`: board and interface rendering
+- `js/i18n.js`: translation helper
+
 ## Run
 
 ```bash
@@ -41,12 +53,22 @@ http://127.0.0.1:4173/
 - Capture resolution pauses while a King escape is pending; a second King capture ends the game instead of converting the King
 - Diplomat conversion follows the same King rule: first attack swaps with a Soldier, second attack wins
 - King death and unit-elimination win states
+- Full-board ties end as a draw
+- A player with no legal deployment automatically passes; if neither side can deploy, territory decides the result
 - Match result popup with victory reason, territory, captures, skill usage, and replay
 - Undo history for up to 200 complete moves; PvE restores the position before the player's move and AI response
 
 ## Online PvP Server Contract
 
 The browser connects to a WebSocket endpoint at `/ws`. The game server must be authoritative and send each player a sanitized state that excludes unrevealed enemy unit identities.
+
+For a separately hosted server, open the client once with:
+
+```text
+?server=wss://your-server.example.com/ws
+```
+
+The selected server URL is stored in the browser for later matches.
 
 Client messages:
 

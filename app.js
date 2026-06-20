@@ -1,82 +1,64 @@
-const SIZE = 9;
+import {
+  DEPLOY_ORDER,
+  PVE_AI,
+  SIZE,
+  SPECIALS,
+  createSpecialHelp,
+  createUnitLabels,
+} from "./js/config.js";
+import {
+  cellKey,
+  inBounds,
+  neighbors,
+  opponent,
+} from "./js/board.js";
+import {
+  boardSignature as getBoardSignature,
+  chooseCaptor as findCaptor,
+  collectGroup as findGroup,
+  groupHasLiberty as hasGroupLiberty,
+  isFortressConnected as connectsToFortress,
+} from "./js/capture.js";
+import {
+  chooseAiKingSwapTarget,
+  chooseAiTeleportDestination,
+  findAiDeployMove,
+} from "./js/ai.js";
+import { createTranslator } from "./js/i18n.js";
+import {
+  buildNetworkUrl,
+  connectNetwork as openNetworkConnection,
+  createNetworkSession,
+  disconnectNetwork as closeNetworkConnection,
+  sendNetworkAction as sendNetworkMessage,
+} from "./js/network.js";
+import {
+  createInitialState,
+  createOccupiedSoldier,
+  createPiece,
+} from "./js/state.js";
+import {
+  publicName as getPublicName,
+  renderGame,
+  viewerOwnsPiece as doesViewerOwnPiece,
+} from "./js/render.js";
+
 const requestedLanguage = new URLSearchParams(location.search).get("lang") || localStorage.getItem("unknown-kingdom-language");
 const LANGUAGE = requestedLanguage === "ko" ? "ko" : "en";
-const TEXT = {
-  en: {
-    deploy: "Deploy", language: "Language", chooseMode: "Choose Game Mode", chooseModeDescription: "Select how you want to start this match.",
-    pveDescription: "Play as Blue against the Red AI", onlinePvp: "Online PvP", pvpDescription: "Create or join a private network room",
-    networkLobby: "Network Lobby", networkPrompt: "Create a room or enter an invitation code.", roomCode: "Room code",
-    enterCode: "Enter code", createRoom: "Create Room", joinRoom: "Join Room", back: "Back", specialUnit: "Special Unit",
-    dontShowAgain: "Do not show this unit explanation again", gotIt: "Got It", matchComplete: "Match Complete",
-    redTerritory: "Red territory", blueTerritory: "Blue territory", redCaptures: "Red captures", blueCaptures: "Blue captures",
-    redSkills: "Red skills used", blueSkills: "Blue skills used", playAgain: "Play Again", cancelAbility: "Cancel Ability",
-    undo: "Undo Last Move", newGame: "New Game", redUnits: "Red units", blueUnits: "Blue units",
-    soldier: "Soldier", king: "King", general: "General", diplomat: "Diplomat", wizard: "Wizard",
-    used: "Used", kingFirst: "King first", left: "{count} left", available: "Available",
-    red: "Red", blue: "Blue", turn: "{side} turn", thinking: " thinking", wins: "{side} wins",
-    hiddenUnit: "a hidden unit", notConnected: "The online match is not connected.", createOrJoin: "Create or join a room.",
-    rematchWaiting: "Rematch requested. Waiting for opponent…", connecting: "Connecting to game server…",
-    disconnected: "Disconnected from game server.", serverUnavailable: "Game server is unavailable. Online PvP requires the WebSocket server.",
-    roomWaiting: "Room {room}. Waiting for opponent…", roomPlayer: "Room {room} · You are {side}.",
-    serverRejected: "The game server rejected the request.", enterRoomCode: "Enter a room code.",
-    resultWin: "{side} Wins", allEliminated: "All enemy units were eliminated.",
-    boardFilled: "Board filled: {red}-{blue} territory.", kingCapturedSecond: "{side} King was captured a second time.",
-  },
-  ko: {
-    deploy: "유닛 배치", language: "언어", chooseMode: "게임 모드 선택", chooseModeDescription: "플레이할 게임 모드를 선택하세요.",
-    pveDescription: "파랑 진영으로 빨강 AI와 대결", onlinePvp: "온라인 PvP", pvpDescription: "비공개 방을 만들거나 참가",
-    networkLobby: "온라인 대기실", networkPrompt: "방을 만들거나 초대 코드를 입력하세요.", roomCode: "방 코드",
-    enterCode: "코드 입력", createRoom: "방 만들기", joinRoom: "방 참가", back: "뒤로", specialUnit: "특수 유닛",
-    dontShowAgain: "이 유닛 설명을 다시 표시하지 않기", gotIt: "확인", matchComplete: "경기 종료",
-    redTerritory: "빨강 영역", blueTerritory: "파랑 영역", redCaptures: "빨강 포획", blueCaptures: "파랑 포획",
-    redSkills: "빨강 스킬 사용", blueSkills: "파랑 스킬 사용", playAgain: "다시 하기", cancelAbility: "스킬 취소",
-    undo: "마지막 수 되돌리기", newGame: "새 게임", redUnits: "빨강 유닛", blueUnits: "파랑 유닛",
-    soldier: "병사", king: "왕", general: "장군", diplomat: "외교관", wizard: "마법사",
-    used: "사용 완료", kingFirst: "왕 먼저", left: "{count}개", available: "사용 가능",
-    red: "빨강", blue: "파랑", turn: "{side} 턴", thinking: " 생각 중", wins: "{side} 승리",
-    hiddenUnit: "숨겨진 유닛", notConnected: "온라인 경기에 연결되지 않았습니다.", createOrJoin: "방을 만들거나 참가하세요.",
-    rematchWaiting: "재경기를 요청했습니다. 상대를 기다리는 중…", connecting: "게임 서버에 연결 중…",
-    disconnected: "게임 서버 연결이 끊어졌습니다.", serverUnavailable: "게임 서버를 사용할 수 없습니다. 온라인 PvP에는 WebSocket 서버가 필요합니다.",
-    roomWaiting: "{room} 방에서 상대를 기다리는 중…", roomPlayer: "{room} 방 · 나의 진영: {side}",
-    serverRejected: "게임 서버가 요청을 거절했습니다.", enterRoomCode: "방 코드를 입력하세요.",
-    resultWin: "{side} 승리", allEliminated: "상대 유닛이 모두 제거되었습니다.",
-    boardFilled: "보드 종료: 빨강 {red} - 파랑 {blue}.", kingCapturedSecond: "{side} 왕이 두 번째로 포획되었습니다.",
-  },
-};
-const UNIT_LABELS = {
-  soldier: TEXT[LANGUAGE].soldier,
-  king: TEXT[LANGUAGE].king,
-  general: TEXT[LANGUAGE].general,
-  diplomat: TEXT[LANGUAGE].diplomat,
-  wizard: TEXT[LANGUAGE].wizard,
-};
-const SPECIALS = new Set(["general", "diplomat", "wizard"]);
-const DEPLOY_ORDER = ["soldier", "general", "diplomat", "wizard", "king"];
-const SPECIAL_HELP = {
-  general: LANGUAGE === "ko"
-    ? "장군의 집단이 완전히 포위되면 포획 판정 전에 인접한 적 유닛을 제거합니다."
-    : "When its group is fully surrounded, the General removes adjacent enemy units before capture is resolved.",
-  diplomat: LANGUAGE === "ko"
-    ? "외교관의 집단이 완전히 포위되면 포획 판정 전에 인접한 적 유닛을 아군 병사로 전환합니다."
-    : "When its group is fully surrounded, the Diplomat converts adjacent enemy units into friendly Soldiers before capture is resolved.",
-  wizard: LANGUAGE === "ko"
-    ? "마법사의 집단이 완전히 포위되면 인접한 적을 제거하고 선택한 빈 칸으로 텔레포트합니다."
-    : "When its group is fully surrounded, the Wizard removes adjacent enemies and then teleports to an empty cell you choose.",
-};
-const AI_PROFILES = ["balanced", "aggressive", "defensive"];
-const PVE_HUMAN = "blue";
-const PVE_AI = "red";
+const requestedServer = new URLSearchParams(location.search).get("server");
+if (requestedServer) localStorage.setItem("unknown-kingdom-server", requestedServer);
+const defaultNetworkServer = location.hostname === "127.0.0.1" || location.hostname === "localhost"
+  ? "ws://127.0.0.1:4175/ws"
+  : "wss://unknown-kingdom-server.onrender.com/ws";
+const NETWORK_SERVER = requestedServer || localStorage.getItem("unknown-kingdom-server") || defaultNetworkServer;
+const UNIT_LABELS = createUnitLabels(LANGUAGE);
+const SPECIAL_HELP = createSpecialHelp(LANGUAGE);
+const text = createTranslator(LANGUAGE);
 
 let state;
 let undoStack = [];
 let aiTimer = null;
-let networkSession = {
-  socket: null,
-  connected: false,
-  ready: false,
-  roomCode: "",
-  player: null,
-};
+let networkSession = createNetworkSession();
 
 const boardEl = document.querySelector("#board");
 const turnPill = document.querySelector("#turnPill");
@@ -106,14 +88,6 @@ const modeStartButtons = document.querySelectorAll("[data-start-mode]");
 const modeInputs = document.querySelectorAll("input[name='mode']");
 const unitInputs = document.querySelectorAll("input[name='unit']");
 
-function text(key, values = {}) {
-  let output = TEXT[LANGUAGE][key] || TEXT.en[key] || key;
-  Object.entries(values).forEach(([name, value]) => {
-    output = output.replaceAll(`{${name}}`, value);
-  });
-  return output;
-}
-
 function sideName(side) {
   return text(side);
 }
@@ -140,53 +114,26 @@ function applyLanguage() {
 }
 
 function newState() {
-  const mode = currentModeChoice();
-  const startingSide = mode === "pvp" ? "red" : PVE_HUMAN;
-  const aiProfile = AI_PROFILES[Math.floor(Math.random() * AI_PROFILES.length)];
-  return {
-    board: Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => null)),
-    turn: startingSide,
-    selected: null,
-    teleporting: null,
-    pendingWizardTeleport: null,
-    pendingKingSwap: null,
-    winner: null,
-    resultReason: "",
-    mode,
-    aiProfile,
-    aiThinking: false,
-    stock: {
-      red: { soldier: 77, king: 1, general: 1, diplomat: 1, wizard: 1 },
-      blue: { soldier: 77, king: 1, general: 1, diplomat: 1, wizard: 1 },
-    },
-    firstDeployDone: { red: false, blue: false },
-    stats: {
-      captures: { red: 0, blue: 0 },
-      specialsUsed: { red: 0, blue: 0 },
-    },
-    log: [`New match started. ${capitalize(startingSide)} deploys first.`],
-  };
+  return createInitialState(currentModeChoice());
 }
 
-function cellKey(row, col) {
-  return `${row}-${col}`;
-}
+function applyNoMoveDemo() {
+  if (location.hostname !== "127.0.0.1" && location.hostname !== "localhost") return false;
+  if (new URLSearchParams(location.search).get("demo") !== "no-move") return false;
 
-function inBounds(row, col) {
-  return row >= 0 && row < SIZE && col >= 0 && col < SIZE;
-}
-
-function neighbors(row, col) {
-  return [
-    [row - 1, col],
-    [row + 1, col],
-    [row, col - 1],
-    [row, col + 1],
-  ].filter(([nextRow, nextCol]) => inBounds(nextRow, nextCol));
-}
-
-function opponent(player) {
-  return player === "red" ? "blue" : "red";
+  state.board = Array.from({ length: SIZE }, (_, row) =>
+    Array.from({ length: SIZE }, (_, col) => {
+      if (row === 4 && col === 4) return null;
+      return createOccupiedSoldier("red");
+    }),
+  );
+  state.board[8][4] = createPiece("blue", "king");
+  state.turn = "blue";
+  state.firstDeployDone = { red: true, blue: true };
+  state.stock.blue = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.stock.red = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.log = ["No-move demo: Blue has no legal deployment, but the board is not full."];
+  return true;
 }
 
 function currentUnitChoice() {
@@ -209,6 +156,23 @@ function canDeploy(player, unitType, row, col) {
   if (state.stock[player][unitType] <= 0) return false;
   if (deploymentSurvives(player, unitType, row, col)) return true;
   return deploymentSurvives(player, unitType, row, col, true);
+}
+
+function hasLegalDeployment(player) {
+  const availableTypes = DEPLOY_ORDER.filter((unitType) => {
+    if (state.stock[player][unitType] <= 0) return false;
+    return state.firstDeployDone[player] || unitType === "king";
+  });
+
+  for (const unitType of availableTypes) {
+    for (let row = 0; row < SIZE; row += 1) {
+      for (let col = 0; col < SIZE; col += 1) {
+        if (state.board[row][col]) continue;
+        if (canDeploy(player, unitType, row, col)) return true;
+      }
+    }
+  }
+  return false;
 }
 
 function deploymentSurvives(player, unitType, row, col, ignoreHiddenEnemySpecials = false) {
@@ -237,18 +201,6 @@ function suppressHiddenEnemySpecials(player) {
     piece.type = "soldier";
     piece.originalType = "soldier";
   });
-}
-
-function createPiece(owner, type) {
-  return {
-    id: `${owner}-${type}-${crypto.randomUUID ? crypto.randomUUID() : Date.now() + Math.random()}`,
-    owner,
-    type,
-    originalType: type,
-    revealed: type === "king",
-    abilityUsed: false,
-    kingEscapeUsed: false,
-  };
 }
 
 function saveUndoCheckpoint() {
@@ -297,15 +249,9 @@ function deploy(row, col) {
 }
 
 function sendNetworkAction(action) {
-  if (!networkSession.ready || networkSession.socket?.readyState !== WebSocket.OPEN) {
+  if (!sendNetworkMessage(networkSession, action)) {
     setNetworkStatus(text("notConnected"));
-    return;
   }
-  networkSession.socket.send(JSON.stringify({
-    type: "action",
-    roomCode: networkSession.roomCode,
-    action,
-  }));
 }
 
 function deployUnit(player, unitType, row, col) {
@@ -338,15 +284,43 @@ function declareWinner(winner, reason) {
   addLog(`${capitalize(winner)} wins. ${reason}`);
 }
 
+function declareDraw(reason) {
+  if (state.winner) return;
+  state.winner = "draw";
+  state.resultReason = reason;
+  addLog(`Draw. ${reason}`);
+}
+
+function finishByTerritory(reasonTemplate) {
+  const redTerritory = countPieces("red");
+  const blueTerritory = countPieces("blue");
+  const reason = text(reasonTemplate, { red: redTerritory, blue: blueTerritory });
+  if (redTerritory === blueTerritory) {
+    declareDraw(reason);
+  } else {
+    declareWinner(redTerritory > blueTerritory ? "red" : "blue", reason);
+  }
+}
+
+function resolveNoMoveTurn() {
+  if (state.winner || hasLegalDeployment(state.turn)) return false;
+
+  const passingPlayer = state.turn;
+  const nextPlayer = opponent(passingPlayer);
+  if (!hasLegalDeployment(nextPlayer)) {
+    finishByTerritory("noLegalMoves");
+  } else {
+    addLog(text("autoPass", { side: sideName(passingPlayer) }));
+    state.turn = nextPlayer;
+    state.selected = null;
+  }
+  return true;
+}
+
 function endTurn() {
   if (!state.winner) {
     if (!hasEmptyCell()) {
-      const redTerritory = countPieces("red");
-      const blueTerritory = countPieces("blue");
-      if (redTerritory !== blueTerritory) {
-        const winner = redTerritory > blueTerritory ? "red" : "blue";
-        declareWinner(winner, `Board filled: ${redTerritory}-${blueTerritory} territory.`);
-      }
+      finishByTerritory("boardFilled");
     }
 
     const nextPlayer = opponent(state.turn);
@@ -356,6 +330,7 @@ function endTurn() {
       if (!state.winner) {
         state.turn = nextPlayer;
         state.selected = null;
+        resolveNoMoveTurn();
       }
     }
   }
@@ -365,11 +340,14 @@ function endTurn() {
 
 function resolveAllCaptures(preferredCaptor) {
   let changed = true;
-  let passes = 0;
+  const seenStates = new Set();
 
-  while (changed && passes < 12 && !state.winner) {
+  while (changed && !state.winner) {
+    const passStart = boardSignature();
+    if (seenStates.has(passStart)) break;
+    seenStates.add(passStart);
+
     changed = false;
-    passes += 1;
     const checked = new Set();
 
     for (let row = 0; row < SIZE; row += 1) {
@@ -396,93 +374,19 @@ function resolveAllCaptures(preferredCaptor) {
 }
 
 function boardSignature() {
-  return state.board
-    .map((row) => row.map((piece) => (piece ? `${piece.owner}:${piece.type}:${piece.abilityUsed ? 1 : 0}` : ".")).join(","))
-    .join(";");
+  return getBoardSignature(state);
 }
 
 function chooseCaptor(group, defender, preferredCaptor) {
-  const owners = captureOwnersAroundGroup(group).filter((owner) => owner !== defender);
-  if (!owners.length) return null;
-  if (owners.includes(preferredCaptor)) return preferredCaptor;
-  return owners[0];
-}
-
-function captureOwnersAroundGroup(group) {
-  const owners = new Set();
-  const groupCells = new Set(group.map(([row, col]) => cellKey(row, col)));
-
-  for (const [row, col] of group) {
-    for (const [nextRow, nextCol] of orthogonalPositions(row, col)) {
-      if (inBounds(nextRow, nextCol)) {
-        if (groupCells.has(cellKey(nextRow, nextCol))) continue;
-        const piece = state.board[nextRow][nextCol];
-        if (piece) owners.add(piece.owner);
-      } else {
-        const wallOwnerName = wallOwnerForEdge(row, col, nextRow, nextCol);
-        if (wallOwnerName) owners.add(wallOwnerName);
-      }
-    }
-  }
-
-  return [...owners];
-}
-
-function orthogonalPositions(row, col) {
-  return [
-    [row - 1, col],
-    [row + 1, col],
-    [row, col - 1],
-    [row, col + 1],
-  ];
-}
-
-function wallOwnerForEdge(row, col, nextRow, nextCol) {
-  if (nextRow < 0) return "red";
-  if (nextRow >= SIZE) return "blue";
-  if (nextCol < 0 || nextCol >= SIZE) {
-    if (row <= 3) return "red";
-    if (row >= 5) return "blue";
-  }
-  return null;
+  return findCaptor(state, group, defender, preferredCaptor);
 }
 
 function collectGroup(row, col) {
-  const origin = state.board[row][col];
-  if (!origin) return [];
-
-  const group = [];
-  const visited = new Set();
-  const queue = [[row, col]];
-
-  while (queue.length) {
-    const [currentRow, currentCol] = queue.shift();
-    const key = cellKey(currentRow, currentCol);
-    if (visited.has(key)) continue;
-    visited.add(key);
-
-    const piece = state.board[currentRow][currentCol];
-    if (!piece || piece.owner !== origin.owner) continue;
-
-    group.push([currentRow, currentCol]);
-    for (const [nextRow, nextCol] of neighbors(currentRow, currentCol)) {
-      const nextPiece = state.board[nextRow][nextCol];
-      if (nextPiece?.owner === origin.owner) queue.push([nextRow, nextCol]);
-    }
-  }
-
-  return group;
+  return findGroup(state, row, col);
 }
 
 function groupHasLiberty(group, owner) {
-  return group.some(([row, col]) => {
-    const piece = state.board[row][col];
-    if (!piece) return false;
-    return orthogonalPositions(row, col).some(([nextRow, nextCol]) => {
-      if (inBounds(nextRow, nextCol)) return !state.board[nextRow][nextCol];
-      return wallOwnerForEdge(row, col, nextRow, nextCol) === owner;
-    });
-  });
+  return hasGroupLiberty(state, group, owner);
 }
 
 function resolveCapturedGroup(group, captor) {
@@ -596,25 +500,7 @@ function hasEmptyCell() {
 }
 
 function isFortressConnected(owner, row, col) {
-  const piece = state.board[row][col];
-  if (!piece || piece.owner !== owner) return false;
-
-  const visited = new Set();
-  const queue = [[row, col]];
-  while (queue.length) {
-    const [currentRow, currentCol] = queue.shift();
-    const key = cellKey(currentRow, currentCol);
-    if (visited.has(key)) continue;
-    visited.add(key);
-
-    if (orthogonalPositions(currentRow, currentCol).some(([nextRow, nextCol]) => !inBounds(nextRow, nextCol) && wallOwnerForEdge(currentRow, currentCol, nextRow, nextCol) === owner)) return true;
-
-    for (const [nextRow, nextCol] of neighbors(currentRow, currentCol)) {
-      const nextPiece = state.board[nextRow][nextCol];
-      if (nextPiece?.owner === owner) queue.push([nextRow, nextCol]);
-    }
-  }
-  return false;
+  return connectsToFortress(state, owner, row, col);
 }
 
 function capturePiece(row, col, reason) {
@@ -653,18 +539,6 @@ function handleKingCapture(row, col, reason) {
     declareWinner(winner, `${capitalize(piece.owner)} King had no valid escape from ${reason}.`);
   }
   return true;
-}
-
-function createOccupiedSoldier(owner) {
-  return {
-    id: `${owner}-occupied-${crypto.randomUUID ? crypto.randomUUID() : Date.now() + Math.random()}`,
-    owner,
-    type: "soldier",
-    originalType: "soldier",
-    revealed: false,
-    abilityUsed: false,
-    kingEscapeUsed: false,
-  };
 }
 
 function hasKingEscapeTarget(owner, kingRow, kingCol) {
@@ -722,28 +596,28 @@ function completeKingSwap(row, col) {
 }
 
 function publicName(piece) {
-  if (piece.type === "king") return UNIT_LABELS.king;
-  const revealedType = revealedSpecialType(piece);
-  if (revealedType) return `${UNIT_LABELS[revealedType]} (${text("used")})`;
-  return UNIT_LABELS.soldier;
+  return getPublicName(piece, UNIT_LABELS, text);
 }
 
-function revealedSpecialType(piece) {
-  return piece.revealed && piece.abilityUsed && SPECIALS.has(piece.originalType) ? piece.originalType : null;
+function viewerOwnsPiece(piece) {
+  return doesViewerOwnPiece(state, networkSession.player, piece);
 }
 
 function selectCell(row, col) {
   if (state.winner) return;
   if (state.mode === "pvp") {
-    if (!networkSession.ready || state.turn !== networkSession.player) return;
+    if (!networkSession.ready) return;
     if (state.pendingKingSwap) {
+      if (state.pendingKingSwap.owner !== networkSession.player) return;
       sendNetworkAction({ type: "king_escape", row, col });
       return;
     }
     if (state.teleporting) {
+      if (state.teleporting.owner !== networkSession.player) return;
       sendNetworkAction({ type: "wizard_teleport", row, col });
       return;
     }
+    if (state.turn !== networkSession.player) return;
     const piece = state.board[row][col];
     if (piece) {
       state.selected = { row, col };
@@ -828,7 +702,7 @@ function scheduleAiTurn() {
     aiTimer = window.setTimeout(() => {
       aiTimer = null;
       state.aiThinking = false;
-      const destination = chooseAiKingSwapTarget();
+      const destination = chooseAiKingSwapTarget(state, { kingEscapeType, neighbors, isFortressConnected });
       if (destination) completeKingSwap(destination.row, destination.col);
     }, 450);
     return;
@@ -840,7 +714,7 @@ function scheduleAiTurn() {
     aiTimer = window.setTimeout(() => {
       aiTimer = null;
       state.aiThinking = false;
-      const destination = chooseAiTeleportDestination();
+      const destination = chooseAiTeleportDestination(state, neighbors);
       if (destination) teleportWizard(destination.row, destination.col);
     }, 450);
     return;
@@ -859,113 +733,11 @@ function scheduleAiTurn() {
 function runBlueAiTurn() {
   if (!isAiTurn() || state.winner || state.teleporting || state.pendingKingSwap) return;
 
-  const deployMove = findAiDeployMove();
+  const deployMove = findAiDeployMove(state, { canDeploy, countPieces, neighbors });
   if (deployMove && deployUnit(PVE_AI, deployMove.type, deployMove.row, deployMove.col)) return;
 
   addLog(`${capitalize(PVE_AI)} AI has no valid move.`);
   endTurn();
-}
-
-function findAiDeployMove() {
-  const type = chooseAiDeployType();
-  const candidates = [];
-  for (let row = 0; row < SIZE; row += 1) {
-    for (let col = 0; col < SIZE; col += 1) {
-      if (!canDeploy(PVE_AI, type, row, col)) continue;
-      candidates.push({ row, col, type, score: scoreAiCell(row, col) + Math.random() * aiPositionVariance() });
-    }
-  }
-  candidates.sort((a, b) => b.score - a.score);
-  return candidates[0] || null;
-}
-
-function chooseAiDeployType() {
-  if (!state.firstDeployDone[PVE_AI] && state.stock[PVE_AI].king > 0) return "king";
-
-  const aiCount = countPieces(PVE_AI);
-  const humanCount = countPieces(PVE_HUMAN);
-  const pressure = Math.max(0, humanCount - aiCount);
-  const weightsByProfile = {
-    balanced: { soldier: 62, general: 14, wizard: 13, diplomat: 11 },
-    aggressive: { soldier: 48, general: 24, wizard: 19, diplomat: 9 },
-    defensive: { soldier: 68, general: 9, wizard: 9, diplomat: 14 },
-  };
-  const weights = { ...weightsByProfile[state.aiProfile] };
-
-  if (pressure > 0) {
-    weights.general += pressure * 4;
-    weights.diplomat += pressure * 3;
-  }
-  if (humanCount >= 5) weights.wizard += 6;
-  if (aiCount < 2) weights.soldier += 25;
-
-  const choices = Object.entries(weights)
-    .filter(([type]) => state.stock[PVE_AI][type] > 0)
-    .map(([type, weight]) => ({ type, weight }));
-
-  return weightedChoice(choices) || "soldier";
-}
-
-function weightedChoice(choices) {
-  const totalWeight = choices.reduce((sum, choice) => sum + choice.weight, 0);
-  if (totalWeight <= 0) return null;
-
-  let roll = Math.random() * totalWeight;
-  for (const choice of choices) {
-    roll -= choice.weight;
-    if (roll <= 0) return choice.type;
-  }
-  return choices[choices.length - 1]?.type || null;
-}
-
-function aiPositionVariance() {
-  if (state.aiProfile === "aggressive") return 8;
-  if (state.aiProfile === "defensive") return 13;
-  return 10;
-}
-
-function scoreAiCell(row, col) {
-  const centerScore = 8 - (Math.abs(row - 4) + Math.abs(col - 4));
-  const adjacentAllies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === PVE_AI).length;
-  const adjacentEnemies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === PVE_HUMAN).length;
-  const homeBoardBias = SIZE - 1 - row;
-  return centerScore * 2 + adjacentAllies * 3 + adjacentEnemies * 4 + homeBoardBias;
-}
-
-function chooseAiTeleportDestination() {
-  const candidates = [];
-  for (let row = 0; row < SIZE; row += 1) {
-    for (let col = 0; col < SIZE; col += 1) {
-      if (!state.board[row][col]) candidates.push({ row, col, score: scoreAiCell(row, col) });
-    }
-  }
-  candidates.sort((a, b) => b.score - a.score);
-  return candidates[0] || null;
-}
-
-function chooseAiKingSwapTarget() {
-  const pending = state.pendingKingSwap;
-  if (!pending || pending.owner !== PVE_AI) return null;
-
-  const candidates = [];
-  for (let row = 0; row < SIZE; row += 1) {
-    for (let col = 0; col < SIZE; col += 1) {
-      const escapeType = kingEscapeType(PVE_AI, pending.row, pending.col, row, col);
-      if (!escapeType) continue;
-      const adjacentEnemies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === PVE_HUMAN).length;
-      const adjacentAllies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === PVE_AI).length;
-      const fortressSafety = escapeType === "swap" && isFortressConnected(PVE_AI, row, col) ? 20 : 0;
-      const homeBoardSafety = (SIZE - 1 - row) * 2;
-      candidates.push({
-        row,
-        col,
-        score: fortressSafety + homeBoardSafety + adjacentAllies * 3 - adjacentEnemies * 8 + (escapeType === "escape" ? 4 : 0),
-      });
-    }
-  }
-
-  candidates.sort((a, b) => b.score - a.score);
-  return candidates[0] || null;
 }
 
 function countPieces(owner) {
@@ -990,142 +762,36 @@ function capitalize(value) {
 }
 
 function render() {
-  renderDeployPicker();
-  renderBoard();
-  renderPanel();
-}
-
-function renderBoard() {
-  boardEl.innerHTML = "";
-
-  for (let row = 0; row < SIZE; row += 1) {
-    for (let col = 0; col < SIZE; col += 1) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "cell";
-      button.setAttribute("role", "gridcell");
-      button.setAttribute("aria-label", coord(row, col));
-      button.dataset.row = row;
-      button.dataset.col = col;
-
-      if (state.selected?.row === row && state.selected?.col === col) button.classList.add("selected");
-      if (canDeploy(state.turn, currentUnitChoice(), row, col)) button.classList.add("valid");
-      if (state.teleporting && !state.board[row][col]) button.classList.add("teleport");
-      if (state.pendingKingSwap && kingEscapeType(state.pendingKingSwap.owner, state.pendingKingSwap.row, state.pendingKingSwap.col, row, col)) button.classList.add("teleport");
-
-      const piece = state.board[row][col];
-      if (piece) button.append(pieceElement(piece, row, col));
-
-      button.addEventListener("click", () => selectCell(row, col));
-      boardEl.append(button);
-    }
-  }
-}
-
-function pieceElement(piece, row, col) {
-  const el = document.createElement("div");
-  const canSeeIdentity = viewerOwnsPiece(piece);
-  const visibleType = visiblePieceClass(piece, canSeeIdentity);
-  el.className = `piece ${piece.owner} ${visibleType}`;
-  if (canSeeIdentity && SPECIALS.has(piece.type) && !piece.abilityUsed) el.classList.add("special");
-  if (revealedSpecialType(piece)) el.classList.add("used-special");
-  el.textContent = pieceInitial(piece, canSeeIdentity);
-  el.title = `${sideName(piece.owner)} ${ownerViewName(piece, canSeeIdentity)}`;
-  return el;
-}
-
-function visiblePieceClass(piece, canSeeIdentity) {
-  if (piece.type === "king") return "king";
-  if (revealedSpecialType(piece)) return "special";
-  if (canSeeIdentity && SPECIALS.has(piece.type) && !piece.abilityUsed) return "special";
-  return "soldier";
-}
-
-function viewerOwnsPiece(piece) {
-  if (state.mode === "pve") return piece.owner === PVE_HUMAN;
-  return piece.owner === networkSession.player;
-}
-
-function pieceInitial(piece, canSeeIdentity) {
-  if (piece.type === "king") return "K";
-  const revealedType = revealedSpecialType(piece);
-  if (revealedType === "general") return "G";
-  if (revealedType === "wizard") return "W";
-  if (revealedType === "diplomat") return "D";
-  if (!canSeeIdentity) return "";
-  if (piece.type === "general") return "G";
-  if (piece.type === "wizard") return "W";
-  if (piece.type === "diplomat") return "D";
-  return "";
-}
-
-function ownerViewName(piece, canSeeIdentity) {
-  const revealedType = revealedSpecialType(piece);
-  if (revealedType) return `${UNIT_LABELS[revealedType]} (${text("used")})`;
-  if (canSeeIdentity) return UNIT_LABELS[piece.type] || UNIT_LABELS.soldier;
-  return publicName(piece);
-}
-
-function renderPanel() {
-  turnPill.textContent = state.winner
-    ? text("wins", { side: sideName(state.winner) })
-    : text("turn", { side: sideName(state.turn) }) + (state.aiThinking ? text("thinking") : "");
-  turnPill.classList.toggle("blue", state.turn === "blue");
-  redCount.textContent = countPieces("red");
-  blueCount.textContent = countPieces("blue");
-
-  networkStatusGroup.hidden = state.mode !== "pvp";
-  networkStatusGroup.classList.toggle("connected", networkSession.ready);
-  undoBtn.disabled = state.mode === "pvp" || undoStack.length === 0;
-  cancelTeleportBtn.hidden = !state.teleporting && !state.pendingKingSwap;
-  renderResultModal();
-}
-
-function renderResultModal() {
-  resultModal.hidden = !state.winner;
-  if (!state.winner) return;
-
-  document.querySelector("#resultTitle").textContent = text("resultWin", { side: sideName(state.winner) });
-  document.querySelector("#resultReason").textContent = localizeResultReason(state.resultReason);
-  document.querySelector("#resultRedTerritory").textContent = countPieces("red");
-  document.querySelector("#resultBlueTerritory").textContent = countPieces("blue");
-  document.querySelector("#resultRedCaptures").textContent = state.stats.captures.red;
-  document.querySelector("#resultBlueCaptures").textContent = state.stats.captures.blue;
-  document.querySelector("#resultRedSpecials").textContent = state.stats.specialsUsed.red;
-  document.querySelector("#resultBlueSpecials").textContent = state.stats.specialsUsed.blue;
-}
-
-function renderDeployPicker() {
-  unitInputs.forEach((input) => {
-    const remaining = state.stock[state.turn][input.value];
-    const label = input.closest("label");
-    const status = label.querySelector("small");
-    const exhausted = remaining <= 0;
-    const firstMoveLocked = !state.firstDeployDone[state.turn] && input.value !== "king";
-
-    const onlineLocked = state.mode === "pvp" && (!networkSession.ready || state.turn !== networkSession.player);
-    input.disabled = exhausted || firstMoveLocked || onlineLocked || state.aiThinking || Boolean(state.winner);
-    label.classList.toggle("used", exhausted);
-    label.classList.toggle("locked", firstMoveLocked);
-    const baseOrder = DEPLOY_ORDER.indexOf(input.value);
-    label.style.order = exhausted ? 200 + baseOrder : firstMoveLocked ? 100 + baseOrder : baseOrder;
-    status.textContent = exhausted
-      ? text("used")
-      : firstMoveLocked ? text("kingFirst") : input.value === "soldier" ? text("left", { count: remaining }) : text("available");
+  renderGame({
+    state,
+    boardEl,
+    turnPill,
+    redCount,
+    blueCount,
+    cancelTeleportBtn,
+    undoBtn,
+    resultModal,
+    networkStatusGroup,
+    unitInputs,
+    networkReady: networkSession.ready,
+    networkPlayer: networkSession.player,
+    undoCount: undoStack.length,
+    unitLabels: UNIT_LABELS,
+    text,
+    sideName,
+    coord,
+    currentUnitChoice,
+    canDeploy,
+    kingEscapeType,
+    selectCell,
+    countPieces,
+    localizeResultReason,
   });
-
-  const selectedInput = document.querySelector("input[name='unit']:checked");
-  if (selectedInput?.disabled) {
-    const fallback = [...unitInputs].find((input) => !input.disabled);
-    if (fallback) fallback.checked = true;
-  }
 }
 
 function localizeResultReason(reason) {
   if (LANGUAGE !== "ko") return reason;
   if (reason === "All enemy units were eliminated.") return text("allEliminated");
-  const boardMatch = reason.match(/^Board filled: (\d+)-(\d+) territory\.$/);
-  if (boardMatch) return text("boardFilled", { red: boardMatch[1], blue: boardMatch[2] });
   return reason
     .replaceAll("Red", text("red"))
     .replaceAll("Blue", text("blue"))
@@ -1205,11 +871,6 @@ function selectGameMode(mode, closeModal = false) {
   resetGame();
 }
 
-function networkUrl() {
-  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${location.host}/ws`;
-}
-
 function setNetworkStatus(message) {
   networkStatus.textContent = message;
   networkLobbyStatus.textContent = message;
@@ -1217,29 +878,19 @@ function setNetworkStatus(message) {
 
 function connectNetwork(command) {
   disconnectNetwork();
-  setNetworkStatus(text("connecting"));
-  const socket = new WebSocket(networkUrl());
-  networkSession.socket = socket;
-
-  socket.addEventListener("open", () => {
-    networkSession.connected = true;
-    socket.send(JSON.stringify(command));
-  });
-
-  socket.addEventListener("message", (event) => {
-    const message = JSON.parse(event.data);
-    handleNetworkMessage(message);
-  });
-
-  socket.addEventListener("close", () => {
-    networkSession.connected = false;
-    networkSession.ready = false;
-    setNetworkStatus(text("disconnected"));
-    render();
-  });
-
-  socket.addEventListener("error", () => {
-    setNetworkStatus(text("serverUnavailable"));
+  networkSession = openNetworkConnection(command, {
+    url: buildNetworkUrl(location, NETWORK_SERVER),
+    connectingMessage: text("connecting"),
+    disconnectedMessage: text("disconnected"),
+    unavailableMessage: text("serverUnavailable"),
+    invalidMessage: text("invalidServerResponse"),
+    onStatus: (message, session) => {
+      if (!session || networkSession === session) setNetworkStatus(message);
+    },
+    onMessage: handleNetworkMessage,
+    onClose: (session) => {
+      if (networkSession === session) render();
+    },
   });
 }
 
@@ -1269,14 +920,7 @@ function handleNetworkMessage(message) {
 }
 
 function disconnectNetwork() {
-  if (networkSession.socket) networkSession.socket.close();
-  networkSession = {
-    socket: null,
-    connected: false,
-    ready: false,
-    roomCode: "",
-    player: null,
-  };
+  networkSession = closeNetworkConnection(networkSession);
 }
 
 newGameBtn.addEventListener("click", startNewGame);
@@ -1330,4 +974,10 @@ languageSelect.addEventListener("change", () => {
 
 applyLanguage();
 state = newState();
+const showingNoMoveDemo = applyNoMoveDemo();
+if (showingNoMoveDemo) {
+  modeModal.hidden = true;
+  resolveNoMoveTurn();
+}
 render();
+if (showingNoMoveDemo) scheduleAiTurn();
