@@ -616,9 +616,9 @@ button:disabled {
   }
 
   .fortress-frame {
-    --cell: calc((100cqw - 6px) / 9);
-    position: relative;
-    display: block;
+    --cell: calc((100cqw - 18px) / 9);
+    display: grid;
+    gap: 0;
     padding: 0;
     background: transparent;
   }
@@ -628,44 +628,22 @@ button:disabled {
   }
 
   .board-row {
-    display: block;
+    display: grid;
+    grid-template-columns: 6px auto 6px;
+    gap: 0;
   }
 
   .horizontal-wall {
-    position: absolute;
-    z-index: 2;
-    right: 0;
-    left: 0;
     width: auto;
-    height: 10px;
-    margin: 0;
+    height: 6px;
+    margin-inline: 6px;
     pointer-events: none;
-  }
-
-  .red-wall {
-    top: 0;
-  }
-
-  .blue-wall {
-    bottom: 0;
   }
 
   .vertical-wall {
-    position: absolute;
-    z-index: 3;
-    top: 0;
-    bottom: 0;
-    width: 10px;
-    height: auto;
+    width: 6px;
+    height: calc(var(--cell) * 9 + 6px);
     pointer-events: none;
-  }
-
-  .left-wall {
-    left: 0;
-  }
-
-  .right-wall {
-    right: 0;
   }
 
   .piece {
