@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unknown Kingdom Prototype</title>
+    <link rel="stylesheet" href="./styles.css?v=i18n" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="game-area" aria-label="Game board">
+        <header class="game-status-bar" aria-label="Current match status">
+          <div class="unit-counters" aria-label="Units currently on the board">
+            <div class="unit-counter red-counter" aria-label="Red units">
+              <span id="redCount">0</span>
+            </div>
+            <div class="unit-counter blue-counter" aria-label="Blue units">
+              <span id="blueCount">0</span>
+            </div>
+          </div>
+          <div id="turnPill" class="turn-pill">Blue turn</div>
+          <button id="undoBtn" class="icon-button" type="button" aria-label="Undo Last Move" title="Undo Last Move" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19 12H5M11 6l-6 6 6 6" />
+            </svg>
+          </button>
+          <button id="newGameBtn" class="icon-button" type="button" aria-label="New Game" title="New Game">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" />
+            </svg>
+          </button>
+          <div hidden>
+            <span id="networkStatusGroup"></span>
+            <span id="networkStatus">Not connected.</span>
+          </div>
+        </header>
+        <div class="fortress-frame" aria-label="Fortress walls and board">
+          <div class="horizontal-wall red-wall" aria-hidden="true"></div>
+          <div class="board-row">
+            <div class="vertical-wall left-wall" aria-hidden="true"></div>
+            <div id="board" class="board" role="grid" aria-label="9 by 9 Unknown Kingdom board"></div>
+            <div class="vertical-wall right-wall" aria-hidden="true"></div>
+          </div>
+          <div class="horizontal-wall blue-wall" aria-hidden="true"></div>
+        </div>
+        <section class="deploy-dock" aria-labelledby="deployTitle">
+          <div class="deploy-heading">
+            <h2 id="deployTitle" data-i18n="deploy">Deploy</h2>
+            <button id="cancelTeleportBtn" type="button" hidden>Cancel Ability</button>
+          </div>
+          <div class="unit-picker" role="radiogroup" aria-label="Unit to deploy">
+            <label data-unit="soldier"><input type="radio" name="unit" value="soldier" checked /><span>Soldier</span><small></small></label>
+            <label data-unit="general"><input type="radio" name="unit" value="general" /><span>General</span><small></small></label>
+            <label data-unit="diplomat"><input type="radio" name="unit" value="diplomat" /><span>Diplomat</span><small></small></label>
+            <label data-unit="wizard"><input type="radio" name="unit" value="wizard" /><span>Wizard</span><small></small></label>
+            <label data-unit="king"><input type="radio" name="unit" value="king" /><span>King</span><small></small></label>
+          </div>
+        </section>
+      </section>
+
+      <div hidden>
+        <input type="radio" name="mode" value="pve" checked />
+        <input type="radio" name="mode" value="pvp" />
+      </div>
+    </main>
+
+    <div id="modeModal" class="result-modal">
+      <section class="result-card mode-card" role="dialog" aria-modal="true" aria-labelledby="modeTitle">
+        <div class="modal-heading-row">
+          <p class="eyebrow">Unknown Kingdom</p>
+          <label class="language-picker">
+            <span data-i18n="language">Language</span>
+            <select id="languageSelect">
+              <option value="en">English</option>
+              <option value="ko">한국어</option>
+            </select>
+          </label>
+        </div>
+        <h2 id="modeTitle" data-i18n="chooseMode">Choose Game Mode</h2>
+        <p class="result-reason" data-i18n="chooseModeDescription">Select how you want to start this match.</p>
+        <div class="mode-start-actions">
+          <button type="button" data-start-mode="pve">
+            <strong>PvE</strong>
+            <span data-i18n="pveDescription">Play as Blue against the Red AI</span>
+          </button>
+          <button type="button" data-start-mode="pvp">
+            <strong data-i18n="onlinePvp">Online PvP</strong>
+            <span data-i18n="pvpDescription">Create or join a private network room</span>
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <div id="networkModal" class="result-modal" hidden>
+      <section class="result-card mode-card" role="dialog" aria-modal="true" aria-labelledby="networkTitle">
+        <p class="eyebrow" data-i18n="onlinePvp">Online PvP</p>
+        <h2 id="networkTitle" data-i18n="networkLobby">Network Lobby</h2>
+        <p id="networkLobbyStatus" class="result-reason" data-i18n="networkPrompt">Create a room or enter an invitation code.</p>
+        <div class="network-form">
+          <label>
+            <span data-i18n="roomCode">Room code</span>
+            <input id="roomCodeInput" type="text" maxlength="12" autocomplete="off" placeholder="Enter code" />
+          </label>
+          <button id="createRoomBtn" type="button" data-i18n="createRoom">Create Room</button>
+          <button id="joinRoomBtn" type="button" data-i18n="joinRoom">Join Room</button>
+          <button id="cancelNetworkBtn" type="button" data-i18n="back">Back</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="specialHelpModal" class="result-modal" hidden>
+      <section class="result-card help-card" role="dialog" aria-modal="true" aria-labelledby="specialHelpTitle">
+        <p class="eyebrow" data-i18n="specialUnit">Special Unit</p>
+        <h2 id="specialHelpTitle">General</h2>
+        <p id="specialHelpText" class="result-reason"></p>
+        <label class="help-preference">
+          <input id="hideSpecialHelpCheckbox" type="checkbox" />
+          <span data-i18n="dontShowAgain">Do not show this unit explanation again</span>
+        </label>
+        <button id="closeSpecialHelpBtn" type="button" data-i18n="gotIt">Got It</button>
+      </section>
+    </div>
+
+    <div id="resultModal" class="result-modal" hidden>
+      <section class="result-card" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+        <p class="eyebrow" data-i18n="matchComplete">Match Complete</p>
+        <h2 id="resultTitle">Red Wins</h2>
+        <p id="resultReason" class="result-reason"></p>
+        <div class="result-grid">
+          <div><strong id="resultRedTerritory">0</strong><span data-i18n="redTerritory">Red territory</span></div>
+          <div><strong id="resultBlueTerritory">0</strong><span data-i18n="blueTerritory">Blue territory</span></div>
+          <div><strong id="resultRedCaptures">0</strong><span data-i18n="redCaptures">Red captures</span></div>
+          <div><strong id="resultBlueCaptures">0</strong><span data-i18n="blueCaptures">Blue captures</span></div>
+          <div><strong id="resultRedSpecials">0</strong><span data-i18n="redSkills">Red skills used</span></div>
+          <div><strong id="resultBlueSpecials">0</strong><span data-i18n="blueSkills">Blue skills used</span></div>
+        </div>
+        <button id="playAgainBtn" type="button" data-i18n="playAgain">Play Again</button>
+      </section>
+    </div>
+
+    <script src="./app.js?v=i18n"></script>
+  </body>
+</html>
