@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Unknown Kingdom Prototype</title>
-    <link rel="stylesheet" href="./styles.css?v=used-special-as-soldier" />
+    <link rel="stylesheet" href="./styles.css?v=online-side-choice" />
   </head>
   <body>
     <main class="app-shell">
@@ -113,6 +113,17 @@
         <h2 id="networkTitle" data-i18n="networkLobby">Network Lobby</h2>
         <p id="networkLobbyStatus" class="result-reason" data-i18n="networkPrompt">Create a room or enter an invitation code.</p>
         <div class="network-form">
+          <fieldset class="network-side-picker">
+            <legend data-i18n="chooseSide">Choose your side</legend>
+            <label>
+              <input type="radio" name="onlineSide" value="red" />
+              <span data-i18n="blackSide">Black</span>
+            </label>
+            <label>
+              <input type="radio" name="onlineSide" value="blue" checked />
+              <span data-i18n="whiteSide">White</span>
+            </label>
+          </fieldset>
           <label>
             <span data-i18n="roomCode">Room code</span>
             <input id="roomCodeInput" type="text" maxlength="12" autocomplete="off" placeholder="Enter code" />
@@ -154,6 +165,6 @@
       </section>
     </div>
 
-    <script type="module" src="./app.js?v=hide-online-bot"></script>
+    <script type="module" src="./app.js?v=online-side-choice"></script>
   </body>
 </html>

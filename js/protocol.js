@@ -99,7 +99,8 @@ export function validateNetworkMessage(message) {
   if (!isPlainObject(message) || !MESSAGE_TYPES.has(message.type)) return false;
 
   if (message.type === "room_created" || message.type === "waiting") {
-    return isRoomCode(message.roomCode);
+    return isRoomCode(message.roomCode)
+      && (message.player === undefined || PLAYERS.has(message.player));
   }
 
   if (message.type === "match_start") {

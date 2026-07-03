@@ -1,4 +1,4 @@
-import { TEXT } from "./config.js?v=hide-online-bot";
+import { TEXT } from "./config.js?v=online-side-choice";
 
 export function createTranslator(language) {
   return function text(key, values = {}) {

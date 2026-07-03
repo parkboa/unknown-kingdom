@@ -7,7 +7,7 @@ import {
   WHITE_TERRITORY_BONUS,
   createSpecialHelp,
   createUnitLabels,
-} from "./js/config.js?v=hide-online-bot";
+} from "./js/config.js?v=online-side-choice";
 import {
   cellKey,
   inBounds,
@@ -25,14 +25,14 @@ import {
   chooseAiTeleportDestination,
   findAiDeployMove,
 } from "./js/ai.js?v=exciting-ai";
-import { createTranslator } from "./js/i18n.js?v=hide-online-bot";
+import { createTranslator } from "./js/i18n.js?v=online-side-choice";
 import {
   buildNetworkUrl,
   connectNetwork as openNetworkConnection,
   createNetworkSession,
   disconnectNetwork as closeNetworkConnection,
   sendNetworkAction as sendNetworkMessage,
-} from "./js/network.js?v=opponent-taunt";
+} from "./js/network.js?v=online-side-choice";
 import {
   createInitialState,
   createOccupiedSoldier,
@@ -135,6 +135,7 @@ const TUTORIAL_STEPS = [
 ];
 
 const boardEl = document.querySelector("#board");
+const fortressFrame = document.querySelector(".fortress-frame");
 const turnPill = document.querySelector("#turnPill");
 const tauntBtn = document.querySelector("#tauntBtn");
 const redCount = document.querySelector("#redCount");
@@ -222,6 +223,10 @@ function currentUnitChoice() {
 
 function currentModeChoice() {
   return document.querySelector("input[name='mode']:checked")?.value || "pve";
+}
+
+function currentOnlineSideChoice() {
+  return document.querySelector("input[name='onlineSide']:checked")?.value || "blue";
 }
 
 function isAiTurn() {
@@ -903,6 +908,8 @@ function forEachPiece(callback) {
 }
 
 function render() {
+  const viewerSide = state.mode === "pvp" ? networkSession.player : PVE_HUMAN;
+  fortressFrame.classList.toggle("view-red", viewerSide === "red");
   renderGame({
     state,
     boardEl,
@@ -1091,8 +1098,13 @@ function connectNetwork(command) {
 function handleNetworkMessage(message) {
   if (message.type === "room_created" || message.type === "waiting") {
     networkSession.roomCode = message.roomCode;
+    networkSession.player = message.player || networkSession.player;
     roomCodeInput.value = message.roomCode;
-    setNetworkStatus(text("roomWaiting", { room: message.roomCode }));
+    setNetworkStatus(text("roomWaitingSide", {
+      room: message.roomCode,
+      side: sideName(networkSession.player || currentOnlineSideChoice()),
+    }));
+    render();
     return;
   }
 
@@ -1128,14 +1140,21 @@ function disconnectNetwork() {
 
 newGameBtn.addEventListener("click", startNewGame);
 playAgainBtn.addEventListener("click", playAgain);
-createRoomBtn.addEventListener("click", () => connectNetwork({ type: "create_room" }));
+createRoomBtn.addEventListener("click", () => connectNetwork({
+  type: "create_room",
+  preferredSide: currentOnlineSideChoice(),
+}));
 joinRoomBtn.addEventListener("click", () => {
   const roomCode = roomCodeInput.value.trim().toUpperCase();
   if (!roomCode) {
     setNetworkStatus(text("enterRoomCode"));
     return;
   }
-  connectNetwork({ type: "join_room", roomCode });
+  connectNetwork({
+    type: "join_room",
+    roomCode,
+    preferredSide: currentOnlineSideChoice(),
+  });
 });
 cancelNetworkBtn.addEventListener("click", () => {
   disconnectNetwork();
