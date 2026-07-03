@@ -1,11 +1,13 @@
 import {
   DEPLOY_ORDER,
   PVE_AI,
+  PVE_HUMAN,
   SIZE,
   SPECIALS,
+  WHITE_TERRITORY_BONUS,
   createSpecialHelp,
   createUnitLabels,
-} from "./js/config.js?v=black-white";
+} from "./js/config.js?v=white-bonus-2";
 import {
   cellKey,
   inBounds,
@@ -17,31 +19,30 @@ import {
   chooseCaptor as findCaptor,
   collectGroup as findGroup,
   groupHasLiberty as hasGroupLiberty,
-  isFortressConnected as connectsToFortress,
-} from "./js/capture.js";
+  touchesOwnWall,
+} from "./js/capture.js?v=king-one-life";
 import {
-  chooseAiKingSwapTarget,
   chooseAiTeleportDestination,
   findAiDeployMove,
-} from "./js/ai.js";
-import { createTranslator } from "./js/i18n.js?v=black-white";
+} from "./js/ai.js?v=exciting-ai";
+import { createTranslator } from "./js/i18n.js?v=white-bonus-2";
 import {
   buildNetworkUrl,
   connectNetwork as openNetworkConnection,
   createNetworkSession,
   disconnectNetwork as closeNetworkConnection,
   sendNetworkAction as sendNetworkMessage,
-} from "./js/network.js";
+} from "./js/network.js?v=opponent-taunt";
 import {
   createInitialState,
   createOccupiedSoldier,
   createPiece,
-} from "./js/state.js";
+} from "./js/state.js?v=black-white-terms";
 import {
   publicName as getPublicName,
   renderGame,
   viewerOwnsPiece as doesViewerOwnPiece,
-} from "./js/render.js?v=unit-icons";
+} from "./js/render.js?v=used-special-as-soldier";
 
 const requestedLanguage = new URLSearchParams(location.search).get("lang") || localStorage.getItem("unknown-kingdom-language");
 const LANGUAGE = requestedLanguage === "ko" ? "ko" : "en";
@@ -58,10 +59,84 @@ const text = createTranslator(LANGUAGE);
 let state;
 let undoStack = [];
 let aiTimer = null;
+let tauntTimer = null;
+let visibleTaunt = null;
+let lastTauntEventId = 0;
 let networkSession = createNetworkSession();
+let tutorialStep = -1;
+let tutorialAwaitingContinue = false;
+let tutorialKingPosition = null;
+let tutorialReactionPending = false;
+let tutorialReactionPhase = null;
+let tutorialTimer = null;
+
+const TUTORIAL_STEPS = [
+  { unitType: "king", owner: "blue", row: 7, col: 4, message: "tutorialKing" },
+  {
+    unitType: "soldier",
+    owner: "red",
+    row: 8,
+    col: 3,
+    message: "tutorialWallDefense",
+    placedMessage: "tutorialWallDefensePlaced",
+    setup: "wall-defense",
+  },
+  {
+    unitType: "soldier",
+    owner: "blue",
+    row: 8,
+    col: 7,
+    message: "tutorialWallCapture",
+    placedMessage: "tutorialWallCapturePlaced",
+    setup: "wall-capture",
+  },
+  {
+    unitType: "soldier",
+    owner: "blue",
+    row: 4,
+    col: 5,
+    message: "tutorialCapture",
+    placedMessage: "tutorialCapturePlaced",
+    setup: "capture",
+  },
+  {
+    unitType: "general",
+    owner: "blue",
+    row: 4,
+    col: 4,
+    message: "tutorialGeneral",
+    placedMessage: "tutorialGeneralPlaced",
+    readyMessage: "tutorialGeneralReady",
+    setup: "special",
+    reaction: true,
+  },
+  {
+    unitType: "diplomat",
+    owner: "blue",
+    row: 4,
+    col: 4,
+    message: "tutorialDiplomat",
+    placedMessage: "tutorialDiplomatPlaced",
+    readyMessage: "tutorialDiplomatReady",
+    setup: "special",
+    reaction: true,
+  },
+  {
+    unitType: "wizard",
+    owner: "blue",
+    row: 4,
+    col: 4,
+    message: "tutorialWizard",
+    placedMessage: "tutorialWizardPlaced",
+    readyMessage: "tutorialWizardReady",
+    setup: "special",
+    reaction: true,
+  },
+];
 
 const boardEl = document.querySelector("#board");
 const turnPill = document.querySelector("#turnPill");
+const tauntBtn = document.querySelector("#tauntBtn");
 const redCount = document.querySelector("#redCount");
 const blueCount = document.querySelector("#blueCount");
 const cancelTeleportBtn = document.querySelector("#cancelTeleportBtn");
@@ -75,6 +150,7 @@ const networkLobbyStatus = document.querySelector("#networkLobbyStatus");
 const roomCodeInput = document.querySelector("#roomCodeInput");
 const createRoomBtn = document.querySelector("#createRoomBtn");
 const joinRoomBtn = document.querySelector("#joinRoomBtn");
+const playOnlineBotBtn = document.querySelector("#playOnlineBotBtn");
 const cancelNetworkBtn = document.querySelector("#cancelNetworkBtn");
 const resultModal = document.querySelector("#resultModal");
 const playAgainBtn = document.querySelector("#playAgainBtn");
@@ -84,6 +160,11 @@ const specialHelpText = document.querySelector("#specialHelpText");
 const hideSpecialHelpCheckbox = document.querySelector("#hideSpecialHelpCheckbox");
 const closeSpecialHelpBtn = document.querySelector("#closeSpecialHelpBtn");
 const languageSelect = document.querySelector("#languageSelect");
+const tutorialPanel = document.querySelector("#tutorialPanel");
+const tutorialStepLabel = document.querySelector("#tutorialStepLabel");
+const tutorialMessage = document.querySelector("#tutorialMessage");
+const exitTutorialBtn = document.querySelector("#exitTutorialBtn");
+const nextTutorialBtn = document.querySelector("#nextTutorialBtn");
 const modeStartButtons = document.querySelectorAll("[data-start-mode]");
 const modeInputs = document.querySelectorAll("input[name='mode']");
 const unitInputs = document.querySelectorAll("input[name='unit']");
@@ -132,7 +213,7 @@ function applyNoMoveDemo() {
   state.firstDeployDone = { red: true, blue: true };
   state.stock.blue = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
   state.stock.red = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
-  state.log = ["No-move demo: Blue has no legal deployment, but the board is not full."];
+  state.log = ["No-move demo: White has no legal deployment, but the board is not full."];
   return true;
 }
 
@@ -150,12 +231,21 @@ function isAiTurn() {
 
 function canDeploy(player, unitType, row, col) {
   if (state.mode === "pvp") return false;
+  if (state.mode === "tutorial") {
+    const expected = TUTORIAL_STEPS[tutorialStep];
+    return Boolean(expected)
+      && !tutorialAwaitingContinue
+      && player === expected.owner
+      && unitType === expected.unitType
+      && row === expected.row
+      && col === expected.col
+      && !state.board[row][col];
+  }
   if (state.winner || state.teleporting || state.pendingKingSwap) return false;
   if (!inBounds(row, col) || state.board[row][col]) return false;
   if (!state.firstDeployDone[player] && unitType !== "king") return false;
   if (state.stock[player][unitType] <= 0) return false;
-  if (deploymentSurvives(player, unitType, row, col)) return true;
-  return deploymentSurvives(player, unitType, row, col, true);
+  return true;
 }
 
 function hasLegalDeployment(player) {
@@ -234,18 +324,118 @@ function deploy(row, col) {
   const player = state.turn;
   const unitType = currentUnitChoice();
   if (!canDeploy(player, unitType, row, col)) {
-    addLog(`${capitalize(player)} cannot deploy ${UNIT_LABELS[unitType]} there.`);
+    addLog(`${sideName(player)} cannot deploy ${UNIT_LABELS[unitType]} there.`);
     render();
     return;
   }
+  if (!deploymentSurvives(player, unitType, row, col, true) && !window.confirm(text("suicideWarning"))) return;
 
   saveUndoCheckpoint();
   state.board[row][col] = createPiece(player, unitType);
+  if (state.mode === "tutorial" && unitType === "king") tutorialKingPosition = { row, col };
   state.stock[player][unitType] -= 1;
   state.firstDeployDone[player] = true;
-  addLog(`${capitalize(player)} deployed ${UNIT_LABELS[unitType]} at ${coord(row, col)}.`);
+  if (unitType === "king") registerKingWallTaunt(player, row, col);
+  addLog(`${sideName(player)} deployed ${UNIT_LABELS[unitType]} at ${coord(row, col)}.`);
   resolveAllCaptures(player);
+  if (state.mode === "tutorial") {
+    const expected = TUTORIAL_STEPS[tutorialStep];
+    tutorialReactionPending = Boolean(expected?.reaction);
+    if (tutorialStep >= 1) {
+      tutorialAwaitingContinue = true;
+      render();
+      return;
+    }
+    advanceTutorial();
+    render();
+    return;
+  }
+  if (state.winner || state.teleporting || state.pendingKingSwap) {
+    render();
+    scheduleAiTurn();
+    return;
+  }
   endTurn();
+}
+
+function selectTutorialUnit(unitType) {
+  const input = document.querySelector(`input[name="unit"][value="${unitType}"]`);
+  if (input) input.checked = true;
+}
+
+function setTutorialCaptureBoard() {
+  state.board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+  const king = tutorialKingPosition || { row: 7, col: 4 };
+  state.board[king.row][king.col] = createPiece("blue", "king");
+  state.board[3][4] = createOccupiedSoldier("blue");
+  state.board[5][4] = createOccupiedSoldier("blue");
+  state.board[4][3] = createOccupiedSoldier("blue");
+  state.board[4][4] = createOccupiedSoldier("red");
+}
+
+function resetTutorialBoard() {
+  state.board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+  const king = tutorialKingPosition || { row: 7, col: 4 };
+  state.board[king.row][king.col] = createPiece("blue", "king");
+  state.firstDeployDone = { red: true, blue: true };
+}
+
+function setTutorialWallDefenseBoard() {
+  resetTutorialBoard();
+  state.board[8][2] = createOccupiedSoldier("blue");
+  state.board[8][1] = createOccupiedSoldier("red");
+  state.board[7][2] = createOccupiedSoldier("red");
+}
+
+function setTutorialWallCaptureBoard() {
+  resetTutorialBoard();
+  state.board[8][6] = createOccupiedSoldier("red");
+  state.board[8][5] = createOccupiedSoldier("blue");
+  state.board[7][6] = createOccupiedSoldier("blue");
+}
+
+function setTutorialSpecialBoard() {
+  resetTutorialBoard();
+  state.board[3][4] = createOccupiedSoldier("red");
+  state.board[5][4] = createOccupiedSoldier("red");
+  state.board[4][3] = createOccupiedSoldier("red");
+}
+
+function advanceTutorial() {
+  tutorialAwaitingContinue = false;
+  tutorialReactionPending = false;
+  tutorialReactionPhase = null;
+  tutorialStep += 1;
+  state.selected = null;
+  state.winner = null;
+  state.resultReason = "";
+  const expected = TUTORIAL_STEPS[tutorialStep];
+  if (!expected) return;
+  if (expected.setup === "wall-defense") setTutorialWallDefenseBoard();
+  if (expected.setup === "wall-capture") setTutorialWallCaptureBoard();
+  if (expected.setup === "capture") setTutorialCaptureBoard();
+  if (expected.setup === "special") setTutorialSpecialBoard();
+  state.turn = expected.owner;
+  selectTutorialUnit(expected.unitType);
+}
+
+function startTutorial() {
+  if (tutorialTimer !== null) window.clearTimeout(tutorialTimer);
+  tutorialTimer = null;
+  disconnectNetwork();
+  networkModal.hidden = true;
+  undoStack = [];
+  state = createInitialState("tutorial");
+  state.turn = "blue";
+  state.stock.blue = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
+  tutorialStep = 0;
+  tutorialAwaitingContinue = false;
+  tutorialKingPosition = null;
+  tutorialReactionPending = false;
+  tutorialReactionPhase = null;
+  selectTutorialUnit(TUTORIAL_STEPS[0].unitType);
+  modeModal.hidden = true;
+  render();
 }
 
 function sendNetworkAction(action) {
@@ -259,12 +449,16 @@ function deployUnit(player, unitType, row, col) {
   state.board[row][col] = createPiece(player, unitType);
   state.stock[player][unitType] -= 1;
   state.firstDeployDone[player] = true;
+  if (unitType === "king") registerKingWallTaunt(player, row, col);
   const unitName = state.mode === "pve" && player === PVE_AI && unitType !== "king"
     ? text("hiddenUnit")
     : UNIT_LABELS[unitType];
-  addLog(`${capitalize(player)} deployed ${unitName} at ${coord(row, col)}.`);
+  addLog(`${sideName(player)} deployed ${unitName} at ${coord(row, col)}.`);
   resolveAllCaptures(player);
   endTurn();
+  if (player === PVE_AI && state.tauntChances[PVE_AI]) {
+    window.setTimeout(() => useTaunt(PVE_AI), 150);
+  }
   return true;
 }
 
@@ -281,7 +475,62 @@ function declareWinner(winner, reason) {
   if (state.winner) return;
   state.winner = winner;
   state.resultReason = reason;
-  addLog(`${capitalize(winner)} wins. ${reason}`);
+  addLog(`${sideName(winner)} wins. ${reason}`);
+}
+
+function registerKingWallTaunt(owner, row, col) {
+  if (!touchesOwnWall(owner, row, col)) return;
+  const tauntingPlayer = opponent(owner);
+  state.tauntChances[tauntingPlayer] = {
+    targetOwner: owner,
+    row,
+    col,
+  };
+  addLog(`${sideName(owner)} placed the King against its own fortress wall.`);
+}
+
+function showTauntBubble(event) {
+  if (!event || event.id === lastTauntEventId) return;
+  lastTauntEventId = event.id;
+  visibleTaunt = event;
+  if (tauntTimer !== null) window.clearTimeout(tauntTimer);
+  render();
+  tauntTimer = window.setTimeout(() => {
+    tauntTimer = null;
+    visibleTaunt = null;
+    render();
+  }, 2000);
+}
+
+function findKingPosition(owner) {
+  for (let row = 0; row < SIZE; row += 1) {
+    for (let col = 0; col < SIZE; col += 1) {
+      const piece = state.board[row][col];
+      if (piece?.owner === owner && piece.type === "king") return { row, col };
+    }
+  }
+  return null;
+}
+
+function canPlayerUseTaunt(player) {
+  return Boolean(player && state.tauntChances[player] && findKingPosition(player));
+}
+
+function useTaunt(player) {
+  const chance = state.tauntChances[player];
+  const speaker = findKingPosition(player);
+  if (!chance || !speaker || state.winner) return false;
+  state.tauntChances[player] = null;
+  state.tauntSerial += 1;
+  state.tauntEvent = {
+    id: state.tauntSerial,
+    speakerOwner: player,
+    targetOwner: chance.targetOwner,
+    row: speaker.row,
+    col: speaker.col,
+  };
+  showTauntBubble(state.tauntEvent);
+  return true;
 }
 
 function declareDraw(reason) {
@@ -294,26 +543,26 @@ function declareDraw(reason) {
 function finishByTerritory(reasonTemplate) {
   const redTerritory = countPieces("red");
   const blueTerritory = countPieces("blue");
-  const reason = text(reasonTemplate, { red: redTerritory, blue: blueTerritory });
-  if (redTerritory === blueTerritory) {
+  const adjustedBlueTerritory = blueTerritory + WHITE_TERRITORY_BONUS;
+  const reason = text(reasonTemplate, {
+    red: redTerritory,
+    blue: blueTerritory,
+    bonus: WHITE_TERRITORY_BONUS,
+  });
+  if (redTerritory === adjustedBlueTerritory) {
     declareDraw(reason);
   } else {
-    declareWinner(redTerritory > blueTerritory ? "red" : "blue", reason);
+    declareWinner(redTerritory > adjustedBlueTerritory ? "red" : "blue", reason);
   }
 }
 
 function resolveNoMoveTurn() {
+  if (state.teleporting || state.pendingKingSwap) return false;
   if (state.winner || hasLegalDeployment(state.turn)) return false;
 
   const passingPlayer = state.turn;
   const nextPlayer = opponent(passingPlayer);
-  if (!hasLegalDeployment(nextPlayer)) {
-    finishByTerritory("noLegalMoves");
-  } else {
-    addLog(text("autoPass", { side: sideName(passingPlayer) }));
-    state.turn = nextPlayer;
-    state.selected = null;
-  }
+  finishByTerritory("noLegalMoves");
   return true;
 }
 
@@ -408,7 +657,7 @@ function resolveCapturedGroup(group, captor) {
       occupyCapturedGroup(remainingGroup, captor);
       if (state.winner || state.teleporting || state.pendingKingSwap) return;
     } else {
-      addLog(`${capitalize(defender)} group resisted capture after special reaction.`);
+      addLog(`${sideName(defender)} group resisted capture after special reaction.`);
     }
   }
 }
@@ -424,26 +673,21 @@ function triggerCapturedSpecials(group, defender) {
     if (piece.type === "general") {
       strikeAdjacentEnemies(row, col, piece.owner, "General capture reaction");
       retireSpecial(piece);
-      addLog(`${capitalize(piece.owner)} General triggered while surrounded.`);
+      addLog(`${sideName(piece.owner)} General triggered while surrounded.`);
     } else if (piece.type === "diplomat") {
       convertAdjacentEnemies(row, col, piece.owner);
       retireSpecial(piece);
-      addLog(`${capitalize(piece.owner)} Diplomat triggered while surrounded.`);
+      addLog(`${sideName(piece.owner)} Diplomat triggered while surrounded.`);
     } else if (piece.type === "wizard") {
       strikeAdjacentEnemies(row, col, piece.owner, "Wizard capture reaction");
       retireSpecial(piece);
       if (hasEmptyCell()) {
         const teleport = { row, col, owner: piece.owner, reaction: true };
-        if (state.pendingKingSwap) {
-          state.pendingWizardTeleport = teleport;
-          addLog(`${capitalize(piece.owner)} Wizard triggered while surrounded and will teleport after the King escapes.`);
-        } else {
-          state.teleporting = teleport;
-          addLog(`${capitalize(piece.owner)} Wizard triggered while surrounded. Choose an empty escape cell.`);
-        }
+        state.teleporting = teleport;
+        addLog(`${sideName(piece.owner)} Wizard triggered while surrounded. Choose an empty escape cell.`);
         return;
       } else {
-        addLog(`${capitalize(piece.owner)} Wizard triggered while surrounded but had no escape cell.`);
+        addLog(`${sideName(piece.owner)} Wizard triggered while surrounded but had no escape cell.`);
       }
     }
   }
@@ -458,11 +702,9 @@ function occupyCapturedGroup(group, captor) {
     if (!piece) continue;
 
     if (piece.type === "king") {
-      const escaped = handleKingCapture(row, col, "territory capture");
-      if (escaped) continue;
       state.board[row][col] = createOccupiedSoldier(captor);
       state.stats.captures[captor] += 1;
-      declareWinner(captor, `${capitalize(defender)} King was captured a second time at ${coord(row, col)}.`);
+      declareWinner(captor, `${sideName(defender)} King was captured at ${coord(row, col)}.`);
       return;
     }
 
@@ -471,7 +713,7 @@ function occupyCapturedGroup(group, captor) {
   }
 
   state.stats.captures[captor] += occupied;
-  if (occupied > 0) addLog(`${capitalize(captor)} captured ${occupied} ${capitalize(defender)} space(s).`);
+  if (occupied > 0) addLog(`${sideName(captor)} captured ${occupied} ${sideName(defender)} space(s).`);
 }
 
 function strikeAdjacentEnemies(row, col, owner, reason) {
@@ -499,100 +741,21 @@ function hasEmptyCell() {
   return false;
 }
 
-function isFortressConnected(owner, row, col) {
-  return connectsToFortress(state, owner, row, col);
-}
-
 function capturePiece(row, col, reason) {
   const piece = state.board[row][col];
   if (!piece) return;
-
-  if (piece.type === "king" && handleKingCapture(row, col, reason)) {
-    return;
-  }
 
   if (piece.type === "king") {
     state.board[row][col] = null;
     const winner = opponent(piece.owner);
     state.stats.captures[winner] += 1;
-    declareWinner(winner, `${capitalize(piece.owner)} King was captured a second time by ${reason}.`);
+    declareWinner(winner, `${sideName(piece.owner)} King was captured by ${reason}.`);
     return;
   }
 
   state.board[row][col] = null;
   state.stats.captures[opponent(piece.owner)] += 1;
-  addLog(`${capitalize(piece.owner)} ${publicName(piece)} at ${coord(row, col)} was removed by ${reason}.`);
-}
-
-function handleKingCapture(row, col, reason) {
-  const piece = state.board[row][col];
-  if (!piece || piece.type !== "king" || piece.kingEscapeUsed) return false;
-
-  piece.kingEscapeUsed = true;
-  piece.revealed = true;
-  if (hasKingEscapeTarget(piece.owner, row, col)) {
-    state.pendingKingSwap = { row, col, owner: piece.owner, reason };
-    addLog(`${capitalize(piece.owner)} King was attacked by ${reason}. Swap with a friendly Soldier or escape to an empty cell within 3 spaces.`);
-  } else {
-    const winner = opponent(piece.owner);
-    state.stats.captures[winner] += 1;
-    declareWinner(winner, `${capitalize(piece.owner)} King had no valid escape from ${reason}.`);
-  }
-  return true;
-}
-
-function hasKingEscapeTarget(owner, kingRow, kingCol) {
-  for (let row = 0; row < SIZE; row += 1) {
-    for (let col = 0; col < SIZE; col += 1) {
-      if (kingEscapeType(owner, kingRow, kingCol, row, col)) return true;
-    }
-  }
-  return false;
-}
-
-function kingEscapeType(owner, kingRow, kingCol, row, col) {
-  if (row === kingRow && col === kingCol) return false;
-  const piece = state.board[row]?.[col];
-  if (piece?.owner === owner && piece.type === "soldier") return "swap";
-  const distance = Math.abs(row - kingRow) + Math.abs(col - kingCol);
-  if (!piece && distance <= 3) return "escape";
-  return null;
-}
-
-function completeKingSwap(row, col) {
-  const pending = state.pendingKingSwap;
-  if (!pending || state.winner) return;
-  const escapeType = kingEscapeType(pending.owner, pending.row, pending.col, row, col);
-  if (!escapeType) {
-    addLog("Choose a friendly Soldier, or an empty cell within 3 spaces of the King.");
-    render();
-    return;
-  }
-
-  const king = state.board[pending.row][pending.col];
-  if (!king || king.owner !== pending.owner || king.type !== "king") {
-    state.pendingKingSwap = null;
-    addLog("King escape was cancelled because the King was no longer at the captured position.");
-    render();
-    return;
-  }
-  state.board[pending.row][pending.col] = escapeType === "swap" ? state.board[row][col] : null;
-  state.board[row][col] = king;
-  state.pendingKingSwap = null;
-  const action = escapeType === "swap" ? "swapped with a Soldier" : "escaped";
-  addLog(`${capitalize(pending.owner)} King ${action} to ${coord(row, col)}.`);
-
-  if (state.pendingWizardTeleport) {
-    state.teleporting = state.pendingWizardTeleport;
-    state.pendingWizardTeleport = null;
-    addLog(`${capitalize(state.teleporting.owner)} Wizard may now choose an empty teleport cell.`);
-    render();
-    scheduleAiTurn();
-    return;
-  }
-
-  resolveAllCaptures(pending.owner);
-  endTurn();
+  addLog(`${sideName(piece.owner)} ${publicName(piece)} at ${coord(row, col)} was removed by ${reason}.`);
 }
 
 function publicName(piece) {
@@ -607,11 +770,6 @@ function selectCell(row, col) {
   if (state.winner) return;
   if (state.mode === "pvp") {
     if (!networkSession.ready) return;
-    if (state.pendingKingSwap) {
-      if (state.pendingKingSwap.owner !== networkSession.player) return;
-      sendNetworkAction({ type: "king_escape", row, col });
-      return;
-    }
     if (state.teleporting) {
       if (state.teleporting.owner !== networkSession.player) return;
       sendNetworkAction({ type: "wizard_teleport", row, col });
@@ -628,11 +786,6 @@ function selectCell(row, col) {
     return;
   }
   if (isAiTurn()) return;
-
-  if (state.pendingKingSwap) {
-    completeKingSwap(row, col);
-    return;
-  }
 
   if (state.teleporting) {
     teleportWizard(row, col);
@@ -660,9 +813,9 @@ function convertPiece(row, col, owner) {
   const piece = state.board[row][col];
   if (!piece) return;
   if (piece.type === "king") {
-    if (handleKingCapture(row, col, "Diplomat conversion")) return;
     state.stats.captures[owner] += 1;
-    declareWinner(owner, `${capitalize(piece.owner)} King was captured a second time by Diplomat conversion.`);
+    state.board[row][col] = createOccupiedSoldier(owner);
+    declareWinner(owner, `${sideName(piece.owner)} King was captured by Diplomat conversion.`);
     return;
   }
   state.stats.captures[owner] += 1;
@@ -690,24 +843,17 @@ function teleportWizard(row, col) {
   state.board[fromRow][fromCol] = null;
   state.board[row][col] = wizard;
   state.teleporting = null;
-  addLog(`${capitalize(owner)} Wizard teleported to ${coord(row, col)}.`);
+  addLog(`${sideName(owner)} Wizard teleported to ${coord(row, col)}.`);
   resolveAllCaptures(owner);
+  if (state.mode === "tutorial") {
+    tutorialAwaitingContinue = true;
+    render();
+    return;
+  }
   endTurn();
 }
 
 function scheduleAiTurn() {
-  if (state.mode === "pve" && state.pendingKingSwap?.owner === PVE_AI && !state.aiThinking) {
-    state.aiThinking = true;
-    render();
-    aiTimer = window.setTimeout(() => {
-      aiTimer = null;
-      state.aiThinking = false;
-      const destination = chooseAiKingSwapTarget(state, { kingEscapeType, neighbors, isFortressConnected });
-      if (destination) completeKingSwap(destination.row, destination.col);
-    }, 450);
-    return;
-  }
-
   if (state.mode === "pve" && state.teleporting?.owner === PVE_AI && !state.aiThinking) {
     state.aiThinking = true;
     render();
@@ -720,7 +866,7 @@ function scheduleAiTurn() {
     return;
   }
 
-  if (!isAiTurn() || state.teleporting || state.pendingKingSwap || state.aiThinking) return;
+  if (!isAiTurn() || state.teleporting || state.aiThinking) return;
   state.aiThinking = true;
   render();
   aiTimer = window.setTimeout(() => {
@@ -731,12 +877,12 @@ function scheduleAiTurn() {
 }
 
 function runBlueAiTurn() {
-  if (!isAiTurn() || state.winner || state.teleporting || state.pendingKingSwap) return;
+  if (!isAiTurn() || state.winner || state.teleporting) return;
 
   const deployMove = findAiDeployMove(state, { canDeploy, countPieces, neighbors });
   if (deployMove && deployUnit(PVE_AI, deployMove.type, deployMove.row, deployMove.col)) return;
 
-  addLog(`${capitalize(PVE_AI)} AI has no valid move.`);
+  addLog(`${sideName(PVE_AI)} AI has no valid move.`);
   endTurn();
 }
 
@@ -757,10 +903,6 @@ function forEachPiece(callback) {
   }
 }
 
-function capitalize(value) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
 function render() {
   renderGame({
     state,
@@ -769,12 +911,15 @@ function render() {
     redCount,
     blueCount,
     cancelTeleportBtn,
+    tauntBtn,
     undoBtn,
     resultModal,
     networkStatusGroup,
     unitInputs,
     networkReady: networkSession.ready,
     networkPlayer: networkSession.player,
+    canUseTaunt: canPlayerUseTaunt(state.mode === "pvp" ? networkSession.player : PVE_HUMAN),
+    visibleTaunt,
     undoCount: undoStack.length,
     unitLabels: UNIT_LABELS,
     text,
@@ -782,21 +927,51 @@ function render() {
     coord,
     currentUnitChoice,
     canDeploy,
-    kingEscapeType,
     selectCell,
     countPieces,
     localizeResultReason,
   });
+  const tutorialActive = state.mode === "tutorial";
+  tutorialPanel.hidden = !tutorialActive;
+  boardEl.classList.toggle("tutorial-active", tutorialActive);
+  if (tutorialActive) {
+    const complete = tutorialStep >= TUTORIAL_STEPS.length;
+    tutorialStepLabel.textContent = complete
+      ? text("tutorial")
+      : text("tutorialStep", { current: tutorialStep + 1, total: TUTORIAL_STEPS.length });
+    const tutorialMessageKey = tutorialReactionPhase === "preparing"
+      ? "tutorialBlackPreparing"
+      : tutorialReactionPhase === "surrounded"
+        ? "tutorialSurroundComplete"
+        : tutorialAwaitingContinue
+          ? tutorialReactionPending
+            ? TUTORIAL_STEPS[tutorialStep].readyMessage
+            : state.teleporting
+              ? "tutorialWizardTeleport"
+              : TUTORIAL_STEPS[tutorialStep].placedMessage
+          : TUTORIAL_STEPS[tutorialStep]?.message;
+    tutorialMessage.textContent = text(complete ? "tutorialComplete" : tutorialMessageKey);
+    nextTutorialBtn.hidden = complete
+      || !tutorialAwaitingContinue
+      || Boolean(state.teleporting)
+      || Boolean(tutorialReactionPhase);
+    boardEl.classList.toggle("tutorial-complete", complete);
+  } else {
+    nextTutorialBtn.hidden = true;
+    boardEl.classList.remove("tutorial-active");
+    boardEl.classList.remove("tutorial-complete");
+  }
 }
 
 function localizeResultReason(reason) {
-  if (LANGUAGE !== "ko") return reason;
   if (reason === "All enemy units were eliminated.") return text("allEliminated");
-  return reason
-    .replaceAll("Red", text("red"))
-    .replaceAll("Blue", text("blue"))
+  const localizedSides = reason
+    .replace(/\bred\b/gi, text("red"))
+    .replace(/\bblue\b/gi, text("blue"));
+  if (LANGUAGE !== "ko") return localizedSides;
+  return localizedSides
     .replaceAll("King", text("king"))
-    .replaceAll("was captured a second time", "두 번째로 포획되었습니다")
+    .replaceAll("was captured", "포획되었습니다")
     .replaceAll("territory capture", "영역 포획")
     .replaceAll("Diplomat conversion", "외교관 전환");
 }
@@ -816,27 +991,43 @@ function showSpecialHelp(unitType) {
 
 undoBtn.addEventListener("click", undoLastMove);
 cancelTeleportBtn.addEventListener("click", () => {
-  if (state.pendingKingSwap) {
-    addLog("King escape was cancelled. Turn ends.");
-    state.pendingKingSwap = null;
-    state.pendingWizardTeleport = null;
-    endTurn();
-  } else if (state.teleporting) {
+  if (state.teleporting) {
     addLog("Wizard teleport was cancelled. Turn ends.");
     state.teleporting = null;
     endTurn();
   }
 });
+tauntBtn.addEventListener("click", () => {
+  if (state.mode === "pvp") {
+    sendNetworkAction({ type: "taunt" });
+  } else {
+    useTaunt(PVE_HUMAN);
+  }
+});
 function resetGame() {
   if (aiTimer !== null) window.clearTimeout(aiTimer);
+  if (tauntTimer !== null) window.clearTimeout(tauntTimer);
+  if (tutorialTimer !== null) window.clearTimeout(tutorialTimer);
   aiTimer = null;
+  tauntTimer = null;
+  tutorialTimer = null;
+  visibleTaunt = null;
+  lastTauntEventId = 0;
   undoStack = [];
+  tutorialStep = -1;
+  tutorialAwaitingContinue = false;
+  tutorialKingPosition = null;
+  tutorialReactionPending = false;
+  tutorialReactionPhase = null;
   state = newState();
   render();
   scheduleAiTurn();
 }
 
 function startNewGame() {
+  if (tutorialTimer !== null) window.clearTimeout(tutorialTimer);
+  tutorialTimer = null;
+  tutorialReactionPhase = null;
   disconnectNetwork();
   networkModal.hidden = true;
   resultModal.hidden = true;
@@ -854,6 +1045,10 @@ function playAgain() {
 }
 
 function selectGameMode(mode, closeModal = false) {
+  if (mode === "tutorial") {
+    startTutorial();
+    return;
+  }
   const modeInput = document.querySelector(`input[name="mode"][value="${mode}"]`);
   if (!modeInput) return;
   modeInput.checked = true;
@@ -907,10 +1102,19 @@ function handleNetworkMessage(message) {
     networkSession.player = message.player || networkSession.player;
     networkSession.ready = true;
     state = message.state;
+    if (message.type === "match_start") lastTauntEventId = 0;
     state.mode = "pvp";
     networkModal.hidden = true;
     setNetworkStatus(text("roomPlayer", { room: networkSession.roomCode, side: sideName(networkSession.player) }));
+    if (state.tauntEvent?.id !== lastTauntEventId) showTauntBubble(state.tauntEvent);
     render();
+    return;
+  }
+
+  if (message.type === "suicide_warning") {
+    if (window.confirm(text("suicideWarning"))) {
+      sendNetworkAction({ ...message.action, confirmSuicide: true });
+    }
     return;
   }
 
@@ -926,6 +1130,7 @@ function disconnectNetwork() {
 newGameBtn.addEventListener("click", startNewGame);
 playAgainBtn.addEventListener("click", playAgain);
 createRoomBtn.addEventListener("click", () => connectNetwork({ type: "create_room" }));
+playOnlineBotBtn.addEventListener("click", () => connectNetwork({ type: "create_bot_room" }));
 joinRoomBtn.addEventListener("click", () => {
   const roomCode = roomCodeInput.value.trim().toUpperCase();
   if (!roomCode) {
@@ -938,6 +1143,29 @@ cancelNetworkBtn.addEventListener("click", () => {
   disconnectNetwork();
   networkModal.hidden = true;
   modeModal.hidden = false;
+});
+exitTutorialBtn.addEventListener("click", startNewGame);
+nextTutorialBtn.addEventListener("click", () => {
+  if (!tutorialAwaitingContinue || tutorialReactionPhase) return;
+  if (tutorialReactionPending) {
+    tutorialReactionPending = false;
+    tutorialReactionPhase = "preparing";
+    render();
+    tutorialTimer = window.setTimeout(() => {
+      state.board[4][5] = createOccupiedSoldier("red");
+      tutorialReactionPhase = "surrounded";
+      render();
+      tutorialTimer = window.setTimeout(() => {
+        tutorialTimer = null;
+        tutorialReactionPhase = null;
+        resolveAllCaptures("red");
+        render();
+      }, 800);
+    }, 300);
+    return;
+  }
+  advanceTutorial();
+  render();
 });
 modeStartButtons.forEach((button) => {
   button.addEventListener("click", () => selectGameMode(button.dataset.startMode, true));

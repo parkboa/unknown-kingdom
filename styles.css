@@ -230,7 +230,7 @@ button:disabled {
 
 .game-status-bar {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) 48px 48px;
+  grid-template-columns: auto minmax(0, 1fr) auto 48px 48px;
   gap: 8px;
   align-items: center;
   min-height: 58px;
@@ -239,6 +239,18 @@ button:disabled {
   border-radius: var(--radius);
   background: linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(224 228 229 / 94%));
   box-shadow: var(--shadow);
+}
+
+.taunt-button {
+  min-width: 54px;
+  height: 48px;
+  padding: 0 12px;
+  border: 1px solid #8e6213;
+  border-radius: var(--radius);
+  color: #2b210d;
+  font-weight: 900;
+  background: linear-gradient(180deg, #ffe27a, #d9a72e);
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 72%), 0 3px 8px rgb(70 48 8 / 22%);
 }
 
 .unit-counters {
@@ -422,6 +434,70 @@ button:disabled {
   background: rgb(42 122 74 / 6%);
 }
 
+.tutorial-panel {
+  position: absolute;
+  top: calc(var(--frame-padding) + 22px);
+  left: calc(var(--frame-padding) + var(--wall-size) + 4px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: calc(var(--cell) * 9);
+  min-height: calc(var(--cell) * 2);
+  max-height: calc(var(--cell) * 3);
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  color: #f7ead0;
+  background: rgba(24, 27, 29, 0.96);
+  border: 1px solid rgba(201, 157, 75, 0.72);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+}
+
+.tutorial-panel[hidden] {
+  display: none;
+}
+
+.tutorial-panel strong {
+  color: #d9ad5d;
+}
+
+.tutorial-panel p {
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
+.tutorial-panel button {
+  flex: 0 0 auto;
+}
+
+.tutorial-actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.board.tutorial-active:not(.tutorial-complete) .cell.valid {
+  z-index: 3;
+  box-shadow: inset 0 0 0 3px rgba(255, 213, 91, 0.95), 0 0 18px rgba(255, 213, 91, 0.8);
+  animation: tutorial-pulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes tutorial-pulse {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.25); }
+}
+
+@media (max-width: 620px) {
+  .tutorial-panel {
+    align-items: flex-start;
+    padding: 10px 12px;
+    font-size: 0.88rem;
+  }
+}
+
 .cell.teleport::after {
   border-color: rgb(93 78 160 / 45%);
   background: rgb(93 78 160 / 8%);
@@ -446,13 +522,10 @@ button:disabled {
 .piece-icon {
   width: 67%;
   height: 67%;
-  overflow: visible;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.55;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  background: currentColor;
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 54%));
+  -webkit-mask: var(--piece-icon-image) center / contain no-repeat;
+  mask: var(--piece-icon-image) center / contain no-repeat;
 }
 
 .piece.blue .piece-icon {
@@ -477,25 +550,44 @@ button:disabled {
   background: radial-gradient(circle at 34% 24%, #fff, #eeece5 52%, #c5c1b7 82%);
 }
 
-.piece.used-special {
-  outline: 3px double rgb(255 248 203 / 92%);
-  filter: saturate(.72);
+.taunt-bubble {
+  position: absolute;
+  z-index: 5;
+  bottom: 88%;
+  left: 50%;
+  min-width: max-content;
+  padding: 5px 9px;
+  border: 3px solid #111;
+  border-radius: 14px;
+  color: #050505;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(11px, 1.4vw, 16px);
+  font-weight: 950;
+  line-height: 1;
+  background: #fff;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 38%);
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: taunt-pop 2s ease both;
 }
 
-.piece.used-special::after {
+.taunt-bubble::after {
   position: absolute;
-  right: -4px;
-  bottom: -4px;
-  display: grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgb(255 255 255 / 90%);
-  border-radius: 50%;
-  color: white;
-  font-size: 9px;
-  content: "✓";
-  background: rgb(31 35 40 / 78%);
+  top: 100%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 3px solid #111;
+  border-bottom: 3px solid #111;
+  content: "";
+  background: #fff;
+  transform: translate(-50%, -5px) rotate(45deg);
+}
+
+@keyframes taunt-pop {
+  0% { opacity: 0; transform: translateX(-50%) scale(.72); }
+  8%, 88% { opacity: 1; transform: translateX(-50%) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(.94); }
 }
 
 .eyebrow {
@@ -715,7 +807,7 @@ button:disabled {
   }
 
   .game-status-bar {
-    grid-template-columns: auto minmax(0, 1fr) 46px 46px;
+    grid-template-columns: auto minmax(0, 1fr) auto 46px 46px;
     gap: 6px;
     padding-inline: 6px;
   }

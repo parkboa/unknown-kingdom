@@ -30,6 +30,7 @@ http://127.0.0.1:4173/
 
 - 9x9 game board
 - Basic PvE and network-only PvP modes
+- Online bot rooms run the AI through the authoritative WebSocket server for network testing
 - PvE uses White as the human player at the bottom and Black as the AI opponent at the top
 - Alternating deployment turns
 - Free deployment on any empty cell
@@ -50,8 +51,9 @@ http://127.0.0.1:4173/
 - King first-attack escape by swapping with any friendly Soldier or moving to an empty cell within 3 spaces
 - PvE AI automatically selects a Soldier swap or nearby empty escape cell for the King's first attack
 - PvE AI randomly uses balanced, aggressive, or defensive deployment behavior with weighted unit choices
-- Capture resolution pauses while a King escape is pending; a second King capture ends the game instead of converting the King
-- Diplomat conversion follows the same King rule: first attack swaps with a Soldier, second attack wins
+- A King has one life; its first capture ends the match immediately
+- Placing a King against its own fortress wall grants the opponent one taunt, shown as a one-second speech bubble
+- Diplomat conversion of a King also ends the match immediately
 - King death and unit-elimination win states
 - Full-board ties end as a draw
 - A player with no legal deployment automatically passes; if neither side can deploy, territory decides the result
@@ -76,10 +78,12 @@ Client messages:
 { "type": "create_room" }
 { "type": "join_room", "roomCode": "ABC123" }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "deploy", "unitType": "soldier", "row": 4, "col": 4 } }
-{ "type": "action", "roomCode": "ABC123", "action": { "type": "king_escape", "row": 3, "col": 4 } }
+{ "type": "action", "roomCode": "ABC123", "action": { "type": "taunt" } }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "wizard_teleport", "row": 2, "col": 5 } }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "rematch" } }
 ```
+
+Use `{ "type": "create_bot_room" }` to start an online match as White against a server-controlled Black bot.
 
 Server messages:
 

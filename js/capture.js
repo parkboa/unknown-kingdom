@@ -17,6 +17,12 @@ export function wallOwnerForEdge(row, col, nextRow, nextCol) {
   return null;
 }
 
+export function touchesOwnWall(owner, row, col) {
+  return orthogonalPositions(row, col)
+    .some(([nextRow, nextCol]) => !inBounds(nextRow, nextCol)
+      && wallOwnerForEdge(row, col, nextRow, nextCol) === owner);
+}
+
 export function collectGroup(state, row, col) {
   const origin = state.board[row][col];
   if (!origin) return [];
@@ -87,10 +93,7 @@ export function isFortressConnected(state, owner, row, col) {
     if (visited.has(key)) continue;
     visited.add(key);
 
-    const touchesOwnWall = orthogonalPositions(currentRow, currentCol)
-      .some(([nextRow, nextCol]) => !inBounds(nextRow, nextCol)
-        && wallOwnerForEdge(currentRow, currentCol, nextRow, nextCol) === owner);
-    if (touchesOwnWall) return true;
+    if (touchesOwnWall(owner, currentRow, currentCol)) return true;
 
     for (const [nextRow, nextCol] of neighbors(currentRow, currentCol)) {
       if (state.board[nextRow][nextCol]?.owner === owner) queue.push([nextRow, nextCol]);

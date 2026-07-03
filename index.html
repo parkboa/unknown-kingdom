@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Unknown Kingdom Prototype</title>
-    <link rel="stylesheet" href="./styles.css?v=gray-board" />
+    <link rel="stylesheet" href="./styles.css?v=used-special-as-soldier" />
   </head>
   <body>
     <main class="app-shell">
@@ -19,6 +19,7 @@
             </div>
           </div>
           <div id="turnPill" class="turn-pill">White turn</div>
+          <button id="tauntBtn" class="taunt-button" type="button" data-i18n="taunt" hidden>Taunt!</button>
           <button id="undoBtn" class="icon-button" type="button" aria-label="Undo Last Move" title="Undo Last Move" disabled>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M19 12H5M11 6l-6 6 6 6" />
@@ -36,6 +37,16 @@
         </header>
         <div class="fortress-frame" aria-label="Fortress walls and board">
           <div class="horizontal-wall red-wall" aria-hidden="true"></div>
+          <aside id="tutorialPanel" class="tutorial-panel" aria-live="polite" hidden>
+            <div>
+              <strong id="tutorialStepLabel" hidden></strong>
+              <p id="tutorialMessage"></p>
+            </div>
+            <div class="tutorial-actions">
+              <button id="nextTutorialBtn" type="button" data-i18n="nextTutorial" hidden>Next</button>
+              <button id="exitTutorialBtn" type="button" data-i18n="exitTutorial">Exit Tutorial</button>
+            </div>
+          </aside>
           <div class="board-row">
             <div class="vertical-wall left-wall" aria-hidden="true"></div>
             <div id="board" class="board" role="grid" aria-label="9 by 9 Unknown Kingdom board"></div>
@@ -61,6 +72,7 @@
       <div hidden>
         <input type="radio" name="mode" value="pve" checked />
         <input type="radio" name="mode" value="pvp" />
+        <input type="radio" name="mode" value="tutorial" />
       </div>
     </main>
 
@@ -79,6 +91,10 @@
         <h2 id="modeTitle" data-i18n="chooseMode">Choose Game Mode</h2>
         <p class="result-reason" data-i18n="chooseModeDescription">Select how you want to start this match.</p>
         <div class="mode-start-actions">
+          <button type="button" data-start-mode="tutorial">
+            <strong data-i18n="tutorial">Tutorial</strong>
+            <span data-i18n="tutorialDescription">Learn the basic rules step by step</span>
+          </button>
           <button type="button" data-start-mode="pve">
             <strong>PvE</strong>
             <span data-i18n="pveDescription">Play as White against the Black AI</span>
@@ -103,6 +119,7 @@
           </label>
           <button id="createRoomBtn" type="button" data-i18n="createRoom">Create Room</button>
           <button id="joinRoomBtn" type="button" data-i18n="joinRoom">Join Room</button>
+          <button id="playOnlineBotBtn" type="button" data-i18n="playOnlineBot">Play Online Bot</button>
           <button id="cancelNetworkBtn" type="button" data-i18n="back">Back</button>
         </div>
       </section>
@@ -138,6 +155,6 @@
       </section>
     </div>
 
-    <script type="module" src="./app.js?v=black-white-2"></script>
+    <script type="module" src="./app.js?v=public-suicide-warning"></script>
   </body>
 </html>

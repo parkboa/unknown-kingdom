@@ -1,6 +1,6 @@
 import { AI_PROFILES, DEPLOY_ORDER, SIZE } from "./config.js";
 
-const MESSAGE_TYPES = new Set(["room_created", "waiting", "match_start", "state", "error"]);
+const MESSAGE_TYPES = new Set(["room_created", "waiting", "match_start", "state", "error", "suicide_warning"]);
 const PLAYERS = new Set(["red", "blue"]);
 const WINNERS = new Set(["red", "blue", "draw"]);
 const UNIT_TYPES = new Set(DEPLOY_ORDER);
@@ -59,6 +59,20 @@ function isPendingAbility(value) {
     && (value.reaction === undefined || typeof value.reaction === "boolean");
 }
 
+function isTauntChance(value) {
+  return value === null
+    || (isCoordinate(value)
+      && PLAYERS.has(value.targetOwner));
+}
+
+function isTauntEvent(value) {
+  return value === null
+    || (isCoordinate(value)
+      && isNonNegativeInteger(value.id)
+      && PLAYERS.has(value.speakerOwner)
+      && PLAYERS.has(value.targetOwner));
+}
+
 export function validateGameState(value) {
   if (!isPlainObject(value)) return false;
   if (!Array.isArray(value.board) || value.board.length !== SIZE) return false;
@@ -66,6 +80,7 @@ export function validateGameState(value) {
   if (!PLAYERS.has(value.turn)) return false;
   if (!isOptionalCoordinate(value.selected)) return false;
   if (!isPendingAbility(value.teleporting) || !isPendingAbility(value.pendingWizardTeleport) || !isPendingAbility(value.pendingKingSwap)) return false;
+  if (!isPlayerMap(value.tauntChances, isTauntChance) || !isTauntEvent(value.tauntEvent) || !isNonNegativeInteger(value.tauntSerial)) return false;
   if (value.winner !== null && !WINNERS.has(value.winner)) return false;
   if (typeof value.resultReason !== "string" || value.resultReason.length > 1000) return false;
   if (value.mode !== "pvp") return false;
@@ -97,6 +112,13 @@ export function validateNetworkMessage(message) {
     return (message.roomCode === undefined || isRoomCode(message.roomCode))
       && (message.player === undefined || PLAYERS.has(message.player))
       && validateGameState(message.state);
+  }
+
+  if (message.type === "suicide_warning") {
+    return isPlainObject(message.action)
+      && message.action.type === "deploy"
+      && UNIT_TYPES.has(message.action.unitType)
+      && isCoordinate(message.action);
   }
 
   return message.message === undefined

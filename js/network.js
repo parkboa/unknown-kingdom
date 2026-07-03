@@ -1,4 +1,4 @@
-import { validateNetworkMessage } from "./protocol.js";
+import { validateNetworkMessage } from "./protocol.js?v=opponent-taunt";
 
 export function createNetworkSession() {
   return {

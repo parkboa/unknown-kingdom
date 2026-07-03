@@ -18,10 +18,11 @@ function chooseDeployType(state, countPieces) {
   const aiCount = countPieces(PVE_AI);
   const humanCount = countPieces(PVE_HUMAN);
   const pressure = Math.max(0, humanCount - aiCount);
+  const occupiedCount = aiCount + humanCount;
   const weightsByProfile = {
-    balanced: { soldier: 62, general: 14, wizard: 13, diplomat: 11 },
-    aggressive: { soldier: 48, general: 24, wizard: 19, diplomat: 9 },
-    defensive: { soldier: 68, general: 9, wizard: 9, diplomat: 14 },
+    balanced: { soldier: 52, general: 18, wizard: 16, diplomat: 14 },
+    aggressive: { soldier: 40, general: 28, wizard: 22, diplomat: 10 },
+    defensive: { soldier: 58, general: 12, wizard: 12, diplomat: 18 },
   };
   const weights = { ...weightsByProfile[state.aiProfile] };
 
@@ -31,6 +32,12 @@ function chooseDeployType(state, countPieces) {
   }
   if (humanCount >= 5) weights.wizard += 6;
   if (aiCount < 2) weights.soldier += 25;
+  if (occupiedCount >= 10 && occupiedCount <= 50) {
+    weights.soldier = Math.max(20, weights.soldier - 10);
+    weights.general += 8;
+    weights.wizard += 8;
+    weights.diplomat += 8;
+  }
 
   const choices = Object.entries(weights)
     .filter(([type]) => state.stock[PVE_AI][type] > 0)

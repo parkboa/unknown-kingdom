@@ -22,6 +22,7 @@ export function createOccupiedSoldier(owner) {
 
 export function createInitialState(mode) {
   const startingSide = mode === "pvp" ? "red" : PVE_HUMAN;
+  const startingSideLabel = startingSide === "red" ? "Black" : "White";
   const aiProfile = AI_PROFILES[Math.floor(Math.random() * AI_PROFILES.length)];
   return {
     board: Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => null)),
@@ -30,6 +31,9 @@ export function createInitialState(mode) {
     teleporting: null,
     pendingWizardTeleport: null,
     pendingKingSwap: null,
+    tauntChances: { red: null, blue: null },
+    tauntEvent: null,
+    tauntSerial: 0,
     winner: null,
     resultReason: "",
     mode,
@@ -44,6 +48,6 @@ export function createInitialState(mode) {
       captures: { red: 0, blue: 0 },
       specialsUsed: { red: 0, blue: 0 },
     },
-    log: [`New match started. ${startingSide[0].toUpperCase()}${startingSide.slice(1)} deploys first.`],
+    log: [`New match started. ${startingSideLabel} deploys first.`],
   };
 }

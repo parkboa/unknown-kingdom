@@ -5,7 +5,7 @@
 - Keep the current top-view prototype until the rules and interactions are stable.
 - The final game should use a 2.5D or 3D bird's-eye view.
 - The human player's fortress should always appear at the bottom of the screen.
-- In PvE, the human player is Blue and the AI is Red.
+- In PvE, the human player is White and the AI is Black.
 - Preserve the logical 9x9 grid and input coordinates when changing the camera presentation.
 
 ## Board and Fortress
@@ -78,7 +78,7 @@
 - Include:
   - Winner
   - Victory reason
-  - Final Red and Blue territory
+  - Final Black and White territory
   - Captures by each side
   - Special abilities used
   - Play Again button
@@ -88,7 +88,7 @@
 
 1. Capture and removal location feedback
 2. Special ability activation and reveal
-3. King escape and Soldier swap
+3. One-life King defeat and fortress-wall taunt
 4. Wall connection feedback
 5. Match result presentation
 6. Full bird's-eye camera and 3D environment
