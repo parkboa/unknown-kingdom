@@ -14,6 +14,10 @@ function roomCode() {
   return code;
 }
 
+function preferredSide(message) {
+  return message.preferredSide === "blue" ? "blue" : "red";
+}
+
 function send(socket, message) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
 }
@@ -89,17 +93,19 @@ webSocketServer.on("connection", (socket) => {
     if (message.type === "create_room") {
       leaveRoom(socket);
       const code = roomCode();
+      const player = preferredSide(message);
       const room = {
         code,
         state: createGameState(),
-        players: { red: socket, blue: null },
+        players: { red: null, blue: null },
         botPlayer: null,
         botTimer: null,
         rematch: new Set(),
       };
+      room.players[player] = socket;
       rooms.set(code, room);
-      socket.membership = { roomCode: code, player: "red" };
-      send(socket, { type: "room_created", roomCode: code });
+      socket.membership = { roomCode: code, player };
+      send(socket, { type: "room_created", roomCode: code, player });
       return;
     }
 
@@ -124,13 +130,14 @@ webSocketServer.on("connection", (socket) => {
     if (message.type === "join_room") {
       const code = typeof message.roomCode === "string" ? message.roomCode.trim().toUpperCase() : "";
       const room = rooms.get(code);
-      if (!room || room.players.blue || room.botPlayer) {
+      if (!room || (room.players.red && room.players.blue) || room.botPlayer) {
         send(socket, { type: "error", message: "Room is unavailable." });
         return;
       }
       leaveRoom(socket);
-      room.players.blue = socket;
-      socket.membership = { roomCode: code, player: "blue" };
+      const player = room.players.red ? "blue" : "red";
+      room.players[player] = socket;
+      socket.membership = { roomCode: code, player };
       broadcastState(room, "match_start");
       return;
     }
