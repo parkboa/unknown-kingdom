@@ -1,6 +1,6 @@
 import http from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
-import { applyAction, createGameState, stateForPlayer } from "./engine.js";
+import { applyAction, chooseBotAction, createGameState, isSuicideDeployment, stateForPlayer } from "./engine.js";
 
 const PORT = Number(process.env.PORT || 4175);
 const rooms = new Map();
@@ -31,12 +31,29 @@ function broadcastState(room, type = "state") {
   }
 }
 
+function scheduleBotTurn(room) {
+  if (!room.botPlayer || room.botTimer || room.state.winner) return;
+  const action = chooseBotAction(room.state, room.botPlayer);
+  if (!action) return;
+
+  room.botTimer = setTimeout(() => {
+    room.botTimer = null;
+    if (rooms.get(room.code) !== room || !applyAction(room.state, room.botPlayer, action)) return;
+    broadcastState(room);
+    scheduleBotTurn(room);
+  }, 450);
+}
+
 function leaveRoom(socket) {
   const membership = socket.membership;
   if (!membership) return;
   const room = rooms.get(membership.roomCode);
   if (!room) return;
   room.players[membership.player] = null;
+  if (!room.players.red && !room.players.blue && room.botTimer) {
+    clearTimeout(room.botTimer);
+    room.botTimer = null;
+  }
   const otherPlayer = membership.player === "red" ? "blue" : "red";
   send(room.players[otherPlayer], { type: "error", message: "Opponent disconnected." });
   if (!room.players.red && !room.players.blue) rooms.delete(room.code);
@@ -76,6 +93,8 @@ webSocketServer.on("connection", (socket) => {
         code,
         state: createGameState(),
         players: { red: socket, blue: null },
+        botPlayer: null,
+        botTimer: null,
         rematch: new Set(),
       };
       rooms.set(code, room);
@@ -84,10 +103,28 @@ webSocketServer.on("connection", (socket) => {
       return;
     }
 
+    if (message.type === "create_bot_room") {
+      leaveRoom(socket);
+      const code = roomCode();
+      const room = {
+        code,
+        state: createGameState(),
+        players: { red: null, blue: socket },
+        botPlayer: "red",
+        botTimer: null,
+        rematch: new Set(),
+      };
+      rooms.set(code, room);
+      socket.membership = { roomCode: code, player: "blue" };
+      broadcastState(room, "match_start");
+      scheduleBotTurn(room);
+      return;
+    }
+
     if (message.type === "join_room") {
       const code = typeof message.roomCode === "string" ? message.roomCode.trim().toUpperCase() : "";
       const room = rooms.get(code);
-      if (!room || room.players.blue) {
+      if (!room || room.players.blue || room.botPlayer) {
         send(socket, { type: "error", message: "Room is unavailable." });
         return;
       }
@@ -110,6 +147,12 @@ webSocketServer.on("connection", (socket) => {
     }
     const player = socket.membership.player;
     if (message.action?.type === "rematch") {
+      if (room.botPlayer) {
+        room.state = createGameState();
+        broadcastState(room, "match_start");
+        scheduleBotTurn(room);
+        return;
+      }
       room.rematch.add(player);
       if (room.rematch.size === 2) {
         room.state = createGameState();
@@ -118,11 +161,34 @@ webSocketServer.on("connection", (socket) => {
       }
       return;
     }
+    if (
+      message.action?.type === "deploy"
+      && !message.action.confirmSuicide
+      && ["soldier", "general", "diplomat", "wizard", "king"].includes(message.action.unitType)
+      && Number.isInteger(message.action.row)
+      && Number.isInteger(message.action.col)
+      && message.action.row >= 0
+      && message.action.row < 9
+      && message.action.col >= 0
+      && message.action.col < 9
+      && !room.state.board[message.action.row][message.action.col]
+      && isSuicideDeployment(
+        stateForPlayer(room.state, player),
+        player,
+        message.action.unitType,
+        message.action.row,
+        message.action.col,
+      )
+    ) {
+      send(socket, { type: "suicide_warning", action: message.action });
+      return;
+    }
     if (!applyAction(room.state, player, message.action)) {
       send(socket, { type: "error", message: "Illegal action." });
       return;
     }
     broadcastState(room);
+    scheduleBotTurn(room);
   });
 
   socket.on("close", () => leaveRoom(socket));

@@ -1,9 +1,11 @@
 const SIZE = 9;
+const WHITE_TERRITORY_BONUS = 2;
 const PLAYERS = ["red", "blue"];
 const SPECIALS = new Set(["general", "diplomat", "wizard"]);
 const UNIT_TYPES = new Set(["soldier", "king", ...SPECIALS]);
 
 const opponent = (player) => player === "red" ? "blue" : "red";
+const sideLabel = (player) => player === "red" ? "Black" : "White";
 const inBounds = (row, col) => row >= 0 && row < SIZE && col >= 0 && col < SIZE;
 const cellKey = (row, col) => `${row}-${col}`;
 const neighbors = (row, col) => [[row - 1, col], [row + 1, col], [row, col - 1], [row, col + 1]]
@@ -34,6 +36,9 @@ export function createGameState() {
     teleporting: null,
     pendingWizardTeleport: null,
     pendingKingSwap: null,
+    tauntChances: { red: null, blue: null },
+    tauntEvent: null,
+    tauntSerial: 0,
     winner: null,
     resultReason: "",
     mode: "pvp",
@@ -48,7 +53,7 @@ export function createGameState() {
       captures: { red: 0, blue: 0 },
       specialsUsed: { red: 0, blue: 0 },
     },
-    log: ["New online match started. Red deploys first."],
+    log: ["New online match started. Black deploys first."],
   };
 }
 
@@ -59,6 +64,16 @@ function addLog(state, message) {
 
 function countPieces(state, owner) {
   return state.board.flat().filter((piece) => piece?.owner === owner).length;
+}
+
+function findKingPosition(state, owner) {
+  for (let row = 0; row < SIZE; row += 1) {
+    for (let col = 0; col < SIZE; col += 1) {
+      const piece = state.board[row][col];
+      if (piece?.owner === owner && piece.type === "king") return { row, col };
+    }
+  }
+  return null;
 }
 
 function hasEmptyCell(state) {
@@ -73,6 +88,12 @@ function wallOwnerForEdge(row, nextRow, nextCol) {
     if (row >= 5) return "blue";
   }
   return null;
+}
+
+function touchesOwnWall(owner, row, col) {
+  return orthogonalPositions(row, col)
+    .some(([nextRow, nextCol]) => !inBounds(nextRow, nextCol)
+      && wallOwnerForEdge(row, nextRow, nextCol) === owner);
 }
 
 function collectGroup(state, row, col) {
@@ -133,60 +154,29 @@ function declareWinner(state, winner, reason) {
   if (state.winner) return;
   state.winner = winner;
   state.resultReason = reason;
-  addLog(state, `${winner} wins. ${reason}`);
+  addLog(state, `${sideLabel(winner)} wins. ${reason}`);
 }
 
 function finishByTerritory(state, prefix) {
   const red = countPieces(state, "red");
   const blue = countPieces(state, "blue");
-  const reason = `${prefix}: ${red}-${blue} territory.`;
-  if (red === blue) {
+  const adjustedBlue = blue + WHITE_TERRITORY_BONUS;
+  const reason = `${prefix}: Black ${red} - White ${blue} territory (+${WHITE_TERRITORY_BONUS} second-player compensation).`;
+  if (red === adjustedBlue) {
     state.winner = "draw";
     state.resultReason = reason;
   } else {
-    declareWinner(state, red > blue ? "red" : "blue", reason);
+    declareWinner(state, red > adjustedBlue ? "red" : "blue", reason);
   }
-}
-
-function kingEscapeType(state, owner, kingRow, kingCol, row, col) {
-  if (!inBounds(row, col) || (row === kingRow && col === kingCol)) return null;
-  const piece = state.board[row][col];
-  if (piece?.owner === owner && piece.type === "soldier") return "swap";
-  const distance = Math.abs(row - kingRow) + Math.abs(col - kingCol);
-  if (!piece && distance <= 3) return "escape";
-  return null;
-}
-
-function hasKingEscapeTarget(state, owner, kingRow, kingCol) {
-  for (let row = 0; row < SIZE; row += 1) {
-    for (let col = 0; col < SIZE; col += 1) {
-      if (kingEscapeType(state, owner, kingRow, kingCol, row, col)) return true;
-    }
-  }
-  return false;
-}
-
-function handleKingCapture(state, row, col, reason) {
-  const king = state.board[row][col];
-  if (!king || king.type !== "king" || king.kingEscapeUsed) return false;
-  king.kingEscapeUsed = true;
-  king.revealed = true;
-  if (hasKingEscapeTarget(state, king.owner, row, col)) {
-    state.pendingKingSwap = { row, col, owner: king.owner, reason };
-  } else {
-    declareWinner(state, opponent(king.owner), `${king.owner} King had no valid escape from ${reason}.`);
-  }
-  return true;
 }
 
 function capturePiece(state, row, col, reason) {
   const piece = state.board[row][col];
   if (!piece) return;
-  if (piece.type === "king" && handleKingCapture(state, row, col, reason)) return;
   const captor = opponent(piece.owner);
   state.board[row][col] = null;
   state.stats.captures[captor] += 1;
-  if (piece.type === "king") declareWinner(state, captor, `${piece.owner} King was captured a second time by ${reason}.`);
+  if (piece.type === "king") declareWinner(state, captor, `${sideLabel(piece.owner)} King was captured by ${reason}.`);
 }
 
 function strikeAdjacentEnemies(state, row, col, owner, reason) {
@@ -201,8 +191,9 @@ function convertAdjacentEnemies(state, row, col, owner) {
     const piece = state.board[targetRow][targetCol];
     if (!piece || piece.owner === owner) continue;
     if (piece.type === "king") {
-      if (handleKingCapture(state, targetRow, targetCol, "Diplomat conversion")) return;
-      declareWinner(state, owner, `${piece.owner} King was captured a second time by Diplomat conversion.`);
+      state.board[targetRow][targetCol] = occupiedSoldier(owner);
+      state.stats.captures[owner] += 1;
+      declareWinner(state, owner, `${sideLabel(piece.owner)} King was captured by Diplomat conversion.`);
       return;
     }
     state.stats.captures[owner] += 1;
@@ -236,8 +227,7 @@ function triggerSpecials(state, group, defender) {
       retireSpecial(piece);
       if (hasEmptyCell(state)) {
         const teleport = { row, col, owner: piece.owner, reaction: true };
-        if (state.pendingKingSwap) state.pendingWizardTeleport = teleport;
-        else state.teleporting = teleport;
+        state.teleporting = teleport;
         return;
       }
     }
@@ -252,10 +242,9 @@ function occupyGroup(state, group, captor) {
     const piece = state.board[row][col];
     if (!piece) continue;
     if (piece.type === "king") {
-      if (handleKingCapture(state, row, col, "territory capture")) continue;
       state.board[row][col] = occupiedSoldier(captor);
       state.stats.captures[captor] += 1;
-      declareWinner(state, captor, `${defender} King was captured a second time at ${row},${col}.`);
+      declareWinner(state, captor, `${sideLabel(defender)} King was captured at ${row},${col}.`);
       return;
     }
     state.board[row][col] = occupiedSoldier(captor);
@@ -310,13 +299,14 @@ function resolveCaptures(state, preferredCaptor) {
   }
 }
 
-function deploymentSurvives(state, player, type, row, col) {
+export function isSuicideDeployment(state, player, type, row, col) {
+  if (!canDeploy(state, player, type, row, col)) return false;
   const simulated = structuredClone(state);
   simulated.board[row][col] = createPiece(player, type);
   simulated.stock[player][type] -= 1;
   simulated.firstDeployDone[player] = true;
   resolveCaptures(simulated, player);
-  return simulated.board[row][col]?.owner === player && simulated.winner !== opponent(player);
+  return simulated.board[row][col]?.owner !== player || simulated.winner === opponent(player);
 }
 
 function canDeploy(state, player, type, row, col) {
@@ -328,8 +318,15 @@ function canDeploy(state, player, type, row, col) {
     && inBounds(row, col)
     && !state.board[row][col]
     && (state.firstDeployDone[player] || type === "king")
-    && state.stock[player][type] > 0
-    && deploymentSurvives(state, player, type, row, col);
+    && state.stock[player][type] > 0;
+}
+
+function hasLegalDeployment(state, player) {
+  const unitTypes = state.firstDeployDone[player]
+    ? [...UNIT_TYPES].filter((type) => state.stock[player][type] > 0)
+    : state.stock[player].king > 0 ? ["king"] : [];
+  if (!unitTypes.length) return false;
+  return state.board.some((row) => row.some((piece) => !piece));
 }
 
 function endTurn(state) {
@@ -343,6 +340,10 @@ function endTurn(state) {
     declareWinner(state, state.turn, "All enemy units were eliminated.");
     return;
   }
+  if (!hasLegalDeployment(state, next)) {
+    finishByTerritory(state, `${sideLabel(next)} has no legal deployment`);
+    return;
+  }
   state.turn = next;
   state.selected = null;
 }
@@ -354,27 +355,30 @@ export function applyAction(state, player, action) {
     state.board[action.row][action.col] = createPiece(player, action.unitType);
     state.stock[player][action.unitType] -= 1;
     state.firstDeployDone[player] = true;
+    if (action.unitType === "king" && touchesOwnWall(player, action.row, action.col)) {
+      state.tauntChances[opponent(player)] = {
+        targetOwner: player,
+        row: action.row,
+        col: action.col,
+      };
+    }
     resolveCaptures(state, player);
     if (!state.teleporting && !state.pendingKingSwap && !state.winner) endTurn(state);
     return true;
   }
-  if (action.type === "king_escape") {
-    const pending = state.pendingKingSwap;
-    if (!pending || pending.owner !== player) return false;
-    const escapeType = kingEscapeType(state, player, pending.row, pending.col, action.row, action.col);
-    if (!escapeType) return false;
-    const king = state.board[pending.row][pending.col];
-    if (!king || king.owner !== player || king.type !== "king") return false;
-    state.board[pending.row][pending.col] = escapeType === "swap" ? state.board[action.row][action.col] : null;
-    state.board[action.row][action.col] = king;
-    state.pendingKingSwap = null;
-    if (state.pendingWizardTeleport) {
-      state.teleporting = state.pendingWizardTeleport;
-      state.pendingWizardTeleport = null;
-    } else {
-      resolveCaptures(state, player);
-      if (!state.teleporting && !state.pendingKingSwap && !state.winner) endTurn(state);
-    }
+  if (action.type === "taunt") {
+    const chance = state.tauntChances[player];
+    const speaker = findKingPosition(state, player);
+    if (!chance || !speaker) return false;
+    state.tauntChances[player] = null;
+    state.tauntSerial += 1;
+    state.tauntEvent = {
+      id: state.tauntSerial,
+      speakerOwner: player,
+      targetOwner: chance.targetOwner,
+      row: speaker.row,
+      col: speaker.col,
+    };
     return true;
   }
   if (action.type === "wizard_teleport") {
@@ -390,6 +394,130 @@ export function applyAction(state, player, action) {
     return true;
   }
   return false;
+}
+
+function shuffled(values) {
+  const result = [...values];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+  return result;
+}
+
+function kingLibertyCount(state, owner) {
+  const king = findKingPosition(state, owner);
+  if (!king) return -1;
+  const group = collectGroup(state, king.row, king.col);
+  const liberties = new Set();
+  for (const [row, col] of group) {
+    for (const [nextRow, nextCol] of orthogonalPositions(row, col)) {
+      if (inBounds(nextRow, nextCol)) {
+        if (!state.board[nextRow][nextCol]) liberties.add(cellKey(nextRow, nextCol));
+      } else if (wallOwnerForEdge(row, nextRow, nextCol) === owner) {
+        liberties.add(`wall:${row}:${col}:${nextRow}:${nextCol}`);
+      }
+    }
+  }
+  return liberties.size;
+}
+
+function scoreBotDeployment(publicState, player, action) {
+  const before = publicState;
+  const after = structuredClone(publicState);
+  if (!applyAction(after, player, action)) return Number.NEGATIVE_INFINITY;
+  if (after.winner === player) return 100000;
+  if (after.winner && after.winner !== player) return -100000;
+
+  const enemy = opponent(player);
+  const beforeOwn = countPieces(before, player);
+  const beforeEnemy = countPieces(before, enemy);
+  const afterOwn = countPieces(after, player);
+  const afterEnemy = countPieces(after, enemy);
+  const captureGain = after.stats.captures[player] - before.stats.captures[player];
+  const ownLoss = beforeOwn + 1 - afterOwn;
+  const enemyLoss = beforeEnemy - afterEnemy;
+  const ownKingLiberties = kingLibertyCount(after, player);
+  const enemyKingLiberties = kingLibertyCount(after, enemy);
+  const placedPiece = after.board[action.row]?.[action.col];
+  const adjacent = neighbors(action.row, action.col)
+    .map(([row, col]) => after.board[row][col]);
+  const adjacentAllies = adjacent.filter((piece) => piece?.owner === player).length;
+  const adjacentEnemies = adjacent.filter((piece) => piece?.owner === enemy).length;
+  const centerDistance = Math.abs(action.row - 4) + Math.abs(action.col - 4);
+  const occupiedCells = before.board.flat().filter(Boolean).length;
+
+  let score = 0;
+  score += captureGain * 45;
+  score += enemyLoss * 22;
+  score -= ownLoss * 35;
+  score += ownKingLiberties * 9;
+  if (enemyKingLiberties >= 0) score += Math.max(0, 6 - enemyKingLiberties) * 10;
+  score += adjacentAllies * 5;
+  score += adjacentEnemies * 3;
+  score += Math.max(0, 5 - centerDistance) * 1.5;
+  if (!placedPiece || placedPiece.owner !== player) score -= 80;
+  if (action.unitType === "king" && touchesOwnWall(player, action.row, action.col)) score -= 16;
+  if (SPECIALS.has(action.unitType)) {
+    if (occupiedCells < 10) score -= 5;
+    if (occupiedCells >= 10 && occupiedCells <= 55) score += 8;
+    score += adjacentEnemies * 8;
+  }
+  if (action.unitType === "soldier") score += 1;
+  return score + Math.random() * 2;
+}
+
+function chooseScoredTeleport(state, player) {
+  const candidates = [];
+  for (let row = 0; row < SIZE; row += 1) {
+    for (let col = 0; col < SIZE; col += 1) {
+      if (state.board[row][col]) continue;
+      const adjacent = neighbors(row, col).map(([nextRow, nextCol]) => state.board[nextRow][nextCol]);
+      const allies = adjacent.filter((piece) => piece?.owner === player).length;
+      const enemies = adjacent.filter((piece) => piece && piece.owner !== player).length;
+      const centerDistance = Math.abs(row - 4) + Math.abs(col - 4);
+      candidates.push({
+        action: { type: "wizard_teleport", row, col },
+        score: allies * 5 - enemies * 4 + Math.max(0, 5 - centerDistance) + Math.random() * 2,
+      });
+    }
+  }
+  candidates.sort((left, right) => right.score - left.score);
+  return shuffled(candidates.slice(0, 3))[0]?.action || null;
+}
+
+export function chooseBotAction(state, player) {
+  if (!PLAYERS.includes(player) || state.winner) return null;
+  if (state.tauntChances[player] && findKingPosition(state, player)) return { type: "taunt" };
+
+  if (state.teleporting?.owner === player) {
+    return chooseScoredTeleport(stateForPlayer(state, player), player);
+  }
+
+  if (state.turn !== player) return null;
+  const unitTypes = state.firstDeployDone[player]
+    ? [...UNIT_TYPES].filter((type) => state.stock[player][type] > 0)
+    : ["king"];
+  const cells = Array.from({ length: SIZE * SIZE }, (_, index) => ({
+    row: Math.floor(index / SIZE),
+    col: index % SIZE,
+  }));
+  const publicState = stateForPlayer(state, player);
+  const candidates = [];
+
+  for (const type of unitTypes) {
+    for (const { row, col } of cells) {
+      if (canDeploy(state, player, type, row, col)) {
+        const action = { type: "deploy", unitType: type, row, col };
+        candidates.push({ action, score: scoreBotDeployment(publicState, player, action) });
+      }
+    }
+  }
+  candidates.sort((left, right) => right.score - left.score);
+  const winningMoves = candidates.filter(({ score }) => score >= 100000);
+  if (winningMoves.length) return shuffled(winningMoves)[0].action;
+  const explorationPool = Math.random() < 0.15 ? 15 : 6;
+  return shuffled(candidates.slice(0, explorationPool))[0]?.action || null;
 }
 
 export function stateForPlayer(state, player) {
