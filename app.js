@@ -7,7 +7,7 @@ import {
   WHITE_TERRITORY_BONUS,
   createSpecialHelp,
   createUnitLabels,
-} from "./js/config.js?v=white-bonus-2";
+} from "./js/config.js?v=hide-online-bot";
 import {
   cellKey,
   inBounds,
@@ -25,7 +25,7 @@ import {
   chooseAiTeleportDestination,
   findAiDeployMove,
 } from "./js/ai.js?v=exciting-ai";
-import { createTranslator } from "./js/i18n.js?v=white-bonus-2";
+import { createTranslator } from "./js/i18n.js?v=hide-online-bot";
 import {
   buildNetworkUrl,
   connectNetwork as openNetworkConnection,
@@ -150,7 +150,6 @@ const networkLobbyStatus = document.querySelector("#networkLobbyStatus");
 const roomCodeInput = document.querySelector("#roomCodeInput");
 const createRoomBtn = document.querySelector("#createRoomBtn");
 const joinRoomBtn = document.querySelector("#joinRoomBtn");
-const playOnlineBotBtn = document.querySelector("#playOnlineBotBtn");
 const cancelNetworkBtn = document.querySelector("#cancelNetworkBtn");
 const resultModal = document.querySelector("#resultModal");
 const playAgainBtn = document.querySelector("#playAgainBtn");
@@ -1130,7 +1129,6 @@ function disconnectNetwork() {
 newGameBtn.addEventListener("click", startNewGame);
 playAgainBtn.addEventListener("click", playAgain);
 createRoomBtn.addEventListener("click", () => connectNetwork({ type: "create_room" }));
-playOnlineBotBtn.addEventListener("click", () => connectNetwork({ type: "create_bot_room" }));
 joinRoomBtn.addEventListener("click", () => {
   const roomCode = roomCodeInput.value.trim().toUpperCase();
   if (!roomCode) {

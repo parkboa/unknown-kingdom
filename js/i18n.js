@@ -1,4 +1,4 @@
-import { TEXT } from "./config.js?v=white-bonus-2";
+import { TEXT } from "./config.js?v=hide-online-bot";
 
 export function createTranslator(language) {
   return function text(key, values = {}) {
