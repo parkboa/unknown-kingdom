@@ -1,4 +1,4 @@
-import { TEXT } from "./config.js?v=online-side-choice";
+import { TEXT } from "./config.js?v=settings-menu";
 
 export function createTranslator(language) {
   return function text(key, values = {}) {

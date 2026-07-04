@@ -1,7 +1,8 @@
-import { DEPLOY_ORDER, PVE_HUMAN, SPECIALS } from "./config.js";
+import { DEPLOY_ORDER, SPECIALS } from "./config.js";
 
-export function viewerOwnsPiece(state, networkPlayer, piece) {
-  if (state.mode === "pve" || state.mode === "tutorial") return piece.owner === PVE_HUMAN;
+export function viewerOwnsPiece(state, networkPlayer, piece, pveHumanPlayer = "blue") {
+  if (state.mode === "pve") return piece.owner === pveHumanPlayer;
+  if (state.mode === "tutorial") return piece.owner === "blue";
   return piece.owner === networkPlayer;
 }
 
@@ -21,7 +22,7 @@ function createPieceIcon(type) {
 
 function pieceElement(piece, row, col, context) {
   const element = document.createElement("div");
-  const canSeeIdentity = viewerOwnsPiece(context.state, context.networkPlayer, piece);
+  const canSeeIdentity = viewerOwnsPiece(context.state, context.networkPlayer, piece, context.pveHumanPlayer);
   const visibleType = piece.type === "king" || (canSeeIdentity && SPECIALS.has(piece.type) && !piece.abilityUsed)
     ? piece.type === "king" ? "king" : "special"
     : "soldier";
@@ -102,7 +103,7 @@ function renderPanel(context) {
     ? context.state.winner === "draw"
       ? context.text("draw")
       : context.text("wins", { side: context.sideName(context.state.winner) })
-    : context.text("turn", { side: context.sideName(context.state.turn) }) + (context.state.aiThinking ? context.text("thinking") : "");
+    : context.text("turn", { side: context.sideName(context.state.turn) });
   context.turnPill.classList.toggle("blue", context.state.turn === "blue");
   context.turnPill.classList.toggle("draw", context.state.winner === "draw");
   context.redCount.textContent = context.countPieces("red");

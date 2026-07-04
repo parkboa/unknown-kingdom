@@ -1,6 +1,6 @@
 import { AI_PROFILES, DEPLOY_ORDER, SIZE } from "./config.js";
 
-const MESSAGE_TYPES = new Set(["room_created", "waiting", "match_start", "state", "error", "suicide_warning"]);
+const MESSAGE_TYPES = new Set(["room_created", "waiting", "side_selection", "match_start", "state", "error", "suicide_warning"]);
 const PLAYERS = new Set(["red", "blue"]);
 const WINNERS = new Set(["red", "blue", "draw"]);
 const UNIT_TYPES = new Set(DEPLOY_ORDER);
@@ -101,6 +101,10 @@ export function validateNetworkMessage(message) {
   if (message.type === "room_created" || message.type === "waiting") {
     return isRoomCode(message.roomCode)
       && (message.player === undefined || PLAYERS.has(message.player));
+  }
+
+  if (message.type === "side_selection") {
+    return isRoomCode(message.roomCode);
   }
 
   if (message.type === "match_start") {

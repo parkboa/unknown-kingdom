@@ -7,7 +7,7 @@ import {
   WHITE_TERRITORY_BONUS,
   createSpecialHelp,
   createUnitLabels,
-} from "./js/config.js?v=online-side-choice";
+} from "./js/config.js?v=settings-menu";
 import {
   cellKey,
   inBounds,
@@ -24,25 +24,26 @@ import {
 import {
   chooseAiTeleportDestination,
   findAiDeployMove,
-} from "./js/ai.js?v=exciting-ai";
-import { createTranslator } from "./js/i18n.js?v=online-side-choice";
+} from "./js/ai.js?v=post-join-side-choice";
+import { createTranslator } from "./js/i18n.js?v=settings-menu";
 import {
   buildNetworkUrl,
   connectNetwork as openNetworkConnection,
   createNetworkSession,
   disconnectNetwork as closeNetworkConnection,
+  sendNetworkCommand,
   sendNetworkAction as sendNetworkMessage,
-} from "./js/network.js?v=online-side-choice";
+} from "./js/network.js?v=post-join-side-choice";
 import {
   createInitialState,
   createOccupiedSoldier,
   createPiece,
-} from "./js/state.js?v=black-white-terms";
+} from "./js/state.js?v=post-join-side-choice";
 import {
   publicName as getPublicName,
   renderGame,
   viewerOwnsPiece as doesViewerOwnPiece,
-} from "./js/render.js?v=used-special-as-soldier";
+} from "./js/render.js?v=mobile-special-selection";
 
 const requestedLanguage = new URLSearchParams(location.search).get("lang") || localStorage.getItem("unknown-kingdom-language");
 const LANGUAGE = requestedLanguage === "ko" ? "ko" : "en";
@@ -55,6 +56,18 @@ const NETWORK_SERVER = requestedServer || localStorage.getItem("unknown-kingdom-
 const UNIT_LABELS = createUnitLabels(LANGUAGE);
 const SPECIAL_HELP = createSpecialHelp(LANGUAGE);
 const text = createTranslator(LANGUAGE);
+const HELP_PREFERENCE_RESET_KEY = "unknown-kingdom-help-preferences-v2";
+
+function resetSpecialHelpPreferences() {
+  SPECIALS.forEach((unitType) => {
+    localStorage.removeItem(`unknown-kingdom-hide-help-${unitType}`);
+  });
+}
+
+if (!localStorage.getItem(HELP_PREFERENCE_RESET_KEY)) {
+  resetSpecialHelpPreferences();
+  localStorage.setItem(HELP_PREFERENCE_RESET_KEY, "reset");
+}
 
 let state;
 let undoStack = [];
@@ -63,6 +76,8 @@ let tauntTimer = null;
 let visibleTaunt = null;
 let lastTauntEventId = 0;
 let networkSession = createNetworkSession();
+let pveHumanPlayer = PVE_HUMAN;
+let pveAiPlayer = PVE_AI;
 let tutorialStep = -1;
 let tutorialAwaitingContinue = false;
 let tutorialKingPosition = null;
@@ -143,11 +158,18 @@ const blueCount = document.querySelector("#blueCount");
 const cancelTeleportBtn = document.querySelector("#cancelTeleportBtn");
 const undoBtn = document.querySelector("#undoBtn");
 const newGameBtn = document.querySelector("#newGameBtn");
+const settingsBtn = document.querySelector("#settingsBtn");
 const networkStatusGroup = document.querySelector("#networkStatusGroup");
 const networkStatus = document.querySelector("#networkStatus");
 const modeModal = document.querySelector("#modeModal");
+const pveSideModal = document.querySelector("#pveSideModal");
+const cancelPveSideBtn = document.querySelector("#cancelPveSideBtn");
+const pveSideButtons = document.querySelectorAll("[data-pve-side]");
 const networkModal = document.querySelector("#networkModal");
 const networkLobbyStatus = document.querySelector("#networkLobbyStatus");
+const networkRoomControls = document.querySelector("#networkRoomControls");
+const networkSidePicker = document.querySelector("#networkSidePicker");
+const onlineSideButtons = document.querySelectorAll("[data-online-side]");
 const roomCodeInput = document.querySelector("#roomCodeInput");
 const createRoomBtn = document.querySelector("#createRoomBtn");
 const joinRoomBtn = document.querySelector("#joinRoomBtn");
@@ -159,6 +181,10 @@ const specialHelpTitle = document.querySelector("#specialHelpTitle");
 const specialHelpText = document.querySelector("#specialHelpText");
 const hideSpecialHelpCheckbox = document.querySelector("#hideSpecialHelpCheckbox");
 const closeSpecialHelpBtn = document.querySelector("#closeSpecialHelpBtn");
+const settingsModal = document.querySelector("#settingsModal");
+const resetSpecialHelpBtn = document.querySelector("#resetSpecialHelpBtn");
+const settingsStatus = document.querySelector("#settingsStatus");
+const closeSettingsBtn = document.querySelector("#closeSettingsBtn");
 const languageSelect = document.querySelector("#languageSelect");
 const tutorialPanel = document.querySelector("#tutorialPanel");
 const tutorialStepLabel = document.querySelector("#tutorialStepLabel");
@@ -189,13 +215,15 @@ function applyLanguage() {
   undoBtn.title = text("undo");
   newGameBtn.setAttribute("aria-label", text("newGame"));
   newGameBtn.title = text("newGame");
+  settingsBtn.setAttribute("aria-label", text("settings"));
+  settingsBtn.title = text("settings");
   cancelTeleportBtn.textContent = text("cancelAbility");
   document.querySelector(".red-counter").setAttribute("aria-label", text("redUnits"));
   document.querySelector(".blue-counter").setAttribute("aria-label", text("blueUnits"));
 }
 
 function newState() {
-  return createInitialState(currentModeChoice());
+  return createInitialState(currentModeChoice(), pveHumanPlayer);
 }
 
 function applyNoMoveDemo() {
@@ -225,12 +253,8 @@ function currentModeChoice() {
   return document.querySelector("input[name='mode']:checked")?.value || "pve";
 }
 
-function currentOnlineSideChoice() {
-  return document.querySelector("input[name='onlineSide']:checked")?.value || "blue";
-}
-
 function isAiTurn() {
-  return state.mode === "pve" && state.turn === PVE_AI && !state.winner;
+  return state.mode === "pve" && state.turn === pveAiPlayer && !state.winner;
 }
 
 function canDeploy(player, unitType, row, col) {
@@ -298,7 +322,7 @@ function suppressHiddenEnemySpecials(player) {
 }
 
 function saveUndoCheckpoint() {
-  if (state.mode === "pve" && state.turn === PVE_AI) return;
+  if (state.mode === "pve" && state.turn === pveAiPlayer) return;
   undoStack.push({
     state: structuredClone(state),
     unitChoice: currentUnitChoice(),
@@ -454,14 +478,14 @@ function deployUnit(player, unitType, row, col) {
   state.stock[player][unitType] -= 1;
   state.firstDeployDone[player] = true;
   if (unitType === "king") registerKingWallTaunt(player, row, col);
-  const unitName = state.mode === "pve" && player === PVE_AI && unitType !== "king"
+  const unitName = state.mode === "pve" && player === pveAiPlayer && unitType !== "king"
     ? text("hiddenUnit")
     : UNIT_LABELS[unitType];
   addLog(`${sideName(player)} deployed ${unitName} at ${coord(row, col)}.`);
   resolveAllCaptures(player);
   endTurn();
-  if (player === PVE_AI && state.tauntChances[PVE_AI]) {
-    window.setTimeout(() => useTaunt(PVE_AI), 150);
+  if (player === pveAiPlayer && state.tauntChances[pveAiPlayer]) {
+    window.setTimeout(() => useTaunt(pveAiPlayer), 150);
   }
   return true;
 }
@@ -767,7 +791,7 @@ function publicName(piece) {
 }
 
 function viewerOwnsPiece(piece) {
-  return doesViewerOwnPiece(state, networkSession.player, piece);
+  return doesViewerOwnPiece(state, networkSession.player, piece, pveHumanPlayer);
 }
 
 function selectCell(row, col) {
@@ -858,13 +882,13 @@ function teleportWizard(row, col) {
 }
 
 function scheduleAiTurn() {
-  if (state.mode === "pve" && state.teleporting?.owner === PVE_AI && !state.aiThinking) {
+  if (state.mode === "pve" && state.teleporting?.owner === pveAiPlayer && !state.aiThinking) {
     state.aiThinking = true;
     render();
     aiTimer = window.setTimeout(() => {
       aiTimer = null;
       state.aiThinking = false;
-      const destination = chooseAiTeleportDestination(state, neighbors);
+      const destination = chooseAiTeleportDestination(state, neighbors, pveAiPlayer, pveHumanPlayer);
       if (destination) teleportWizard(destination.row, destination.col);
     }, 450);
     return;
@@ -876,17 +900,23 @@ function scheduleAiTurn() {
   aiTimer = window.setTimeout(() => {
     aiTimer = null;
     state.aiThinking = false;
-    runBlueAiTurn();
+    runAiTurn();
   }, 450);
 }
 
-function runBlueAiTurn() {
+function runAiTurn() {
   if (!isAiTurn() || state.winner || state.teleporting) return;
 
-  const deployMove = findAiDeployMove(state, { canDeploy, countPieces, neighbors });
-  if (deployMove && deployUnit(PVE_AI, deployMove.type, deployMove.row, deployMove.col)) return;
+  const deployMove = findAiDeployMove(state, {
+    aiPlayer: pveAiPlayer,
+    humanPlayer: pveHumanPlayer,
+    canDeploy,
+    countPieces,
+    neighbors,
+  });
+  if (deployMove && deployUnit(pveAiPlayer, deployMove.type, deployMove.row, deployMove.col)) return;
 
-  addLog(`${sideName(PVE_AI)} AI has no valid move.`);
+  addLog(`${sideName(pveAiPlayer)} AI has no valid move.`);
   endTurn();
 }
 
@@ -908,7 +938,11 @@ function forEachPiece(callback) {
 }
 
 function render() {
-  const viewerSide = state.mode === "pvp" ? networkSession.player : PVE_HUMAN;
+  const viewerSide = state.mode === "pvp"
+    ? networkSession.player
+    : state.mode === "pve"
+      ? pveHumanPlayer
+      : PVE_HUMAN;
   fortressFrame.classList.toggle("view-red", viewerSide === "red");
   renderGame({
     state,
@@ -924,7 +958,8 @@ function render() {
     unitInputs,
     networkReady: networkSession.ready,
     networkPlayer: networkSession.player,
-    canUseTaunt: canPlayerUseTaunt(state.mode === "pvp" ? networkSession.player : PVE_HUMAN),
+    pveHumanPlayer,
+    canUseTaunt: canPlayerUseTaunt(state.mode === "pvp" ? networkSession.player : pveHumanPlayer),
     visibleTaunt,
     undoCount: undoStack.length,
     unitLabels: UNIT_LABELS,
@@ -1007,7 +1042,7 @@ tauntBtn.addEventListener("click", () => {
   if (state.mode === "pvp") {
     sendNetworkAction({ type: "taunt" });
   } else {
-    useTaunt(PVE_HUMAN);
+    useTaunt(pveHumanPlayer);
   }
 });
 function resetGame() {
@@ -1035,6 +1070,7 @@ function startNewGame() {
   tutorialTimer = null;
   tutorialReactionPhase = null;
   disconnectNetwork();
+  pveSideModal.hidden = true;
   networkModal.hidden = true;
   resultModal.hidden = true;
   modeModal.hidden = false;
@@ -1058,6 +1094,13 @@ function selectGameMode(mode, closeModal = false) {
   const modeInput = document.querySelector(`input[name="mode"][value="${mode}"]`);
   if (!modeInput) return;
   modeInput.checked = true;
+  if (mode === "pve") {
+    disconnectNetwork();
+    networkModal.hidden = true;
+    modeModal.hidden = true;
+    pveSideModal.hidden = false;
+    return;
+  }
   if (closeModal) modeModal.hidden = true;
   if (mode === "pvp") {
     disconnectNetwork();
@@ -1068,8 +1111,28 @@ function selectGameMode(mode, closeModal = false) {
     return;
   }
   disconnectNetwork();
+  pveSideModal.hidden = true;
   networkModal.hidden = true;
   resetGame();
+}
+
+function startPve(side) {
+  pveHumanPlayer = side;
+  pveAiPlayer = opponent(side);
+  document.querySelector("input[name='mode'][value='pve']").checked = true;
+  pveSideModal.hidden = true;
+  modeModal.hidden = true;
+  resetGame();
+}
+
+function showNetworkRoomControls() {
+  networkRoomControls.hidden = false;
+  networkSidePicker.hidden = true;
+}
+
+function showNetworkSidePicker() {
+  networkRoomControls.hidden = true;
+  networkSidePicker.hidden = false;
 }
 
 function setNetworkStatus(message) {
@@ -1090,7 +1153,10 @@ function connectNetwork(command) {
     },
     onMessage: handleNetworkMessage,
     onClose: (session) => {
-      if (networkSession === session) render();
+      if (networkSession === session) {
+        showNetworkRoomControls();
+        render();
+      }
     },
   });
 }
@@ -1098,13 +1164,17 @@ function connectNetwork(command) {
 function handleNetworkMessage(message) {
   if (message.type === "room_created" || message.type === "waiting") {
     networkSession.roomCode = message.roomCode;
-    networkSession.player = message.player || networkSession.player;
     roomCodeInput.value = message.roomCode;
-    setNetworkStatus(text("roomWaitingSide", {
-      room: message.roomCode,
-      side: sideName(networkSession.player || currentOnlineSideChoice()),
-    }));
+    setNetworkStatus(text("roomWaiting", { room: message.roomCode }));
     render();
+    return;
+  }
+
+  if (message.type === "side_selection") {
+    networkSession.roomCode = message.roomCode;
+    roomCodeInput.value = message.roomCode;
+    showNetworkSidePicker();
+    setNetworkStatus(text("sideSelectionReady", { room: message.roomCode }));
     return;
   }
 
@@ -1115,6 +1185,7 @@ function handleNetworkMessage(message) {
     state = message.state;
     if (message.type === "match_start") lastTauntEventId = 0;
     state.mode = "pvp";
+    showNetworkRoomControls();
     networkModal.hidden = true;
     setNetworkStatus(text("roomPlayer", { room: networkSession.roomCode, side: sideName(networkSession.player) }));
     if (state.tauntEvent?.id !== lastTauntEventId) showTauntBubble(state.tauntEvent);
@@ -1139,10 +1210,22 @@ function disconnectNetwork() {
 }
 
 newGameBtn.addEventListener("click", startNewGame);
+settingsBtn.addEventListener("click", () => {
+  settingsStatus.hidden = true;
+  settingsModal.hidden = false;
+});
+resetSpecialHelpBtn.addEventListener("click", () => {
+  resetSpecialHelpPreferences();
+  settingsStatus.textContent = text("specialHelpReset");
+  settingsStatus.hidden = false;
+});
+closeSettingsBtn.addEventListener("click", () => {
+  settingsModal.hidden = true;
+});
 playAgainBtn.addEventListener("click", playAgain);
 createRoomBtn.addEventListener("click", () => connectNetwork({
   type: "create_room",
-  preferredSide: currentOnlineSideChoice(),
+  protocolVersion: 2,
 }));
 joinRoomBtn.addEventListener("click", () => {
   const roomCode = roomCodeInput.value.trim().toUpperCase();
@@ -1153,11 +1236,29 @@ joinRoomBtn.addEventListener("click", () => {
   connectNetwork({
     type: "join_room",
     roomCode,
-    preferredSide: currentOnlineSideChoice(),
+    protocolVersion: 2,
   });
+});
+onlineSideButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const sent = sendNetworkCommand(networkSession, {
+      type: "choose_side",
+      roomCode: networkSession.roomCode,
+      side: button.dataset.onlineSide,
+    });
+    if (!sent) setNetworkStatus(text("notConnected"));
+  });
+});
+pveSideButtons.forEach((button) => {
+  button.addEventListener("click", () => startPve(button.dataset.pveSide));
+});
+cancelPveSideBtn.addEventListener("click", () => {
+  pveSideModal.hidden = true;
+  modeModal.hidden = false;
 });
 cancelNetworkBtn.addEventListener("click", () => {
   disconnectNetwork();
+  showNetworkRoomControls();
   networkModal.hidden = true;
   modeModal.hidden = false;
 });
@@ -1193,11 +1294,15 @@ modeInputs.forEach((input) => {
   });
 });
 unitInputs.forEach((input) => {
-  input.closest("label").addEventListener("pointerdown", () => {
-    if (SPECIALS.has(input.value)) showSpecialHelp(input.value);
+  input.closest("label").addEventListener("click", () => {
+    if (input.disabled || !SPECIALS.has(input.value)) return;
+    window.setTimeout(() => {
+      input.checked = true;
+      showSpecialHelp(input.value);
+      render();
+    }, 0);
   });
   input.addEventListener("change", () => {
-    if (SPECIALS.has(input.value)) showSpecialHelp(input.value);
     render();
   });
 });

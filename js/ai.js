@@ -1,4 +1,4 @@
-import { PVE_AI, PVE_HUMAN, SIZE } from "./config.js";
+import { SIZE } from "./config.js";
 
 function weightedChoice(choices) {
   const totalWeight = choices.reduce((sum, choice) => sum + choice.weight, 0);
@@ -12,11 +12,11 @@ function weightedChoice(choices) {
   return choices[choices.length - 1]?.type || null;
 }
 
-function chooseDeployType(state, countPieces) {
-  if (!state.firstDeployDone[PVE_AI] && state.stock[PVE_AI].king > 0) return "king";
+function chooseDeployType(state, countPieces, aiPlayer, humanPlayer) {
+  if (!state.firstDeployDone[aiPlayer] && state.stock[aiPlayer].king > 0) return "king";
 
-  const aiCount = countPieces(PVE_AI);
-  const humanCount = countPieces(PVE_HUMAN);
+  const aiCount = countPieces(aiPlayer);
+  const humanCount = countPieces(humanPlayer);
   const pressure = Math.max(0, humanCount - aiCount);
   const occupiedCount = aiCount + humanCount;
   const weightsByProfile = {
@@ -40,7 +40,7 @@ function chooseDeployType(state, countPieces) {
   }
 
   const choices = Object.entries(weights)
-    .filter(([type]) => state.stock[PVE_AI][type] > 0)
+    .filter(([type]) => state.stock[aiPlayer][type] > 0)
     .map(([type, weight]) => ({ type, weight }));
 
   return weightedChoice(choices) || "soldier";
@@ -52,25 +52,25 @@ function positionVariance(profile) {
   return 10;
 }
 
-function scoreCell(state, row, col, neighbors) {
+function scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer) {
   const centerScore = 8 - (Math.abs(row - 4) + Math.abs(col - 4));
-  const adjacentAllies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === PVE_AI).length;
-  const adjacentEnemies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === PVE_HUMAN).length;
-  const homeBoardBias = SIZE - 1 - row;
+  const adjacentAllies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === aiPlayer).length;
+  const adjacentEnemies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === humanPlayer).length;
+  const homeBoardBias = aiPlayer === "red" ? SIZE - 1 - row : row;
   return centerScore * 2 + adjacentAllies * 3 + adjacentEnemies * 4 + homeBoardBias;
 }
 
-export function findAiDeployMove(state, { canDeploy, countPieces, neighbors }) {
-  const type = chooseDeployType(state, countPieces);
+export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, countPieces, neighbors }) {
+  const type = chooseDeployType(state, countPieces, aiPlayer, humanPlayer);
   const candidates = [];
   for (let row = 0; row < SIZE; row += 1) {
     for (let col = 0; col < SIZE; col += 1) {
-      if (!canDeploy(PVE_AI, type, row, col)) continue;
+      if (!canDeploy(aiPlayer, type, row, col)) continue;
       candidates.push({
         row,
         col,
         type,
-        score: scoreCell(state, row, col, neighbors) + Math.random() * positionVariance(state.aiProfile),
+        score: scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer) + Math.random() * positionVariance(state.aiProfile),
       });
     }
   }
@@ -78,30 +78,40 @@ export function findAiDeployMove(state, { canDeploy, countPieces, neighbors }) {
   return candidates[0] || null;
 }
 
-export function chooseAiTeleportDestination(state, neighbors) {
+export function chooseAiTeleportDestination(state, neighbors, aiPlayer, humanPlayer) {
   const candidates = [];
   for (let row = 0; row < SIZE; row += 1) {
     for (let col = 0; col < SIZE; col += 1) {
-      if (!state.board[row][col]) candidates.push({ row, col, score: scoreCell(state, row, col, neighbors) });
+      if (!state.board[row][col]) candidates.push({
+        row,
+        col,
+        score: scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer),
+      });
     }
   }
   candidates.sort((a, b) => b.score - a.score);
   return candidates[0] || null;
 }
 
-export function chooseAiKingSwapTarget(state, { kingEscapeType, neighbors, isFortressConnected }) {
+export function chooseAiKingSwapTarget(state, {
+  aiPlayer,
+  humanPlayer,
+  kingEscapeType,
+  neighbors,
+  isFortressConnected,
+}) {
   const pending = state.pendingKingSwap;
-  if (!pending || pending.owner !== PVE_AI) return null;
+  if (!pending || pending.owner !== aiPlayer) return null;
 
   const candidates = [];
   for (let row = 0; row < SIZE; row += 1) {
     for (let col = 0; col < SIZE; col += 1) {
-      const escapeType = kingEscapeType(PVE_AI, pending.row, pending.col, row, col);
+      const escapeType = kingEscapeType(aiPlayer, pending.row, pending.col, row, col);
       if (!escapeType) continue;
-      const adjacentEnemies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === PVE_HUMAN).length;
-      const adjacentAllies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === PVE_AI).length;
-      const fortressSafety = escapeType === "swap" && isFortressConnected(PVE_AI, row, col) ? 20 : 0;
-      const homeBoardSafety = (SIZE - 1 - row) * 2;
+      const adjacentEnemies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === humanPlayer).length;
+      const adjacentAllies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === aiPlayer).length;
+      const fortressSafety = escapeType === "swap" && isFortressConnected(aiPlayer, row, col) ? 20 : 0;
+      const homeBoardSafety = (aiPlayer === "red" ? SIZE - 1 - row : row) * 2;
       candidates.push({
         row,
         col,

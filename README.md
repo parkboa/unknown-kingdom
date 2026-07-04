@@ -75,8 +75,9 @@ The selected server URL is stored in the browser for later matches.
 Client messages:
 
 ```json
-{ "type": "create_room" }
-{ "type": "join_room", "roomCode": "ABC123" }
+{ "type": "create_room", "protocolVersion": 2 }
+{ "type": "join_room", "roomCode": "ABC123", "protocolVersion": 2 }
+{ "type": "choose_side", "roomCode": "ABC123", "side": "blue" }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "deploy", "unitType": "soldier", "row": 4, "col": 4 } }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "taunt" } }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "wizard_teleport", "row": 2, "col": 5 } }
@@ -90,9 +91,10 @@ Server messages:
 ```json
 { "type": "room_created", "roomCode": "ABC123" }
 { "type": "waiting", "roomCode": "ABC123" }
+{ "type": "side_selection", "roomCode": "ABC123" }
 { "type": "match_start", "roomCode": "ABC123", "player": "blue", "state": {} }
 { "type": "state", "roomCode": "ABC123", "player": "blue", "state": {} }
 { "type": "error", "message": "Invalid room code." }
 ```
 
-The server is responsible for legal-move validation, captures, special reactions, hidden information, turn order, reconnects, and victory results.
+After both players join, the server sends `side_selection`. The first valid `choose_side` command claims that side and automatically assigns the opponent to the other side. The server is responsible for legal-move validation, captures, special reactions, hidden information, turn order, reconnects, and victory results.

@@ -1,4 +1,4 @@
-import { validateNetworkMessage } from "./protocol.js?v=online-side-choice";
+import { validateNetworkMessage } from "./protocol.js?v=post-join-side-choice";
 
 export function createNetworkSession() {
   return {
@@ -28,6 +28,12 @@ export function sendNetworkAction(session, action) {
     roomCode: session.roomCode,
     action,
   }));
+  return true;
+}
+
+export function sendNetworkCommand(session, command) {
+  if (session.socket?.readyState !== WebSocket.OPEN) return false;
+  session.socket.send(JSON.stringify(command));
   return true;
 }
 

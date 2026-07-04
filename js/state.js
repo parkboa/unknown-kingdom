@@ -20,8 +20,8 @@ export function createOccupiedSoldier(owner) {
   return createPiece(owner, "soldier");
 }
 
-export function createInitialState(mode) {
-  const startingSide = mode === "pvp" ? "red" : PVE_HUMAN;
+export function createInitialState(mode, pveHumanPlayer = PVE_HUMAN) {
+  const startingSide = mode === "pvp" ? "red" : pveHumanPlayer;
   const startingSideLabel = startingSide === "red" ? "Black" : "White";
   const aiProfile = AI_PROFILES[Math.floor(Math.random() * AI_PROFILES.length)];
   return {

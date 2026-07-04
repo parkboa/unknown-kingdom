@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Unknown Kingdom Prototype</title>
-    <link rel="stylesheet" href="./styles.css?v=online-side-choice" />
+    <link rel="stylesheet" href="./styles.css?v=settings-menu" />
   </head>
   <body>
     <main class="app-shell">
@@ -28,6 +28,12 @@
           <button id="newGameBtn" class="icon-button" type="button" aria-label="New Game" title="New Game">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" />
+            </svg>
+          </button>
+          <button id="settingsBtn" class="icon-button" type="button" aria-label="Settings" title="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" />
             </svg>
           </button>
           <div hidden>
@@ -97,12 +103,25 @@
           </button>
           <button type="button" data-start-mode="pve">
             <strong>PvE</strong>
-            <span data-i18n="pveDescription">Play as White against the Black AI</span>
+            <span data-i18n="pveDescription">Choose a side and play against the AI</span>
           </button>
           <button type="button" data-start-mode="pvp">
             <strong data-i18n="onlinePvp">Online PvP</strong>
             <span data-i18n="pvpDescription">Create or join a private network room</span>
           </button>
+        </div>
+      </section>
+    </div>
+
+    <div id="pveSideModal" class="result-modal" hidden>
+      <section class="result-card mode-card" role="dialog" aria-modal="true" aria-labelledby="pveSideTitle">
+        <p class="eyebrow">PvE</p>
+        <h2 id="pveSideTitle" data-i18n="chooseSide">Choose your side</h2>
+        <p class="result-reason" data-i18n="pveSidePrompt">Your side will appear at the bottom of the board.</p>
+        <div class="side-choice-actions">
+          <button type="button" data-pve-side="red" data-i18n="blackSide">Black</button>
+          <button type="button" data-pve-side="blue" data-i18n="whiteSide">White</button>
+          <button id="cancelPveSideBtn" type="button" data-i18n="back">Back</button>
         </div>
       </section>
     </div>
@@ -113,23 +132,19 @@
         <h2 id="networkTitle" data-i18n="networkLobby">Network Lobby</h2>
         <p id="networkLobbyStatus" class="result-reason" data-i18n="networkPrompt">Create a room or enter an invitation code.</p>
         <div class="network-form">
-          <fieldset class="network-side-picker">
-            <legend data-i18n="chooseSide">Choose your side</legend>
+          <div id="networkRoomControls" class="network-room-controls">
             <label>
-              <input type="radio" name="onlineSide" value="red" />
-              <span data-i18n="blackSide">Black</span>
+              <span data-i18n="roomCode">Room code</span>
+              <input id="roomCodeInput" type="text" maxlength="12" autocomplete="off" placeholder="Enter code" />
             </label>
-            <label>
-              <input type="radio" name="onlineSide" value="blue" checked />
-              <span data-i18n="whiteSide">White</span>
-            </label>
+            <button id="createRoomBtn" type="button" data-i18n="createRoom">Create Room</button>
+            <button id="joinRoomBtn" type="button" data-i18n="joinRoom">Join Room</button>
+          </div>
+          <fieldset id="networkSidePicker" class="network-side-picker" hidden>
+            <legend data-i18n="chooseSideAfterJoin">Both players joined. Choose your side.</legend>
+            <button type="button" data-online-side="red" data-i18n="blackSide">Black</button>
+            <button type="button" data-online-side="blue" data-i18n="whiteSide">White</button>
           </fieldset>
-          <label>
-            <span data-i18n="roomCode">Room code</span>
-            <input id="roomCodeInput" type="text" maxlength="12" autocomplete="off" placeholder="Enter code" />
-          </label>
-          <button id="createRoomBtn" type="button" data-i18n="createRoom">Create Room</button>
-          <button id="joinRoomBtn" type="button" data-i18n="joinRoom">Join Room</button>
           <button id="cancelNetworkBtn" type="button" data-i18n="back">Back</button>
         </div>
       </section>
@@ -145,6 +160,18 @@
           <span data-i18n="dontShowAgain">Do not show this unit explanation again</span>
         </label>
         <button id="closeSpecialHelpBtn" type="button" data-i18n="gotIt">Got It</button>
+      </section>
+    </div>
+
+    <div id="settingsModal" class="result-modal" hidden>
+      <section class="result-card mode-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <p class="eyebrow" data-i18n="settings">Settings</p>
+        <h2 id="settingsTitle" data-i18n="settings">Settings</h2>
+        <div class="settings-actions">
+          <button id="resetSpecialHelpBtn" type="button" data-i18n="resetSpecialHelp">Show special-unit explanations again</button>
+          <p id="settingsStatus" class="settings-status" aria-live="polite" hidden></p>
+          <button id="closeSettingsBtn" type="button" data-i18n="close">Close</button>
+        </div>
       </section>
     </div>
 
@@ -165,6 +192,6 @@
       </section>
     </div>
 
-    <script type="module" src="./app.js?v=online-side-choice"></script>
+    <script type="module" src="./app.js?v=settings-menu"></script>
   </body>
 </html>
