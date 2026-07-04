@@ -14,10 +14,6 @@ function roomCode() {
   return code;
 }
 
-function preferredSide(message) {
-  return message.preferredSide === "blue" ? "blue" : "red";
-}
-
 function send(socket, message) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
 }
@@ -33,6 +29,34 @@ function broadcastState(room, type = "state") {
       state: stateForPlayer(room.state, player),
     });
   }
+}
+
+function requestSideSelection(room) {
+  for (const player of ["red", "blue"]) {
+    send(room.players[player], {
+      type: "side_selection",
+      roomCode: room.code,
+    });
+  }
+}
+
+function assignSelectedSide(room, socket, selectedSide) {
+  if (room.sideChosen || !room.players.red || !room.players.blue) return false;
+  const membership = socket.membership;
+  if (!membership || !["red", "blue"].includes(selectedSide)) return false;
+
+  if (membership.player !== selectedSide) {
+    const otherSide = selectedSide === "red" ? "blue" : "red";
+    const otherSocket = room.players[selectedSide];
+    room.players[selectedSide] = socket;
+    room.players[otherSide] = otherSocket;
+    socket.membership.player = selectedSide;
+    otherSocket.membership.player = otherSide;
+  }
+
+  room.sideChosen = true;
+  broadcastState(room, "match_start");
+  return true;
 }
 
 function scheduleBotTurn(room) {
@@ -54,6 +78,7 @@ function leaveRoom(socket) {
   const room = rooms.get(membership.roomCode);
   if (!room) return;
   room.players[membership.player] = null;
+  if (!room.botPlayer) room.sideChosen = false;
   if (!room.players.red && !room.players.blue && room.botTimer) {
     clearTimeout(room.botTimer);
     room.botTimer = null;
@@ -93,19 +118,20 @@ webSocketServer.on("connection", (socket) => {
     if (message.type === "create_room") {
       leaveRoom(socket);
       const code = roomCode();
-      const player = preferredSide(message);
       const room = {
         code,
         state: createGameState(),
         players: { red: null, blue: null },
+        sideChosen: false,
+        sideSelectionEnabled: message.protocolVersion === 2,
         botPlayer: null,
         botTimer: null,
         rematch: new Set(),
       };
-      room.players[player] = socket;
+      room.players.red = socket;
       rooms.set(code, room);
-      socket.membership = { roomCode: code, player };
-      send(socket, { type: "room_created", roomCode: code, player });
+      socket.membership = { roomCode: code, player: "red" };
+      send(socket, { type: "room_created", roomCode: code });
       return;
     }
 
@@ -116,6 +142,8 @@ webSocketServer.on("connection", (socket) => {
         code,
         state: createGameState(),
         players: { red: null, blue: socket },
+        sideChosen: true,
+        sideSelectionEnabled: false,
         botPlayer: "red",
         botTimer: null,
         rematch: new Set(),
@@ -138,7 +166,25 @@ webSocketServer.on("connection", (socket) => {
       const player = room.players.red ? "blue" : "red";
       room.players[player] = socket;
       socket.membership = { roomCode: code, player };
-      broadcastState(room, "match_start");
+      if (room.sideSelectionEnabled && message.protocolVersion === 2) {
+        requestSideSelection(room);
+      } else {
+        room.sideChosen = true;
+        broadcastState(room, "match_start");
+      }
+      return;
+    }
+
+    if (message.type === "choose_side" && socket.membership) {
+      const room = rooms.get(socket.membership.roomCode);
+      if (!room || room.code !== message.roomCode) {
+        send(socket, { type: "error", message: "Invalid room." });
+        return;
+      }
+      if (room.sideChosen) return;
+      if (!assignSelectedSide(room, socket, message.side)) {
+        send(socket, { type: "error", message: "Side selection is unavailable." });
+      }
       return;
     }
 
@@ -150,6 +196,10 @@ webSocketServer.on("connection", (socket) => {
     const room = rooms.get(socket.membership.roomCode);
     if (!room || room.code !== message.roomCode) {
       send(socket, { type: "error", message: "Invalid room." });
+      return;
+    }
+    if (!room.sideChosen) {
+      send(socket, { type: "error", message: "Choose a side first." });
       return;
     }
     const player = socket.membership.player;
