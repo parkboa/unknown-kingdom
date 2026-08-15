@@ -1,11 +1,13 @@
-import { validateNetworkMessage } from "./protocol.js?v=post-join-side-choice";
+import { validateNetworkMessage } from "./protocol.js?v=progression-5";
 
 export function createNetworkSession() {
   return {
     socket: null,
     connected: false,
     ready: false,
+    opponentDisconnected: false,
     roomCode: "",
+    boardNumber: null,
     player: null,
   };
 }
@@ -78,6 +80,7 @@ export function connectNetwork(command, {
   socket.addEventListener("close", () => {
     session.connected = false;
     session.ready = false;
+    session.opponentDisconnected = false;
     onStatus(disconnectedMessage, session);
     onClose(session);
   });

@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Neutral Wall Test</title>
+<pre id="result">running</pre>
+<script type="module">
+import { SIZE } from './js/config.js?v=neutral-wall-test';
+import { createPiece } from './js/state.js?v=neutral-wall-test';
+import { collectGroup, groupHasLiberty, touchesOwnWall, wallOwnerForEdge } from './packages/game-engine/src/board.js';
+
+function emptyState() {
+  return { board: Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => null)) };
+}
+
+function testCase(defender, attacker, row, col, expected) {
+  const state = emptyState();
+  state.board[row][col] = createPiece(defender, 'soldier');
+  if (row > 0) state.board[row - 1][col] = createPiece(attacker, 'soldier');
+  if (row < SIZE - 1) state.board[row + 1][col] = createPiece(attacker, 'soldier');
+  if (col > 0) state.board[row][col - 1] = createPiece(attacker, 'soldier');
+  if (col < SIZE - 1) state.board[row][col + 1] = createPiece(attacker, 'soldier');
+  const group = collectGroup(state, row, col);
+  const hasLiberty = groupHasLiberty(state, group, defender);
+  const actual = {
+    defender,
+    attacker,
+    row,
+    col,
+    leftWallOwner: wallOwnerForEdge(row, row, col - 1),
+    rightWallOwner: wallOwnerForEdge(row, row, col + 1),
+    touchesOwnWall: touchesOwnWall(defender, row, col),
+    hasLiberty,
+    result: hasLiberty ? 'survives' : 'captured',
+  };
+  const failures = Object.entries(expected)
+    .filter(([key, value]) => actual[key] !== value)
+    .map(([key, value]) => `${key}: expected ${String(value)}, received ${String(actual[key])}`);
+  return { ...actual, passed: failures.length === 0, failures };
+}
+
+const result = {
+  cases: [
+    testCase('red', 'blue', 4, 0, { leftWallOwner: null, touchesOwnWall: false, hasLiberty: true }),
+    testCase('blue', 'red', 4, 0, { leftWallOwner: null, touchesOwnWall: false, hasLiberty: true }),
+    testCase('red', 'blue', 4, 8, { rightWallOwner: null, touchesOwnWall: false, hasLiberty: true }),
+    testCase('blue', 'red', 4, 8, { rightWallOwner: null, touchesOwnWall: false, hasLiberty: true }),
+    testCase('red', 'blue', 3, 0, { leftWallOwner: 'red', touchesOwnWall: true, hasLiberty: true }),
+    testCase('blue', 'red', 5, 0, { leftWallOwner: 'blue', touchesOwnWall: true, hasLiberty: true }),
+  ],
+};
+result.passed = result.cases.every((test) => test.passed);
+document.querySelector('#result').textContent = JSON.stringify(result, null, 2);
+if (!result.passed) {
+  const failureSummary = result.cases.flatMap((test) => test.failures).join('; ');
+  throw new Error(`Neutral wall regression failed: ${failureSummary}`);
+}
+</script>

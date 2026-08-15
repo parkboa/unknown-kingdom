@@ -1,6 +1,6 @@
 import { AI_PROFILES, DEPLOY_ORDER, SIZE } from "./config.js";
 
-const MESSAGE_TYPES = new Set(["room_created", "waiting", "side_selection", "match_start", "state", "error", "suicide_warning"]);
+const MESSAGE_TYPES = new Set(["room_created", "waiting", "room_list", "side_selection", "match_start", "state", "error", "suicide_warning"]);
 const PLAYERS = new Set(["red", "blue"]);
 const WINNERS = new Set(["red", "blue", "draw"]);
 const UNIT_TYPES = new Set(DEPLOY_ORDER);
@@ -15,6 +15,21 @@ function isNonNegativeInteger(value) {
 
 function isRoomCode(value) {
   return typeof value === "string" && /^[A-Z0-9]{1,12}$/.test(value);
+}
+
+function isRoomSummary(value) {
+  return isPlainObject(value)
+    && isRoomCode(value.roomCode)
+    && Number.isInteger(value.boardNumber)
+    && value.boardNumber > 0
+    && Number.isInteger(value.playerCount)
+    && value.playerCount >= 0
+    && value.playerCount <= 2;
+}
+
+function hasOptionalBoardNumber(value) {
+  return value.boardNumber === undefined
+    || (Number.isInteger(value.boardNumber) && value.boardNumber > 0);
 }
 
 function isCoordinate(value) {
@@ -59,6 +74,14 @@ function isPendingAbility(value) {
     && (value.reaction === undefined || typeof value.reaction === "boolean");
 }
 
+function isPendingSpecial(value) {
+  if (value === null) return true;
+  return isCoordinate(value)
+    && PLAYERS.has(value.owner)
+    && (value.type === undefined || UNIT_TYPES.has(value.type))
+    && (value.captor === undefined || PLAYERS.has(value.captor));
+}
+
 function isTauntChance(value) {
   return value === null
     || (isCoordinate(value)
@@ -78,9 +101,11 @@ export function validateGameState(value) {
   if (!Array.isArray(value.board) || value.board.length !== SIZE) return false;
   if (!value.board.every((row) => Array.isArray(row) && row.length === SIZE && row.every(isPiece))) return false;
   if (!PLAYERS.has(value.turn)) return false;
+  if (value.resumeTurn !== null && !PLAYERS.has(value.resumeTurn)) return false;
   if (!isOptionalCoordinate(value.selected)) return false;
-  if (!isPendingAbility(value.teleporting) || !isPendingAbility(value.pendingWizardTeleport) || !isPendingAbility(value.pendingKingSwap)) return false;
+  if (!isPendingAbility(value.teleporting) || !isPendingSpecial(value.pendingSpecial) || !isPendingAbility(value.pendingWizardTeleport) || !isPendingAbility(value.pendingKingSwap)) return false;
   if (!isPlayerMap(value.tauntChances, isTauntChance) || !isTauntEvent(value.tauntEvent) || !isNonNegativeInteger(value.tauntSerial)) return false;
+  if (!isNonNegativeInteger(value.tauntUntil)) return false;
   if (value.winner !== null && !WINNERS.has(value.winner)) return false;
   if (typeof value.resultReason !== "string" || value.resultReason.length > 1000) return false;
   if (value.mode !== "pvp") return false;
@@ -100,21 +125,30 @@ export function validateNetworkMessage(message) {
 
   if (message.type === "room_created" || message.type === "waiting") {
     return isRoomCode(message.roomCode)
+      && hasOptionalBoardNumber(message)
       && (message.player === undefined || PLAYERS.has(message.player));
   }
 
   if (message.type === "side_selection") {
-    return isRoomCode(message.roomCode);
+    return isRoomCode(message.roomCode) && hasOptionalBoardNumber(message);
+  }
+
+  if (message.type === "room_list") {
+    return Array.isArray(message.rooms)
+      && message.rooms.length <= 100
+      && message.rooms.every(isRoomSummary);
   }
 
   if (message.type === "match_start") {
     return isRoomCode(message.roomCode)
+      && hasOptionalBoardNumber(message)
       && PLAYERS.has(message.player)
       && validateGameState(message.state);
   }
 
   if (message.type === "state") {
     return (message.roomCode === undefined || isRoomCode(message.roomCode))
+      && hasOptionalBoardNumber(message)
       && (message.player === undefined || PLAYERS.has(message.player))
       && validateGameState(message.state);
   }

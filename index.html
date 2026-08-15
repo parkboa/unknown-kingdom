@@ -3,56 +3,78 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Unknown Kingdom Prototype</title>
-    <link rel="stylesheet" href="./styles.css?v=settings-menu" />
+    <title>Daeguk: Ascension</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Serif:wght@500;600;700;800&family=Noto+Serif+KR:wght@500;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+    <link rel="stylesheet" href="./styles.css?v=mode-lock-1" />
   </head>
   <body>
+    <div id="splashModal" class="splash-screen" aria-live="polite">
+      <section class="splash-card" aria-label="Loading">
+        <div class="splash-image-slot" aria-hidden="true">
+          <span data-i18n="splashImagePlaceholder">Opening image</span>
+        </div>
+        <div class="brand-lockup splash-brand" aria-label="Daeguk">
+          <img id="splashLogo" class="splash-logo" src="./assets/ui/daeguk-logo-en.svg" alt="Daeguk: Ascension" />
+          <h1 id="splashTitle" class="screen-reader-only">DAEGUK</h1>
+          <p id="splashSubtitle" class="screen-reader-only">ASCENSION</p>
+        </div>
+        <p id="splashStatus" class="splash-status" data-i18n="splashLoading">Checking game server…</p>
+      </section>
+    </div>
+
     <main class="app-shell">
       <section class="game-area" aria-label="Game board">
+        <section class="game-info-bar" aria-label="Match information">
+          <span id="modeInfo" class="info-pill">AI 대국</span>
+          <span id="connectionInfo" class="info-pill connection-info" hidden><span class="connection-dot" aria-hidden="true"></span><span id="connectionInfoText">대기 중</span></span>
+          <span id="rankInfo" class="info-pill">삼류 고수</span>
+        </section>
         <header class="game-status-bar" aria-label="Current match status">
-          <div class="unit-counters" aria-label="Units currently on the board">
-            <div class="unit-counter red-counter" aria-label="Black units">
-              <span id="redCount">0</span>
+          <div class="status-left-group">
+            <div class="unit-counters" aria-label="Units currently on the board">
+              <div class="unit-counter red-counter" aria-label="Black units">
+                <span id="redCount">0</span>
+              </div>
+              <div class="unit-counter blue-counter" aria-label="White units">
+                <span id="blueCount">0</span>
+              </div>
             </div>
-            <div class="unit-counter blue-counter" aria-label="White units">
-              <span id="blueCount">0</span>
-            </div>
+            <div id="turnPill" class="turn-pill">White turn</div>
           </div>
-          <div id="turnPill" class="turn-pill">White turn</div>
           <button id="tauntBtn" class="taunt-button" type="button" data-i18n="taunt" hidden>Taunt!</button>
-          <button id="undoBtn" class="icon-button" type="button" aria-label="Undo Last Move" title="Undo Last Move" disabled>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M19 12H5M11 6l-6 6 6 6" />
-            </svg>
-          </button>
-          <button id="newGameBtn" class="icon-button" type="button" aria-label="New Game" title="New Game">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" />
-            </svg>
-          </button>
-          <button id="settingsBtn" class="icon-button" type="button" aria-label="Settings" title="Settings">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" />
-            </svg>
-          </button>
           <div hidden>
             <span id="networkStatusGroup"></span>
             <span id="networkStatus">Not connected.</span>
           </div>
-        </header>
-        <div class="fortress-frame" aria-label="Fortress walls and board">
-          <div class="horizontal-wall red-wall" aria-hidden="true"></div>
           <aside id="tutorialPanel" class="tutorial-panel" aria-live="polite" hidden>
-            <div>
+            <div class="tutorial-guide-content">
               <strong id="tutorialStepLabel" hidden></strong>
               <p id="tutorialMessage"></p>
             </div>
             <div class="tutorial-actions">
-              <button id="nextTutorialBtn" type="button" data-i18n="nextTutorial" hidden>Next</button>
-              <button id="exitTutorialBtn" type="button" data-i18n="exitTutorial">Exit Tutorial</button>
+              <button id="confirmTeleportBtn" type="button" hidden>Move</button>
+              <button id="cancelTeleportBtn" type="button" hidden>Cancel Ability</button>
+              <button id="nextTutorialBtn" class="tutorial-icon-button" type="button" aria-label="Next" title="Next" hidden>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 12h14" />
+                  <path d="m13 6 6 6-6 6" />
+                </svg>
+              </button>
+              <button id="exitTutorialBtn" class="tutorial-icon-button" type="button" aria-label="Challenges" title="Challenges" hidden>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m6 6 12 12" />
+                  <path d="M18 6 6 18" />
+                </svg>
+              </button>
             </div>
           </aside>
+        </header>
+        <div class="fortress-frame" aria-label="Fortress walls and board">
+          <div class="horizontal-wall red-wall" aria-hidden="true"></div>
           <div class="board-row">
             <div class="vertical-wall left-wall" aria-hidden="true"></div>
             <div id="board" class="board" role="grid" aria-label="9 by 9 Unknown Kingdom board"></div>
@@ -60,49 +82,65 @@
           </div>
           <div class="horizontal-wall blue-wall" aria-hidden="true"></div>
         </div>
-        <section class="deploy-dock" aria-labelledby="deployTitle">
-          <div class="deploy-heading">
-            <h2 id="deployTitle" data-i18n="deploy">Deploy</h2>
-            <button id="cancelTeleportBtn" type="button" hidden>Cancel Ability</button>
-          </div>
+        <section class="deploy-dock" aria-label="Unit to deploy">
           <div class="unit-picker" role="radiogroup" aria-label="Unit to deploy">
-            <label data-unit="soldier"><input type="radio" name="unit" value="soldier" checked /><span>Soldier</span><small></small></label>
-            <label data-unit="general"><input type="radio" name="unit" value="general" /><span>General</span><small></small></label>
-            <label data-unit="diplomat"><input type="radio" name="unit" value="diplomat" /><span>Diplomat</span><small></small></label>
-            <label data-unit="wizard"><input type="radio" name="unit" value="wizard" /><span>Wizard</span><small></small></label>
-            <label data-unit="king"><input type="radio" name="unit" value="king" /><span>King</span><small></small></label>
+            <label data-unit="soldier"><input type="radio" name="unit" value="soldier" checked /><span>Soldier</span><span class="unit-token" aria-hidden="true"></span><small></small></label>
+            <label data-unit="general"><input type="radio" name="unit" value="general" /><span>General</span><span class="unit-token" aria-hidden="true"></span><small></small></label>
+            <label data-unit="diplomat"><input type="radio" name="unit" value="diplomat" /><span>Diplomat</span><span class="unit-token" aria-hidden="true"></span><small></small></label>
+            <label data-unit="wizard"><input type="radio" name="unit" value="wizard" /><span>Wizard</span><span class="unit-token" aria-hidden="true"></span><small></small></label>
+            <label class="king-deploy-option" data-unit="king"><input type="radio" name="unit" value="king" /><span>King</span><span class="unit-token" aria-hidden="true"></span><small></small></label>
           </div>
         </section>
+        <nav class="game-action-bar" aria-label="Game actions">
+          <button id="undoBtn" class="action-bar-button" type="button" aria-label="Undo Last Move" title="Undo Last Move" disabled>한수 물리기</button>
+          <button id="newGameBtn" class="action-bar-button" type="button" aria-label="Home" title="Home">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 10.5 12 4l8 6.5" />
+              <path d="M6.5 9.5V20h11V9.5" />
+              <path d="M10 20v-6h4v6" />
+            </svg>
+          </button>
+          <button id="settingsBtn" class="action-bar-button" type="button" aria-label="Settings" title="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" />
+            </svg>
+          </button>
+        </nav>
       </section>
 
       <div hidden>
         <input type="radio" name="mode" value="pve" checked />
         <input type="radio" name="mode" value="pvp" />
         <input type="radio" name="mode" value="tutorial" />
+        <input type="radio" name="mode" value="puzzle" />
       </div>
     </main>
 
-    <div id="modeModal" class="result-modal">
+    <div id="modeModal" class="result-modal" hidden>
       <section class="result-card mode-card" role="dialog" aria-modal="true" aria-labelledby="modeTitle">
         <div class="modal-heading-row">
-          <p class="eyebrow">Unknown Kingdom</p>
-          <label class="language-picker">
-            <span data-i18n="language">Language</span>
-            <select id="languageSelect">
-              <option value="en">English</option>
-              <option value="ko">한국어</option>
-            </select>
-          </label>
+          <div id="lobbyBrand" class="brand-lockup lobby-brand" aria-label="Daeguk">
+            <img id="lobbyLogo" class="lobby-logo" src="./assets/ui/daeguk-logo-en.svg" alt="Daeguk: Ascension" />
+            <p id="lobbyBrandMain" class="screen-reader-only">DAEGUK</p>
+            <p id="lobbyBrandSubtitle" class="screen-reader-only">ASCENSION</p>
+          </div>
+          <button id="lobbySettingsBtn" class="lobby-settings-button" type="button" aria-label="Settings" title="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" />
+            </svg>
+          </button>
         </div>
-        <h2 id="modeTitle" data-i18n="chooseMode">Choose Game Mode</h2>
-        <p class="result-reason" data-i18n="chooseModeDescription">Select how you want to start this match.</p>
-        <div class="mode-start-actions">
-          <button type="button" data-start-mode="tutorial">
-            <strong data-i18n="tutorial">Tutorial</strong>
-            <span data-i18n="tutorialDescription">Learn the basic rules step by step</span>
+        <h2 id="modeTitle" data-i18n="chooseMode">Select Match</h2>
+        <p class="result-reason lobby-mode-description" data-i18n="chooseModeDescription" hidden>Select how you want to start this match.</p>
+        <div class="mode-start-actions lobby-mode-actions">
+          <button type="button" data-start-mode="puzzle">
+            <strong data-i18n="puzzle">Puzzle</strong>
+            <span data-i18n="puzzleDescription">Solve puzzles and raise your rank</span>
           </button>
           <button type="button" data-start-mode="pve">
-            <strong>PvE</strong>
+            <strong data-i18n="pveMode">PvE</strong>
             <span data-i18n="pveDescription">Choose a side and play against the AI</span>
           </button>
           <button type="button" data-start-mode="pvp">
@@ -113,85 +151,152 @@
       </section>
     </div>
 
+    <div id="challengeModal" class="result-modal" hidden>
+      <section class="result-card mode-card challenge-card" role="dialog" aria-modal="true" aria-labelledby="challengeTitle">
+        <h2 id="challengeTitle" data-i18n="challengeRanks">Challenge Ranks</h2>
+        <p class="result-reason" data-i18n="challengeRanksDescription">Clear each rank to unlock the next challenge.</p>
+        <div class="challenge-rank-frame">
+          <div id="challengeRankList" class="challenge-rank-list"></div>
+        </div>
+        <button id="closeChallengeBtn" class="card-back-button" type="button" data-i18n="back">Back</button>
+      </section>
+    </div>
+
     <div id="pveSideModal" class="result-modal" hidden>
-      <section class="result-card mode-card" role="dialog" aria-modal="true" aria-labelledby="pveSideTitle">
-        <p class="eyebrow">PvE</p>
-        <h2 id="pveSideTitle" data-i18n="chooseSide">Choose your side</h2>
+      <section class="result-card mode-card lobby-subcard" role="dialog" aria-modal="true" aria-labelledby="pveSideTitle">
+        <h2 id="pveSideTitle" data-i18n="pveMode">AI Match</h2>
         <p class="result-reason" data-i18n="pveSidePrompt">Your side will appear at the bottom of the board.</p>
+        <div class="card-control-frame ai-rank-frame">
+          <div class="side-choice-actions difficulty-choice-actions" aria-label="PvE difficulty">
+            <button type="button" data-pve-difficulty="beginner"></button>
+            <button type="button" data-pve-difficulty="intermediate"></button>
+            <button type="button" data-pve-difficulty="advanced"></button>
+            <button type="button" data-pve-difficulty="expert"></button>
+          </div>
+        </div>
+        <p class="side-choice-label" data-i18n="choosePreferredSide">Choose your side</p>
         <div class="side-choice-actions">
           <button type="button" data-pve-side="red" data-i18n="blackSide">Black</button>
           <button type="button" data-pve-side="blue" data-i18n="whiteSide">White</button>
-          <button id="cancelPveSideBtn" type="button" data-i18n="back">Back</button>
+          <button id="cancelPveSideBtn" class="card-back-button" type="button" data-i18n="back">Back</button>
         </div>
       </section>
     </div>
 
     <div id="networkModal" class="result-modal" hidden>
-      <section class="result-card mode-card" role="dialog" aria-modal="true" aria-labelledby="networkTitle">
-        <p class="eyebrow" data-i18n="onlinePvp">Online PvP</p>
+      <section class="result-card mode-card lobby-subcard" role="dialog" aria-modal="true" aria-labelledby="networkTitle">
         <h2 id="networkTitle" data-i18n="networkLobby">Network Lobby</h2>
         <p id="networkLobbyStatus" class="result-reason" data-i18n="networkPrompt">Create a room or enter an invitation code.</p>
         <div class="network-form">
           <div id="networkRoomControls" class="network-room-controls">
-            <label>
-              <span data-i18n="roomCode">Room code</span>
-              <input id="roomCodeInput" type="text" maxlength="12" autocomplete="off" placeholder="Enter code" />
-            </label>
-            <button id="createRoomBtn" type="button" data-i18n="createRoom">Create Room</button>
-            <button id="joinRoomBtn" type="button" data-i18n="joinRoom">Join Room</button>
+            <button id="createRoomBtn" class="card-simple-button" type="button" data-i18n="createBoard">Create Board</button>
           </div>
+          <div id="publicRoomList" class="public-room-list">
+            <div class="public-room-header">
+              <strong data-i18n="openRooms">Open Boards</strong>
+              <button id="refreshRoomListBtn" class="refresh-icon-button" type="button">
+                <span class="screen-reader-only" data-i18n="refreshRooms">Refresh</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 6v5h-5" />
+                  <path d="M4 18v-5h5" />
+                  <path d="M6.1 9a7 7 0 0 1 11.5-2.6L20 9" />
+                  <path d="m4 15 2.4 2.6A7 7 0 0 0 18 15" />
+                </svg>
+              </button>
+            </div>
+            <div id="publicRoomItems" class="public-room-items"></div>
+          </div>
+          <button id="joinRoomBtn" class="card-simple-button" type="button" data-i18n="enterBoard">Enter</button>
           <fieldset id="networkSidePicker" class="network-side-picker" hidden>
             <legend data-i18n="chooseSideAfterJoin">Both players joined. Choose your side.</legend>
             <button type="button" data-online-side="red" data-i18n="blackSide">Black</button>
             <button type="button" data-online-side="blue" data-i18n="whiteSide">White</button>
           </fieldset>
-          <button id="cancelNetworkBtn" type="button" data-i18n="back">Back</button>
+          <button id="cancelNetworkBtn" class="card-back-button" type="button" data-i18n="back">Back</button>
         </div>
       </section>
     </div>
 
-    <div id="specialHelpModal" class="result-modal" hidden>
-      <section class="result-card help-card" role="dialog" aria-modal="true" aria-labelledby="specialHelpTitle">
+    <div id="pendingSpecialModal" class="result-modal" hidden>
+      <section class="result-card help-card" role="dialog" aria-modal="true" aria-labelledby="pendingSpecialTitle">
         <p class="eyebrow" data-i18n="specialUnit">Special Unit</p>
-        <h2 id="specialHelpTitle">General</h2>
-        <p id="specialHelpText" class="result-reason"></p>
-        <label class="help-preference">
-          <input id="hideSpecialHelpCheckbox" type="checkbox" />
-          <span data-i18n="dontShowAgain">Do not show this unit explanation again</span>
-        </label>
-        <button id="closeSpecialHelpBtn" type="button" data-i18n="gotIt">Got It</button>
+        <h2 id="pendingSpecialTitle">Special ability ready</h2>
+        <p id="pendingSpecialText" class="result-reason"></p>
+        <button id="activateSpecialBtn" type="button">Activate ability</button>
+      </section>
+    </div>
+
+    <div id="suicideConfirmModal" class="result-modal" hidden>
+      <section class="result-card suicide-confirm-card" role="dialog" aria-modal="true" aria-labelledby="suicideConfirmTitle" aria-describedby="suicideConfirmText">
+        <h2 id="suicideConfirmTitle" data-i18n="suicideWarningTitle">Confirm Suicide Move</h2>
+        <p id="suicideConfirmText" class="result-reason" data-i18n="suicideWarning">This unit will die immediately if placed here.</p>
+        <div class="suicide-confirm-actions">
+          <button id="cancelSuicideBtn" class="card-back-button" type="button" data-i18n="cancelSuicide">Cancel</button>
+          <button id="confirmSuicideBtn" class="suicide-confirm-primary" type="button" data-i18n="confirmSuicide">Place Anyway</button>
+        </div>
       </section>
     </div>
 
     <div id="settingsModal" class="result-modal" hidden>
-      <section class="result-card mode-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-        <p class="eyebrow" data-i18n="settings">Settings</p>
-        <h2 id="settingsTitle" data-i18n="settings">Settings</h2>
-        <div class="settings-actions">
-          <button id="resetSpecialHelpBtn" type="button" data-i18n="resetSpecialHelp">Show special-unit explanations again</button>
+      <section class="result-card mode-card settings-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="settings-heading">
+          <h2 id="settingsTitle" data-i18n="settings">Settings</h2>
+        </div>
+        <div class="settings-options">
+          <label class="settings-row">
+            <span data-i18n="language">Language</span>
+            <select id="languageSelect">
+              <option value="en">English</option>
+              <option value="ko">한국어</option>
+            </select>
+          </label>
+          <section class="settings-section" aria-label="Sound">
+            <label class="settings-toggle">
+              <span data-i18n="musicSetting">Music</span>
+              <input id="musicToggle" type="checkbox" />
+            </label>
+            <label class="settings-toggle">
+              <span data-i18n="sfxSetting">Effects</span>
+              <input id="sfxToggle" type="checkbox" />
+            </label>
+          </section>
+          <label class="settings-toggle">
+            <span data-i18n="specialHelpSetting">Challenge guidance</span>
+            <input id="specialHelpToggle" type="checkbox" />
+          </label>
           <p id="settingsStatus" class="settings-status" aria-live="polite" hidden></p>
-          <button id="closeSettingsBtn" type="button" data-i18n="close">Close</button>
+        </div>
+        <div class="settings-actions">
+          <button id="closeSettingsBtn" class="card-back-button" type="button" data-i18n="close">Close</button>
         </div>
       </section>
     </div>
 
     <div id="resultModal" class="result-modal" hidden>
-      <section class="result-card" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
-        <p class="eyebrow" data-i18n="matchComplete">Match Complete</p>
-        <h2 id="resultTitle">Black Wins</h2>
+      <section class="result-card match-result-card" role="dialog" aria-modal="true" aria-labelledby="resultHeading">
+        <h2 id="resultHeading" data-i18n="matchComplete">Match Complete</h2>
+        <span class="result-stone" aria-hidden="true"></span>
+        <p id="resultTitle" class="result-outcome">Black Wins</p>
         <p id="resultReason" class="result-reason"></p>
         <div class="result-grid">
-          <div><strong id="resultRedTerritory">0</strong><span data-i18n="redTerritory">Black territory</span></div>
-          <div><strong id="resultBlueTerritory">0</strong><span data-i18n="blueTerritory">White territory</span></div>
+          <div><strong id="resultRedTerritory">0</strong><span data-i18n="redUnits">Black units</span></div>
+          <div><strong id="resultBlueTerritory">0</strong><span data-i18n="blueUnits">White units</span></div>
           <div><strong id="resultRedCaptures">0</strong><span data-i18n="redCaptures">Black captures</span></div>
           <div><strong id="resultBlueCaptures">0</strong><span data-i18n="blueCaptures">White captures</span></div>
-          <div><strong id="resultRedSpecials">0</strong><span data-i18n="redSkills">Black skills used</span></div>
-          <div><strong id="resultBlueSpecials">0</strong><span data-i18n="blueSkills">White skills used</span></div>
         </div>
-        <button id="playAgainBtn" type="button" data-i18n="playAgain">Play Again</button>
+        <div class="result-actions">
+          <button id="playAgainBtn" class="result-primary-button" type="button" data-i18n="playAgain">Play Again</button>
+          <button id="resultLobbyBtn" class="card-back-button result-home-button" type="button" aria-label="Lobby" title="Lobby">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 10.5 12 4l8 6.5" />
+              <path d="M6.5 9.5V20h11V9.5" />
+              <path d="M10 20v-6h4v6" />
+            </svg>
+          </button>
+        </div>
       </section>
     </div>
 
-    <script type="module" src="./app.js?v=settings-menu"></script>
+    <script type="module" src="./app.js?v=room-label-1"></script>
   </body>
 </html>

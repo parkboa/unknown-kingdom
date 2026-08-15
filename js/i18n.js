@@ -1,4 +1,4 @@
-import { TEXT } from "./config.js?v=settings-menu";
+import { TEXT } from "./config.js?v=disconnect-state-1";
 
 export function createTranslator(language) {
   return function text(key, values = {}) {

@@ -1,7 +1,7 @@
 import { DEPLOY_ORDER, SPECIALS } from "./config.js";
 
 export function viewerOwnsPiece(state, networkPlayer, piece, pveHumanPlayer = "blue") {
-  if (state.mode === "pve") return piece.owner === pveHumanPlayer;
+  if (state.mode === "pve" || state.mode === "puzzle") return piece.owner === pveHumanPlayer;
   if (state.mode === "tutorial") return piece.owner === "blue";
   return piece.owner === networkPlayer;
 }
@@ -23,31 +23,60 @@ function createPieceIcon(type) {
 function pieceElement(piece, row, col, context) {
   const element = document.createElement("div");
   const canSeeIdentity = viewerOwnsPiece(context.state, context.networkPlayer, piece, context.pveHumanPlayer);
-  const visibleType = piece.type === "king" || (canSeeIdentity && SPECIALS.has(piece.type) && !piece.abilityUsed)
+  const specialIdentityVisible = SPECIALS.has(piece.type) && !piece.abilityUsed && (canSeeIdentity || piece.revealed);
+  const visibleType = piece.type === "king" || specialIdentityVisible
     ? piece.type === "king" ? "king" : "special"
     : "soldier";
   element.className = `piece ${piece.owner} ${visibleType}`;
-  if (canSeeIdentity && SPECIALS.has(piece.type) && !piece.abilityUsed) element.classList.add("special");
+  if (specialIdentityVisible) element.classList.add("special");
 
   const visibleIconType = piece.type === "king"
     ? "king"
-    : canSeeIdentity && SPECIALS.has(piece.type) && !piece.abilityUsed ? piece.type : "soldier";
+    : specialIdentityVisible ? piece.type : "soldier";
   element.append(createPieceIcon(visibleIconType));
-  const visibleName = canSeeIdentity && !piece.abilityUsed
+  const visibleName = (canSeeIdentity || piece.revealed) && !piece.abilityUsed
     ? context.unitLabels[piece.type] || context.unitLabels.soldier
     : publicName(piece, context.unitLabels, context.text);
   element.title = `${context.sideName(piece.owner)} ${visibleName}`;
-  if (context.visibleTaunt?.row === row && context.visibleTaunt?.col === col) {
-    const bubble = document.createElement("span");
-    bubble.className = "taunt-bubble";
-    bubble.textContent = context.text("tauntBubble");
-    element.append(bubble);
-  }
   return element;
+}
+
+function createTauntOverlay(context) {
+  if (!context.visibleTaunt) return null;
+  const overlay = document.createElement("div");
+  overlay.className = `taunt-overlay ${context.visibleTaunt.speakerOwner === "red" ? "black-taunt" : "white-taunt"}`;
+  if (context.visibleTaunt.durationMs) overlay.style.setProperty("--taunt-duration", `${context.visibleTaunt.durationMs}ms`);
+  const image = document.createElement("img");
+  image.className = "taunt-character";
+  image.alt = "";
+  image.src = context.visibleTaunt.speakerOwner === "red"
+    ? "./assets/taunts/kingb_zzol.png"
+    : "./assets/taunts/kingw_zzol.png";
+  const callout = document.createElement("span");
+  callout.className = "taunt-callout";
+  callout.textContent = context.text("tauntBubble");
+  overlay.append(image, callout);
+  return overlay;
 }
 
 function renderBoard(context) {
   context.boardEl.innerHTML = "";
+  const kingZones = context.kingZones?.() || [];
+  for (const zone of kingZones) {
+    const overlay = document.createElement("div");
+    overlay.className = `king-zone-cell ${zone.owner}-king-zone-cell`;
+    if (zone.center) overlay.classList.add("king-zone-center");
+    if (zone.corners?.topLeft) overlay.classList.add("corner-top-left");
+    if (zone.corners?.topRight) overlay.classList.add("corner-top-right");
+    if (zone.corners?.bottomLeft) overlay.classList.add("corner-bottom-left");
+    if (zone.corners?.bottomRight) overlay.classList.add("corner-bottom-right");
+    overlay.style.setProperty("--king-zone-top", `${(zone.row / context.state.board.length) * 100}%`);
+    overlay.style.setProperty("--king-zone-left", `${(zone.col / context.state.board.length) * 100}%`);
+    overlay.style.setProperty("--king-zone-width", `${(zone.colSpan / context.state.board.length) * 100}%`);
+    overlay.style.setProperty("--king-zone-height", `${(zone.rowSpan / context.state.board.length) * 100}%`);
+    overlay.setAttribute("aria-hidden", "true");
+    context.boardEl.append(overlay);
+  }
   for (let row = 0; row < context.state.board.length; row += 1) {
     for (let col = 0; col < context.state.board[row].length; col += 1) {
       const button = document.createElement("button");
@@ -58,8 +87,9 @@ function renderBoard(context) {
       button.dataset.row = row;
       button.dataset.col = col;
 
+      if (context.state.lastMove?.row === row && context.state.lastMove?.col === col) button.classList.add("last-move");
       if (context.state.selected?.row === row && context.state.selected?.col === col) button.classList.add("selected");
-      if (context.canDeploy(context.state.turn, context.currentUnitChoice(), row, col)) button.classList.add("valid");
+      if (context.canDeploy(context.state.turn, context.currentUnitChoice(), row, col, { forHint: true })) button.classList.add("valid");
       if (context.state.teleporting && !context.state.board[row][col]) button.classList.add("teleport");
       const piece = context.state.board[row][col];
       if (piece) button.append(pieceElement(piece, row, col, context));
@@ -67,9 +97,14 @@ function renderBoard(context) {
       context.boardEl.append(button);
     }
   }
+  const tauntOverlay = createTauntOverlay(context);
+  if (tauntOverlay) context.boardEl.append(tauntOverlay);
 }
 
 function renderDeployPicker(context) {
+  context.deployDock?.classList.toggle("deploy-white", context.viewerSide === "blue");
+  context.deployDock?.classList.toggle("deploy-black", context.viewerSide === "red");
+
   context.unitInputs.forEach((input) => {
     const remaining = context.state.stock[context.state.turn][input.value];
     const label = input.closest("label");
@@ -84,11 +119,9 @@ function renderDeployPicker(context) {
     label.style.order = exhausted ? 200 + baseOrder : firstMoveLocked ? 100 + baseOrder : baseOrder;
     status.textContent = exhausted
       ? context.text("used")
-      : firstMoveLocked
-        ? context.text("kingFirst")
-        : input.value === "king"
-          ? context.text("available")
-          : context.text("left", { count: remaining });
+      : input.value === "king"
+        ? context.text("available")
+        : context.text("left", { count: remaining });
   });
 
   const selectedInput = document.querySelector("input[name='unit']:checked");
@@ -108,14 +141,25 @@ function renderPanel(context) {
   context.turnPill.classList.toggle("draw", context.state.winner === "draw");
   context.redCount.textContent = context.countPieces("red");
   context.blueCount.textContent = context.countPieces("blue");
+  if (context.modeInfo) context.modeInfo.textContent = context.modeLabel;
+  if (context.rankInfo) context.rankInfo.textContent = context.rankLabel;
+  if (context.connectionInfo) {
+    context.connectionInfo.hidden = context.state.mode !== "pvp";
+    context.connectionInfo.classList.toggle("connected", context.networkReady);
+    context.connectionInfo.classList.toggle("disconnected", context.state.mode === "pvp" && !context.networkReady && !context.networkConnecting);
+  }
+  if (context.connectionInfoText) context.connectionInfoText.textContent = context.connectionLabel;
   context.networkStatusGroup.hidden = context.state.mode !== "pvp";
   context.networkStatusGroup.classList.toggle("connected", context.networkReady);
   context.undoBtn.disabled = context.state.mode === "pvp" || context.undoCount === 0;
+  if (context.confirmTeleportBtn) context.confirmTeleportBtn.hidden = !context.state.teleporting || context.wizardMovePromptDismissed;
   context.cancelTeleportBtn.hidden = !context.state.teleporting;
   context.tauntBtn.hidden = !context.canUseTaunt;
 
-  context.resultModal.hidden = !context.state.winner;
-  if (!context.state.winner) return;
+  const showMatchResult = Boolean(context.state.winner && context.showMatchResult);
+  context.resultModal.hidden = !showMatchResult;
+  if (!showMatchResult) return;
+  context.resultModal.dataset.outcome = context.state.winner;
   document.querySelector("#resultTitle").textContent = context.state.winner === "draw"
     ? context.text("resultDraw")
     : context.text("resultWin", { side: context.sideName(context.state.winner) });
@@ -124,8 +168,6 @@ function renderPanel(context) {
   document.querySelector("#resultBlueTerritory").textContent = context.countPieces("blue");
   document.querySelector("#resultRedCaptures").textContent = context.state.stats.captures.red;
   document.querySelector("#resultBlueCaptures").textContent = context.state.stats.captures.blue;
-  document.querySelector("#resultRedSpecials").textContent = context.state.stats.specialsUsed.red;
-  document.querySelector("#resultBlueSpecials").textContent = context.state.stats.specialsUsed.blue;
 }
 
 export function renderGame(context) {
