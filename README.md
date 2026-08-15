@@ -19,12 +19,30 @@ Static browser prototype for validating the current Unknown Kingdom rules, UI, P
 - `js/puzzles.js`: puzzle definitions and rank labels
 - `js/shared-engine-adapter.mjs`: browser-local adapter for deterministic shared-engine actions and player-filtered events
 - `packages/game-engine/`: canonical deterministic rules, structured events, visibility filtering, tests, and the separately exported bot policy
+- `server/`: authoritative WebSocket server packaged as an npm workspace
+- `package.json`: monorepo workspace, test, and server-start commands
+- `render.yaml`: Render Blueprint that installs the monorepo and starts the server workspace
 - `assets/units/*.svg`: unit icons
 
 ## Run Locally
 
+Install the monorepo workspaces and run all shared-engine and server-adapter tests:
+
 ```bash
-python3 -m http.server 4173 --directory outputs/unknown-kingdom-prototype
+npm ci
+npm test
+```
+
+Start the WebSocket server from the repository root:
+
+```bash
+npm start
+```
+
+In a second terminal, serve the browser client:
+
+```bash
+python3 -m http.server 4173 --bind 127.0.0.1
 ```
 
 Open:
@@ -40,6 +58,14 @@ http://127.0.0.1:4173/
 - **Online PvP**: private room-based network play through the WebSocket server.
 
 PvE, Puzzle/Challenge, tutorial, and the online server all use `packages/game-engine` for authoritative deployment, capture, special-reaction, Wizard, turn, and victory transitions. The browser remains responsible for rendering, localization, audio, timers, undo, tutorial guidance, puzzle objectives, and rank progression.
+
+## Monorepo Package Boundary
+
+- The browser imports the canonical engine source from `packages/game-engine` inside this repository.
+- The server declares `@daeguk/game-engine` as an npm workspace dependency and imports only its public package exports.
+- A root `npm ci` installs and links the server and engine workspaces from the committed lockfile.
+- The Render Blueprint builds from this repository root, so deployment does not depend on a sibling checkout or an unpublished local path.
+- The former standalone `unknown-kingdom-server` repository is a historical checkpoint and is not the deployment source for new builds.
 
 ## Implemented Rules
 

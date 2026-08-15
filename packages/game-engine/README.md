@@ -79,4 +79,11 @@ It must not depend on DOM APIs, `window`, browser storage, audio, timers, WebSoc
 
 1. Add browser-orchestration coverage for Challenge objectives and tutorial progression.
 2. Replace the temporary heuristic browser AI simulation with exact shared-engine transitions.
-3. Package the engine through a deploy-safe workspace or dependency boundary.
+
+## Packaging
+
+The engine is installed through the repository's npm workspaces. The authoritative
+server lives in `server/`, declares `@daeguk/game-engine` as a dependency, and
+imports this package through its public exports. The root lockfile and Render
+Blueprint make the engine available from a clean checkout without relying on a
+sibling repository path.

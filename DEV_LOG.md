@@ -1,5 +1,15 @@
 # Daeguk Prototype — Development Log
 
+## Monorepo Structure Finalized — 2026-08-15
+
+- Merged the authoritative WebSocket server into `server/` in the browser repository.
+- Added root npm workspaces for `packages/game-engine` and `server`, with one committed lockfile.
+- Replaced the server's sibling-repository imports with the public `@daeguk/game-engine` and `@daeguk/game-engine/bot` package exports.
+- Moved the Render Blueprint to the repository root so a clean deployment runs `npm ci` and starts the server workspace.
+- Replaced the server test adapter's direct `node_modules` test-file imports with public-package identity and action smoke tests. The complete engine suite continues to run in the engine workspace.
+- Verified a clean archive of the committed tree: workspace installation, the complete root test command, server startup, and `/health` all succeeded without the original sibling server directory.
+- The repository/package boundary is finalized. Updating the existing Vercel and Render services and performing the deployed two-client smoke test remain a separate deployment step.
+
 ## Snapshot — 2026-08-12
 
 This project is currently a static browser prototype for **Daeguk: Ascension / 고수의 대국**. The active work direction is **mobile-first smartphone UI**.
