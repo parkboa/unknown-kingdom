@@ -3,7 +3,10 @@ import { WebSocketServer, WebSocket } from "ws";
 import { applyAction, chooseBotAction, createGameState, isSuicideDeployment, stateForPlayer } from "./engine.js";
 
 const PORT = Number(process.env.PORT || 4175);
+const TAUNT_DISPLAY_MS = 3000;
 const rooms = new Map();
+const lobbySockets = new Set();
+let nextBoardNumber = 1;
 
 function roomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -18,6 +21,25 @@ function send(socket, message) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
 }
 
+function openRoomSummaries() {
+  return Array.from(rooms.values())
+    .filter((room) => !room.botPlayer && (Boolean(room.players.red) !== Boolean(room.players.blue)))
+    .map((room) => ({
+      roomCode: room.code,
+      boardNumber: room.boardNumber,
+      playerCount: Number(Boolean(room.players.red)) + Number(Boolean(room.players.blue)),
+    }))
+    .sort((a, b) => a.boardNumber - b.boardNumber);
+}
+
+function sendRoomList(socket) {
+  send(socket, { type: "room_list", rooms: openRoomSummaries() });
+}
+
+function broadcastRoomList() {
+  for (const socket of lobbySockets) sendRoomList(socket);
+}
+
 function broadcastState(room, type = "state") {
   for (const player of ["red", "blue"]) {
     const socket = room.players[player];
@@ -25,6 +47,7 @@ function broadcastState(room, type = "state") {
     send(socket, {
       type,
       roomCode: room.code,
+      boardNumber: room.boardNumber,
       player,
       state: stateForPlayer(room.state, player),
     });
@@ -36,6 +59,7 @@ function requestSideSelection(room) {
     send(room.players[player], {
       type: "side_selection",
       roomCode: room.code,
+      boardNumber: room.boardNumber,
     });
   }
 }
@@ -59,17 +83,42 @@ function assignSelectedSide(room, socket, selectedSide) {
   return true;
 }
 
+function startAutomaticKingWallTaunt(room, player, action) {
+  if (action?.type !== "deploy" || action.unitType !== "king") return false;
+  const tauntingPlayer = player === "red" ? "blue" : "red";
+  const chance = room.state.tauntChances[tauntingPlayer];
+  if (!chance || chance.targetOwner !== player || chance.row !== action.row || chance.col !== action.col) return false;
+
+  room.state.tauntChances[tauntingPlayer] = null;
+  room.state.tauntSerial += 1;
+  room.state.tauntEvent = {
+    id: room.state.tauntSerial,
+    speakerOwner: tauntingPlayer,
+    targetOwner: chance.targetOwner,
+    row: chance.row,
+    col: chance.col,
+  };
+  room.state.tauntUntil = Date.now() + TAUNT_DISPLAY_MS;
+  return true;
+}
+
+function tauntIsPlaying(room) {
+  return Number(room.state.tauntUntil || 0) > Date.now();
+}
+
 function scheduleBotTurn(room) {
   if (!room.botPlayer || room.botTimer || room.state.winner) return;
   const action = chooseBotAction(room.state, room.botPlayer);
   if (!action) return;
 
+  const tauntDelay = Math.max(0, Number(room.state.tauntUntil || 0) - Date.now());
   room.botTimer = setTimeout(() => {
     room.botTimer = null;
     if (rooms.get(room.code) !== room || !applyAction(room.state, room.botPlayer, action)) return;
+    startAutomaticKingWallTaunt(room, room.botPlayer, action);
     broadcastState(room);
     scheduleBotTurn(room);
-  }, 450);
+  }, tauntDelay + 450);
 }
 
 function leaveRoom(socket) {
@@ -87,6 +136,7 @@ function leaveRoom(socket) {
   send(room.players[otherPlayer], { type: "error", message: "Opponent disconnected." });
   if (!room.players.red && !room.players.blue) rooms.delete(room.code);
   socket.membership = null;
+  broadcastRoomList();
 }
 
 const server = http.createServer((request, response) => {
@@ -117,9 +167,11 @@ webSocketServer.on("connection", (socket) => {
 
     if (message.type === "create_room") {
       leaveRoom(socket);
+      lobbySockets.delete(socket);
       const code = roomCode();
       const room = {
         code,
+        boardNumber: nextBoardNumber++,
         state: createGameState(),
         players: { red: null, blue: null },
         sideChosen: false,
@@ -131,15 +183,18 @@ webSocketServer.on("connection", (socket) => {
       room.players.red = socket;
       rooms.set(code, room);
       socket.membership = { roomCode: code, player: "red" };
-      send(socket, { type: "room_created", roomCode: code });
+      send(socket, { type: "room_created", roomCode: code, boardNumber: room.boardNumber });
+      broadcastRoomList();
       return;
     }
 
     if (message.type === "create_bot_room") {
       leaveRoom(socket);
+      lobbySockets.delete(socket);
       const code = roomCode();
       const room = {
         code,
+        boardNumber: nextBoardNumber++,
         state: createGameState(),
         players: { red: null, blue: socket },
         sideChosen: true,
@@ -155,6 +210,13 @@ webSocketServer.on("connection", (socket) => {
       return;
     }
 
+    if (message.type === "list_rooms") {
+      leaveRoom(socket);
+      lobbySockets.add(socket);
+      sendRoomList(socket);
+      return;
+    }
+
     if (message.type === "join_room") {
       const code = typeof message.roomCode === "string" ? message.roomCode.trim().toUpperCase() : "";
       const room = rooms.get(code);
@@ -163,6 +225,7 @@ webSocketServer.on("connection", (socket) => {
         return;
       }
       leaveRoom(socket);
+      lobbySockets.delete(socket);
       const player = room.players.red ? "blue" : "red";
       room.players[player] = socket;
       socket.membership = { roomCode: code, player };
@@ -172,6 +235,7 @@ webSocketServer.on("connection", (socket) => {
         room.sideChosen = true;
         broadcastState(room, "match_start");
       }
+      broadcastRoomList();
       return;
     }
 
@@ -218,6 +282,10 @@ webSocketServer.on("connection", (socket) => {
       }
       return;
     }
+    if (message.action?.type === "deploy" && tauntIsPlaying(room)) {
+      send(socket, { type: "error", message: "Taunt is still playing." });
+      return;
+    }
     if (
       message.action?.type === "deploy"
       && !message.action.confirmSuicide
@@ -244,11 +312,15 @@ webSocketServer.on("connection", (socket) => {
       send(socket, { type: "error", message: "Illegal action." });
       return;
     }
+    startAutomaticKingWallTaunt(room, player, message.action);
     broadcastState(room);
     scheduleBotTurn(room);
   });
 
-  socket.on("close", () => leaveRoom(socket));
+  socket.on("close", () => {
+    lobbySockets.delete(socket);
+    leaveRoom(socket);
+  });
 });
 
 const heartbeat = setInterval(() => {
