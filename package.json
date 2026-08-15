@@ -1,0 +1,17 @@
+{
+  "name": "daeguk-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Daeguk / Unknown Kingdom monorepo: browser prototype, shared game engine, and online server.",
+  "workspaces": [
+    "packages/*",
+    "server"
+  ],
+  "scripts": {
+    "start": "npm start --workspace=server",
+    "test": "npm test --workspace=packages/game-engine && npm test --workspace=server"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

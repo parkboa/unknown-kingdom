@@ -4,6 +4,6 @@ services:
     runtime: node
     plan: free
     buildCommand: npm ci
-    startCommand: npm start
+    startCommand: npm start --workspace=server
     healthCheckPath: /health
     autoDeploy: true

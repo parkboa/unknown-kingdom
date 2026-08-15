@@ -2,10 +2,22 @@
 
 Authoritative WebSocket server for Unknown Kingdom online PvP.
 
+This package now lives inside the `unknown-kingdom` monorepo as an npm workspace
+and depends on `@daeguk/game-engine` (`packages/game-engine`) as a real workspace
+dependency instead of a relative sibling-repository import.
+
 ## Run
+
+From the monorepo root:
 
 ```bash
 npm install
+npm start --workspace=server
+```
+
+Or from this folder, after installing at the repo root at least once:
+
+```bash
 npm start
 ```
 
@@ -30,11 +42,12 @@ The online bot uses a normal-difficulty heuristic: immediate King captures, King
 
 ## Render
 
-Create a Render Blueprint from this repository. `render.yaml` configures:
+Create a Render Blueprint from the monorepo root (this repository). The root
+`render.yaml` configures:
 
 - Node.js web service
-- `npm ci` build
-- `npm start`
+- `npm ci` build (installs and links all workspaces, including `@daeguk/game-engine`)
+- `npm start --workspace=server` (runs this package's `start` script)
 - `/health` health check
 
 After deployment, connect the frontend with:

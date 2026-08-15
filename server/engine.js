@@ -6,6 +6,6 @@ export {
   getLegalActions,
   isSuicideDeployment,
   stateForPlayer,
-} from "../unknown-kingdom/packages/game-engine/src/index.js";
+} from "@daeguk/game-engine";
 
-export { chooseBotAction } from "../unknown-kingdom/packages/game-engine/src/bot.js";
+export { chooseBotAction } from "@daeguk/game-engine/bot";
