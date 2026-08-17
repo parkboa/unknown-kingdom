@@ -449,3 +449,32 @@ test("ends by territory when the next player has no deployable units", () => {
   assert.notEqual(state.winner, null);
   assert.match(state.resultReason, /no legal deployment/);
 });
+
+test("validates all challenge puzzles across 8 ranks", async () => {
+  const { PUZZLES, RANK_ORDER } = await import("../../../js/puzzles.js");
+  assert.equal(PUZZLES.length, 29, "There must be 29 challenge puzzles (1 tutorial + 7 ranks * 4 puzzles)");
+  assert.equal(RANK_ORDER.length, 8, "There must be 8 ranks");
+
+  for (const rankKey of RANK_ORDER) {
+    const rankPuzzles = PUZZLES.filter((p) => p.rank === rankKey);
+    const expectedCount = rankKey === "thirdRateMaster" ? 1 : 4;
+    assert.equal(rankPuzzles.length, expectedCount, `Rank ${rankKey} must have ${expectedCount} puzzles`);
+  }
+
+  for (const puzzle of PUZZLES) {
+    assert.ok(puzzle.id, "Puzzle must have an ID");
+    assert.ok(puzzle.title?.en && puzzle.title?.ko, `Puzzle ${puzzle.id} must have bilingual titles`);
+    assert.ok(puzzle.description?.en && puzzle.description?.ko, `Puzzle ${puzzle.id} must have bilingual descriptions`);
+    if (puzzle.type !== "tutorial") {
+      assert.ok(puzzle.maxMoves >= 1, `Puzzle ${puzzle.id} must define maxMoves`);
+      assert.ok(puzzle.player === "red" || puzzle.player === "blue", `Puzzle ${puzzle.id} must have valid player`);
+      assert.ok(puzzle.objective?.type, `Puzzle ${puzzle.id} must have an objective`);
+      for (const piece of puzzle.pieces || []) {
+        const [owner, type, row, col] = piece;
+        assert.ok(["red", "blue"].includes(owner), `Invalid owner in puzzle ${puzzle.id}`);
+        assert.ok(["soldier", "king", "general", "diplomat", "wizard"].includes(type), `Invalid unit in puzzle ${puzzle.id}`);
+        assert.ok(row >= 0 && row < 9 && col >= 0 && col < 9, `Piece out of bounds in puzzle ${puzzle.id}`);
+      }
+    }
+  }
+});

@@ -304,15 +304,13 @@ function loadChallengeProgress() {
   try {
     const saved = JSON.parse(localStorage.getItem(CHALLENGE_PROGRESS_KEY) || "{}");
     const completed = Array.isArray(saved.completedPuzzleIds)
-      ? saved.completedPuzzleIds.filter((id) => typeof id === "string")
+      ? saved.completedPuzzleIds.filter((id) => typeof id === "string" && PUZZLES.some((p) => p.id === id))
       : [];
-    const allPuzzleIds = PUZZLES.map((p) => p.id);
-    const merged = Array.from(new Set([...completed, ...allPuzzleIds]));
     return {
-      completedPuzzleIds: merged,
+      completedPuzzleIds: completed,
     };
   } catch {
-    return { completedPuzzleIds: PUZZLES.map((p) => p.id) };
+    return { completedPuzzleIds: [] };
   }
 }
 
@@ -321,15 +319,22 @@ function saveChallengeProgress() {
 }
 
 function isPuzzleComplete(index) {
-  return true;
+  const puzzle = PUZZLES[index];
+  return Boolean(puzzle && challengeProgress.completedPuzzleIds.includes(puzzle.id));
 }
 
 function isPuzzleUnlocked(index) {
-  return true;
+  if (index === 0) return true;
+  const prevPuzzle = PUZZLES[index - 1];
+  return Boolean(prevPuzzle && challengeProgress.completedPuzzleIds.includes(prevPuzzle.id));
 }
 
 function firstUnresolvedRankIndex() {
-  return RANK_ORDER.length - 1;
+  const unresolvedIndex = RANK_ORDER.findIndex((rankKey) => {
+    const rankPuzzles = PUZZLES.filter((p) => p.rank === rankKey);
+    return rankPuzzles.some((p) => !challengeProgress.completedPuzzleIds.includes(p.id));
+  });
+  return unresolvedIndex >= 0 ? unresolvedIndex : RANK_ORDER.length - 1;
 }
 
 function visiblePveRanks() {
@@ -352,11 +357,18 @@ function markPuzzleComplete(index) {
 
 function renderChallengeRanks() {
   challengeRankList.innerHTML = "";
-  RANK_ORDER.forEach((rankKey) => {
-    const rankPuzzleIndex = PUZZLES.findIndex((puzzle) => puzzle.rank === rankKey);
-    const hasPuzzle = rankPuzzleIndex >= 0;
-    const complete = hasPuzzle && isPuzzleComplete(rankPuzzleIndex);
-    const unlocked = hasPuzzle && isPuzzleUnlocked(rankPuzzleIndex);
+  RANK_ORDER.forEach((rankKey, rankIndex) => {
+    const rankPuzzles = PUZZLES.filter((puzzle) => puzzle.rank === rankKey);
+    const hasPuzzle = rankPuzzles.length > 0;
+    const completedCount = rankPuzzles.filter((puzzle) => challengeProgress.completedPuzzleIds.includes(puzzle.id)).length;
+    const totalCount = rankPuzzles.length;
+    const complete = hasPuzzle && completedCount === totalCount;
+
+    const prevRankKey = rankIndex > 0 ? RANK_ORDER[rankIndex - 1] : null;
+    const prevRankPuzzles = prevRankKey ? PUZZLES.filter((p) => p.rank === prevRankKey) : [];
+    const prevRankComplete = !prevRankKey || (prevRankPuzzles.length > 0 && prevRankPuzzles.every((p) => challengeProgress.completedPuzzleIds.includes(p.id)));
+    const unlocked = hasPuzzle && prevRankComplete;
+
     const button = document.createElement("button");
     button.type = "button";
     button.className = "challenge-rank-button";
@@ -371,17 +383,29 @@ function renderChallengeRanks() {
     status.className = "challenge-rank-status";
     if (!hasPuzzle) {
       status.textContent = text("comingSoon");
-    } else if (complete || !unlocked) {
-      const icon = createRankStatusIcon(complete ? "complete" : "locked");
-      const statusLabel = text(complete ? "rankComplete" : "rankLocked");
+    } else if (complete) {
+      const icon = createRankStatusIcon("complete");
+      const statusLabel = text("rankComplete");
+      icon.setAttribute("aria-label", statusLabel);
+      icon.setAttribute("title", statusLabel);
+      status.append(icon);
+    } else if (!unlocked) {
+      const icon = createRankStatusIcon("locked");
+      const statusLabel = text("rankLocked");
       icon.setAttribute("aria-label", statusLabel);
       icon.setAttribute("title", statusLabel);
       status.append(icon);
     } else {
-      status.setAttribute("aria-hidden", "true");
+      status.textContent = `${completedCount} / ${totalCount}`;
     }
     button.append(label, status);
-    if (unlocked) button.addEventListener("click", () => loadPuzzle(rankPuzzleIndex));
+    if (unlocked) {
+      button.addEventListener("click", () => {
+        const targetPuzzle = rankPuzzles.find((p) => !challengeProgress.completedPuzzleIds.includes(p.id)) || rankPuzzles[0];
+        const targetIndex = PUZZLES.indexOf(targetPuzzle);
+        loadPuzzle(targetIndex >= 0 ? targetIndex : 0);
+      });
+    }
     challengeRankList.append(button);
   });
 
@@ -389,7 +413,8 @@ function renderChallengeRanks() {
 }
 
 function scrollChallengeToFirstUnresolved() {
-  const firstUnresolved = challengeRankList.querySelector(".challenge-rank-button:not(.complete)");
+  const firstUnresolved = challengeRankList.querySelector(".challenge-rank-button:not(.complete):not([disabled])")
+    || challengeRankList.querySelector(".challenge-rank-button:not(.complete)");
   challengeRankList.scrollTop = firstUnresolved
     ? Math.max(0, firstUnresolved.offsetTop - challengeRankList.offsetTop)
     : 0;
@@ -456,7 +481,15 @@ function currentRankLabel() {
     return RANK_LABELS[LANGUAGE][state.aiRank] || state.aiRank;
   }
   const rankKey = activePuzzle?.rank || "thirdRateMaster";
-  return RANK_LABELS[LANGUAGE][rankKey] || RANK_LABELS.ko.thirdRateMaster;
+  const rankName = RANK_LABELS[LANGUAGE][rankKey] || RANK_LABELS.ko.thirdRateMaster;
+  if (state.mode === "puzzle" && activePuzzle && activePuzzle.type !== "tutorial") {
+    const rankPuzzles = PUZZLES.filter((p) => p.rank === rankKey);
+    const puzzleNumInRank = rankPuzzles.indexOf(activePuzzle) + 1;
+    if (puzzleNumInRank > 0 && rankPuzzles.length > 1) {
+      return `${rankName} (${puzzleNumInRank}/${rankPuzzles.length})`;
+    }
+  }
+  return rankName;
 }
 
 function currentConnectionLabel() {
@@ -507,10 +540,17 @@ function applyLanguage() {
   resultLobbyBtn.setAttribute("aria-label", text("lobby"));
   resultLobbyBtn.title = text("lobby");
   const logoLanguage = LANGUAGE === "ko" ? "ko" : "en";
-  splashLogo.src = `./assets/ui/daeguk-logo-${logoLanguage}.svg?v=${ASSET_VERSION}`;
+  const isOldLogo = new URLSearchParams(window.location.search).get("logo") === "old";
+  if (isOldLogo) {
+    splashLogo.src = `./assets/ui/daeguk-logo-${logoLanguage}-old.svg?v=${ASSET_VERSION}`;
+    lobbyLogo.src = `./assets/ui/daeguk-logo-${logoLanguage}-old.svg?v=${ASSET_VERSION}`;
+    lobbyLogo.alt = text("appTitle");
+  } else {
+    splashLogo.src = `./assets/ui/daeguk-logo-${logoLanguage}.svg?v=${ASSET_VERSION}`;
+    lobbyLogo.src = `./assets/ui/daeguk-logo-lobby.svg?v=${ASSET_VERSION}`;
+    lobbyLogo.alt = "DAEGUK";
+  }
   splashLogo.alt = text("appTitle");
-  lobbyLogo.src = splashLogo.src;
-  lobbyLogo.alt = text("appTitle");
   splashTitle.textContent = text("brandMain");
   splashSubtitle.textContent = text("brandSubtitle");
   splashSubtitle.classList.toggle("korean-title", LANGUAGE === "ko");
@@ -941,7 +981,7 @@ function selectTutorialUnit(unitType) {
 }
 
 function setTutorialCaptureBoard() {
-  state.board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+  resetTutorialBoard();
   state.board[3][4] = createOccupiedSoldier("blue");
   state.board[5][4] = createOccupiedSoldier("blue");
   state.board[4][3] = createOccupiedSoldier("blue");
@@ -955,6 +995,9 @@ function resetTutorialBoard() {
     state.board[king.row][king.col] = createPiece("blue", "king");
   }
   state.firstDeployDone = { red: true, blue: true };
+  state.deploymentCount = { red: 5, blue: 5 };
+  state.stock.red = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
+  state.stock.blue = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
 }
 
 function setTutorialWallDefenseBoard() {
@@ -987,7 +1030,13 @@ function advanceTutorial() {
   state.winner = null;
   state.resultReason = "";
   const expected = TUTORIAL_STEPS[tutorialStep];
-  if (!expected) return;
+  if (!expected) {
+    if (activePuzzle?.type === "tutorial") {
+      markPuzzleComplete(puzzleIndex);
+      state.winner = "blue";
+    }
+    return;
+  }
   if (expected.setup === "wall-defense") setTutorialWallDefenseBoard();
   if (expected.setup === "wall-capture") setTutorialWallCaptureBoard();
   if (expected.setup === "capture") setTutorialCaptureBoard();
@@ -1041,6 +1090,7 @@ function startTutorial({ puzzleEntry = false, index = 0 } = {}) {
   state = createInitialState("tutorial");
   state.turn = "blue";
   state.stock.blue = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
+  state.stock.red = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
   tutorialStep = 0;
   tutorialAwaitingContinue = false;
   tutorialKingPosition = null;
@@ -1118,7 +1168,11 @@ function loadPuzzle(index = 0) {
   state.stock = normalizePuzzleStock(activePuzzle.stock);
   state.firstDeployDone = { red: true, blue: true };
   state.deploymentCount = { red: 5, blue: 5 };
-  state.log = [localizedPuzzleText(activePuzzle.description)];
+  if (activePuzzle.unit === "king") {
+    state.firstDeployDone[activePuzzle.player] = false;
+    state.deploymentCount[activePuzzle.player] = 0;
+  }
+  state.log = [`${localizedPuzzleText(activePuzzle.title)}: ${localizedPuzzleText(activePuzzle.description)}`];
   for (const piece of activePuzzle.pieces || []) {
     if (!isValidPuzzlePiece(piece)) {
       console.warn("Invalid puzzle piece skipped:", activePuzzle.id, piece);
@@ -1657,19 +1711,17 @@ function render() {
           : TUTORIAL_STEPS[tutorialStep]?.message;
     const conciseTutorialMessage = text(complete && tutorialPuzzleActive ? "challengeComplete" : complete ? "tutorialComplete" : tutorialMessageKey);
     tutorialMessage.textContent = conciseTutorialMessage;
-    const hasNextChallenge = puzzleIndex + 1 < PUZZLES.length;
     nextTutorialBtn.hidden = complete
-      ? !tutorialPuzzleActive || !hasNextChallenge
+      ? true
       : !tutorialAwaitingContinue || Boolean(state.teleporting) || Boolean(tutorialReactionPhase);
-    setIconButtonLabel(nextTutorialBtn, complete && tutorialPuzzleActive ? "nextChallenge" : "nextTutorial");
+    setIconButtonLabel(nextTutorialBtn, "nextTutorial");
     boardEl.classList.toggle("tutorial-complete", complete);
   } else if (puzzleActive) {
     if (state.winner) {
       const solved = state.winner === activePuzzle.player;
-      const hasNextChallenge = puzzleIndex + 1 < PUZZLES.length;
       tutorialMessage.textContent = solved ? text("challengeComplete") : text("challengeIncomplete");
-      nextTutorialBtn.hidden = solved && !hasNextChallenge;
-      setIconButtonLabel(nextTutorialBtn, solved ? "nextChallenge" : "retryChallenge");
+      nextTutorialBtn.hidden = solved;
+      setIconButtonLabel(nextTutorialBtn, "retryChallenge");
     } else {
       tutorialMessage.textContent = localizedPuzzleText(activePuzzle.description);
       nextTutorialBtn.hidden = true;
@@ -1882,7 +1934,15 @@ function playAgain() {
     return;
   }
   if (state.mode === "puzzle") {
-    loadPuzzle(state.winner === activePuzzle?.player ? puzzleIndex + 1 : puzzleIndex);
+    if (state.winner === activePuzzle?.player) {
+      if (puzzleIndex + 1 < PUZZLES.length) {
+        loadPuzzle(puzzleIndex + 1);
+      } else {
+        openChallengeSelection();
+      }
+    } else {
+      loadPuzzle(puzzleIndex);
+    }
     return;
   }
   resetGame();

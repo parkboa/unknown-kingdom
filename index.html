@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Serif:wght@500;600;700;800&family=Noto+Serif+KR:wght@500;600;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
-    <link rel="stylesheet" href="./styles.css?v=special-lock-1" />
+    <link rel="stylesheet" href="./styles.css?v=iphone-frame-1" />
   </head>
   <body>
     <div id="splashModal" class="splash-screen" aria-live="polite">
@@ -60,14 +60,12 @@
               <button id="cancelTeleportBtn" type="button" hidden>Cancel Ability</button>
               <button id="nextTutorialBtn" class="tutorial-icon-button" type="button" aria-label="Next" title="Next" hidden>
                 <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M5 12h14" />
-                  <path d="m13 6 6 6-6 6" />
+                  <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
               </button>
               <button id="exitTutorialBtn" class="tutorial-icon-button" type="button" aria-label="Challenges" title="Challenges" hidden>
                 <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m6 6 12 12" />
-                  <path d="M18 6 6 18" />
+                  <path d="M6 6l12 12M18 6l-12 12" />
                 </svg>
               </button>
             </div>
@@ -121,7 +119,7 @@
       <section class="result-card mode-card" role="dialog" aria-modal="true" aria-labelledby="modeTitle">
         <div class="modal-heading-row">
           <div id="lobbyBrand" class="brand-lockup lobby-brand" aria-label="Daeguk">
-            <img id="lobbyLogo" class="lobby-logo" src="./assets/ui/daeguk-logo-en.svg" alt="Daeguk: Ascension" />
+            <img id="lobbyLogo" class="lobby-logo" src="./assets/ui/daeguk-logo-lobby.svg" alt="DAEGUK" />
             <p id="lobbyBrandMain" class="screen-reader-only">DAEGUK</p>
             <p id="lobbyBrandSubtitle" class="screen-reader-only">ASCENSION</p>
           </div>
@@ -213,11 +211,13 @@
     </div>
 
     <div id="pendingSpecialModal" class="result-modal" hidden>
-      <section class="result-card help-card" role="dialog" aria-modal="true" aria-labelledby="pendingSpecialTitle">
+      <section class="result-card special-notice-card help-card" role="dialog" aria-modal="true" aria-labelledby="pendingSpecialTitle">
         <p class="eyebrow" data-i18n="specialUnit">Special Unit</p>
         <h2 id="pendingSpecialTitle">Special ability ready</h2>
         <p id="pendingSpecialText" class="result-reason"></p>
-        <button id="activateSpecialBtn" type="button">Activate ability</button>
+        <div class="result-actions">
+          <button id="activateSpecialBtn" class="result-primary-button" type="button">Activate ability</button>
+        </div>
       </section>
     </div>
 
@@ -302,6 +302,6 @@
       </section>
     </div>
 
-    <script type="module" src="./app.js?v=special-lock-1"></script>
+    <script type="module" src="./app.js?v=iphone-frame-1"></script>
   </body>
 </html>
