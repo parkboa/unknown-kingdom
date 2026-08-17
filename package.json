@@ -2,6 +2,7 @@
   "name": "daeguk-monorepo",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Daeguk / Unknown Kingdom monorepo: browser prototype, shared game engine, and online server.",
   "workspaces": [
     "packages/*",

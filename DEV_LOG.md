@@ -1,5 +1,14 @@
 # Daeguk Prototype — Development Log
 
+## AI Exact Engine Transition Simulation & Alpha-Beta Pruning — 2026-08-16
+
+- Replaced the heuristic `simulateDeploy()` in `js/ai.js` with exact state transitions using the shared game engine (`applyAction`, `getLegalActions`, `stateForPlayer`).
+- Lookahead now accurately accounts for group captures, chain captures, King defeat, wall liberties, self-capture penalties, and game termination across plies.
+- Added Alpha-Beta pruning cutoffs (`alpha` parameter in `scoreWithLookahead`) to cut off non-promising search branches early when opponent replies score higher than the current best root candidate.
+- Added fair-information masking during AI search via `stateForPlayer(state, aiPlayer)` so unrevealed enemy special identities are not exposed to the AI.
+- Added `packages/game-engine/test/ai-simulation.test.js` covering immediate King capture (winning move), suicidal move avoidance, group capture evaluation, and all 8 AI ranks (`thirdRateMaster` ~ `lifeDeathMaster`).
+- All 48 package tests and server smoke tests pass (`48/48` passing in `@daeguk/game-engine`).
+
 ## Monorepo Structure Finalized — 2026-08-15
 
 - Merged the authoritative WebSocket server into `server/` in the browser repository.

@@ -106,6 +106,34 @@ test("blocks opponent deployment around a King until five deployments", () => {
   assert.equal(applyAction(state, "blue", { type: "deploy", unitType: "soldier", row: 3, col: 3 }), true);
 });
 
+test("locks special units until player completes five deployments", () => {
+  const state = createGameState();
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "king", row: 0, col: 0 }), true);
+  assert.equal(applyAction(state, "blue", { type: "deploy", unitType: "king", row: 8, col: 8 }), true);
+
+  // Deployments 2, 3, 4, 5 for red - special units must be rejected
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "general", row: 1, col: 1 }), false);
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "soldier", row: 1, col: 1 }), true);
+  assert.equal(applyAction(state, "blue", { type: "deploy", unitType: "soldier", row: 7, col: 7 }), true);
+
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "wizard", row: 2, col: 2 }), false);
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "soldier", row: 2, col: 2 }), true);
+  assert.equal(applyAction(state, "blue", { type: "deploy", unitType: "soldier", row: 6, col: 6 }), true);
+
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "diplomat", row: 3, col: 3 }), false);
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "soldier", row: 3, col: 3 }), true);
+  assert.equal(applyAction(state, "blue", { type: "deploy", unitType: "soldier", row: 5, col: 5 }), true);
+
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "general", row: 4, col: 4 }), false);
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "soldier", row: 4, col: 4 }), true);
+  assert.equal(applyAction(state, "blue", { type: "deploy", unitType: "soldier", row: 7, col: 6 }), true);
+
+  // Red has now completed 5 deployments (deploymentCount.red === 5) -> 6th deployment allows specials!
+  assert.equal(state.deploymentCount.red, 5);
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "general", row: 5, col: 4 }), true);
+  assert.equal(state.board[5][4]?.type, "general");
+});
+
 test("hides unrevealed enemy special identities", () => {
   const state = createGameState();
   state.board[0][0] = {

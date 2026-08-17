@@ -87,7 +87,10 @@ function renderBoard(context) {
       button.dataset.row = row;
       button.dataset.col = col;
 
-      if (context.state.lastMove?.row === row && context.state.lastMove?.col === col) button.classList.add("last-move");
+      if (context.state.lastMove?.row === row && context.state.lastMove?.col === col) {
+        button.classList.add("last-move");
+        if (context.state.lastMove.player) button.classList.add(`last-move-${context.state.lastMove.player}`);
+      }
       if (context.state.selected?.row === row && context.state.selected?.col === col) button.classList.add("selected");
       if (context.canDeploy(context.state.turn, context.currentUnitChoice(), row, col, { forHint: true })) button.classList.add("valid");
       if (context.state.teleporting && !context.state.board[row][col]) button.classList.add("teleport");
@@ -105,23 +108,33 @@ function renderDeployPicker(context) {
   context.deployDock?.classList.toggle("deploy-white", context.viewerSide === "blue");
   context.deployDock?.classList.toggle("deploy-black", context.viewerSide === "red");
 
+  const deployments = context.state.deploymentCount?.[context.state.turn] ?? (context.state.firstDeployDone[context.state.turn] ? 1 : 0);
+
   context.unitInputs.forEach((input) => {
     const remaining = context.state.stock[context.state.turn][input.value];
     const label = input.closest("label");
     const status = label.querySelector("small");
     const exhausted = remaining <= 0;
+    const isSpecial = SPECIALS.has(input.value);
     const firstMoveLocked = !context.state.firstDeployDone[context.state.turn] && input.value !== "king";
+    const specialLocked = isSpecial && context.state.mode !== "tutorial" && context.state.mode !== "puzzle" && deployments < 5;
+    const locked = firstMoveLocked || specialLocked;
     const onlineLocked = context.state.mode === "pvp" && (!context.networkReady || context.state.turn !== context.networkPlayer);
-    input.disabled = exhausted || firstMoveLocked || onlineLocked || context.state.aiThinking || Boolean(context.state.winner);
+    input.disabled = exhausted || locked || onlineLocked || context.state.aiThinking || Boolean(context.state.winner);
     label.classList.toggle("used", exhausted);
-    label.classList.toggle("locked", firstMoveLocked);
+    label.classList.toggle("locked", locked && !exhausted);
     const baseOrder = DEPLOY_ORDER.indexOf(input.value);
-    label.style.order = exhausted ? 200 + baseOrder : firstMoveLocked ? 100 + baseOrder : baseOrder;
-    status.textContent = exhausted
-      ? context.text("used")
-      : input.value === "king"
-        ? context.text("available")
-        : context.text("left", { count: remaining });
+    label.style.order = exhausted ? 200 + baseOrder : locked ? 100 + baseOrder : baseOrder;
+
+    if (exhausted) {
+      status.textContent = context.text("used");
+    } else if (specialLocked || (firstMoveLocked && isSpecial)) {
+      status.innerHTML = '<span class="lock-icon" aria-label="잠김">🔒</span>';
+    } else if (input.value === "king") {
+      status.textContent = context.text("available");
+    } else {
+      status.textContent = context.text("left", { count: remaining });
+    }
   });
 
   const selectedInput = document.querySelector("input[name='unit']:checked");

@@ -1111,14 +1111,38 @@ body.iphone-preview .lobby-logo {
   width: 100%;
 }
 
+.ai-rank-frame {
+  max-height: 200px;
+  overflow: hidden;
+  display: flex;
+}
+
 .difficulty-choice-actions {
-  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  max-height: 185px;
+  overflow-y: auto;
+  gap: var(--card-control-gap);
+  scrollbar-width: thin;
+  padding-right: 2px;
+}
+
+.difficulty-choice-actions::-webkit-scrollbar {
+  width: 5px;
+}
+
+.difficulty-choice-actions::-webkit-scrollbar-thumb {
+  background: rgb(216 165 50 / 40%);
+  border-radius: 4px;
 }
 
 .difficulty-choice-actions button {
-  min-height: 48px;
+  min-height: 44px;
+  height: 44px;
   padding-inline: 14px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .card-control-frame {
@@ -1188,11 +1212,16 @@ body.iphone-preview .lobby-logo {
 
 .lobby-subcard .side-choice-actions button.selected,
 .lobby-subcard .side-choice-actions button[aria-pressed="true"],
+.lobby-subcard .difficulty-choice-actions button.selected,
+.lobby-subcard .difficulty-choice-actions button[aria-pressed="true"],
+.difficulty-choice-actions button.selected,
+.difficulty-choice-actions button[aria-pressed="true"],
 .lobby-subcard .public-room-button.selected {
-  border-color: rgb(216 165 50 / 86%);
-  color: #efd37a;
-  background: linear-gradient(145deg, #1f2428 0%, #090a0b 100%);
-  box-shadow: 0 0 0 2px rgb(216 165 50 / 18%);
+  border-color: #ffd866 !important;
+  color: #ffd866 !important;
+  background: linear-gradient(180deg, rgb(58 48 24 / 96%), rgb(28 24 12 / 98%)) !important;
+  box-shadow: 0 0 0 2px rgb(216 165 50 / 60%), inset 0 0 12px rgb(216 165 50 / 25%) !important;
+  font-weight: 700 !important;
 }
 
 .lobby-subcard .public-room-list {
@@ -2189,46 +2218,102 @@ body.iphone-preview .lobby-logo {
   background: radial-gradient(circle at 34% 24%, #fff, #eeece5 52%, #c5c1b7 82%);
 }
 
+.cell.last-move {
+  position: relative;
+}
+
+.cell.last-move::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 999px;
+  border: 1.2px solid var(--gold-light);
+  box-shadow: 0 0 5px rgba(255, 225, 120, 0.4);
+  z-index: 6;
+  pointer-events: none;
+  animation: last-move-ring-glow-red 2s ease-in-out infinite;
+}
+
+.cell.last-move-red::after,
+.cell.last-move:has(.piece.red)::after {
+  border-color: var(--gold-light);
+  box-shadow: 0 0 5px rgba(255, 225, 120, 0.4);
+  animation-name: last-move-ring-glow-red;
+}
+
+.cell.last-move-blue::after,
+.cell.last-move:has(.piece.blue)::after {
+  border-color: #b07b18;
+  box-shadow: 0 0 5px rgba(176, 123, 24, 0.4);
+  animation-name: last-move-ring-glow-blue;
+}
+
+@keyframes last-move-ring-glow-red {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+    box-shadow: 0 0 4px rgba(255, 225, 120, 0.35);
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(255, 225, 120, 0.6);
+  }
+}
+
+@keyframes last-move-ring-glow-blue {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+    box-shadow: 0 0 4px rgba(176, 123, 24, 0.35);
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(176, 123, 24, 0.6);
+  }
+}
+
 .cell.last-move .piece {
-  animation: last-piece-pulse 1.15s ease-in-out infinite;
+  animation: piece-drop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
 .fortress-frame.view-red .cell.last-move .piece {
-  animation-name: last-piece-pulse-red;
+  animation: piece-drop-red 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
-@keyframes last-piece-pulse {
-  0%, 100% {
+@keyframes piece-drop {
+  0% {
+    transform: scale(1.22);
+    opacity: 0.8;
+  }
+  100% {
     transform: scale(1);
-    box-shadow:
-      inset 0 2px 4px rgb(255 255 255 / 22%),
-      inset 0 -9px 14px rgb(0 0 0 / 34%),
-      0 7px 12px rgb(23 29 32 / 32%);
-  }
-  50% {
-    transform: scale(0.92);
-    box-shadow:
-      inset 0 2px 4px rgb(255 255 255 / 22%),
-      inset 0 -9px 14px rgb(0 0 0 / 34%),
-      0 5px 9px rgb(23 29 32 / 26%);
+    opacity: 1;
   }
 }
 
-@keyframes last-piece-pulse-red {
-  0%, 100% {
+@keyframes piece-drop-red {
+  0% {
+    transform: rotate(180deg) scale(1.22);
+    opacity: 0.8;
+  }
+  100% {
     transform: rotate(180deg) scale(1);
-    box-shadow:
-      inset 0 2px 4px rgb(255 255 255 / 22%),
-      inset 0 -9px 14px rgb(0 0 0 / 34%),
-      0 7px 12px rgb(23 29 32 / 32%);
+    opacity: 1;
   }
-  50% {
-    transform: rotate(180deg) scale(0.92);
-    box-shadow:
-      inset 0 2px 4px rgb(255 255 255 / 22%),
-      inset 0 -9px 14px rgb(0 0 0 / 34%),
-      0 5px 9px rgb(23 29 32 / 26%);
-  }
+}
+
+.pass-notice-card {
+  max-width: 320px;
+  text-align: center;
+  padding: 24px 20px;
+}
+
+.pass-notice-card .result-reason {
+  font-size: 1.05rem;
+  color: var(--gold-light);
+  margin: 16px 0 24px;
 }
 
 .taunt-overlay {
@@ -2498,7 +2583,15 @@ body.iphone-preview .lobby-logo {
 
 .unit-picker label.locked:not(.used) {
   color: var(--muted);
-  opacity: .55;
+  opacity: .58;
+}
+
+.unit-picker label small .lock-icon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.05rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 20%));
 }
 
 .help-preference {

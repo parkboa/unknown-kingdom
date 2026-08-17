@@ -276,6 +276,10 @@ const activateSpecialBtn = document.querySelector("#activateSpecialBtn");
 const suicideConfirmModal = document.querySelector("#suicideConfirmModal");
 const cancelSuicideBtn = document.querySelector("#cancelSuicideBtn");
 const confirmSuicideBtn = document.querySelector("#confirmSuicideBtn");
+const passNotificationModal = document.querySelector("#passNotificationModal");
+const passNoticeTitle = document.querySelector("#passNoticeTitle");
+const passNoticeText = document.querySelector("#passNoticeText");
+const confirmPassNoticeBtn = document.querySelector("#confirmPassNoticeBtn");
 const settingsModal = document.querySelector("#settingsModal");
 const settingsStatus = document.querySelector("#settingsStatus");
 const closeSettingsBtn = document.querySelector("#closeSettingsBtn");
@@ -299,13 +303,16 @@ function sideName(side) {
 function loadChallengeProgress() {
   try {
     const saved = JSON.parse(localStorage.getItem(CHALLENGE_PROGRESS_KEY) || "{}");
+    const completed = Array.isArray(saved.completedPuzzleIds)
+      ? saved.completedPuzzleIds.filter((id) => typeof id === "string")
+      : [];
+    const allPuzzleIds = PUZZLES.map((p) => p.id);
+    const merged = Array.from(new Set([...completed, ...allPuzzleIds]));
     return {
-      completedPuzzleIds: Array.isArray(saved.completedPuzzleIds)
-        ? saved.completedPuzzleIds.filter((id) => typeof id === "string")
-        : [],
+      completedPuzzleIds: merged,
     };
   } catch {
-    return { completedPuzzleIds: [] };
+    return { completedPuzzleIds: PUZZLES.map((p) => p.id) };
   }
 }
 
@@ -314,27 +321,25 @@ function saveChallengeProgress() {
 }
 
 function isPuzzleComplete(index) {
-  return Boolean(PUZZLES[index]?.id && challengeProgress.completedPuzzleIds.includes(PUZZLES[index].id));
+  return true;
 }
 
 function isPuzzleUnlocked(index) {
-  return index === 0 || isPuzzleComplete(index - 1);
+  return true;
 }
 
 function firstUnresolvedRankIndex() {
-  const unresolvedIndex = RANK_ORDER.findIndex((rankKey) => {
-    const rankPuzzleIndex = PUZZLES.findIndex((puzzle) => puzzle.rank === rankKey);
-    return rankPuzzleIndex < 0 || !isPuzzleComplete(rankPuzzleIndex);
-  });
-  return unresolvedIndex < 0 ? RANK_ORDER.length - 1 : unresolvedIndex;
+  return RANK_ORDER.length - 1;
 }
 
 function visiblePveRanks() {
-  return RANK_ORDER.slice(firstUnresolvedRankIndex(), firstUnresolvedRankIndex() + 4);
+  const unresolved = firstUnresolvedRankIndex();
+  const startIndex = Math.max(0, Math.min(unresolved, RANK_ORDER.length - 4));
+  return RANK_ORDER.slice(startIndex, startIndex + 4);
 }
 
 function primaryModesUnlocked() {
-  return isPuzzleComplete(0);
+  return true;
 }
 
 function markPuzzleComplete(index) {
@@ -582,30 +587,43 @@ function newState() {
 }
 
 function renderPveRankOptions() {
-  const rankKeys = visiblePveRanks();
-  if (!rankKeys.includes(selectedPveRank)) selectedPveRank = rankKeys[0] || RANK_ORDER.at(-1);
+  const container = document.getElementById("pveRankList") || document.querySelector(".difficulty-choice-actions");
+  if (!container) return;
+  const rankKeys = RANK_ORDER;
+  if (!selectedPveRank || !rankKeys.includes(selectedPveRank)) selectedPveRank = rankKeys.at(-1);
 
-  pveDifficultyButtons.forEach((button, index) => {
-    const rankKey = rankKeys[index];
-    button.hidden = !rankKey;
-    if (!rankKey) return;
+  container.innerHTML = "";
+  rankKeys.forEach((rankKey) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "challenge-rank-button";
     button.dataset.pveRank = rankKey;
+    button.dataset.pveDifficulty = rankKey;
     button.textContent = RANK_LABELS[LANGUAGE][rankKey] || rankKey;
+    button.addEventListener("click", () => applyPveRank(rankKey));
+    container.appendChild(button);
   });
   applyPveRank(selectedPveRank);
+  requestAnimationFrame(() => {
+    const selectedBtn = container.querySelector(`[data-pve-rank="${selectedPveRank}"]`);
+    if (selectedBtn) {
+      container.scrollTop = Math.max(0, selectedBtn.offsetTop - container.offsetTop);
+    }
+  });
 }
 
 function applyPveRank(rankKey) {
-  const rankKeys = visiblePveRanks();
-  const visibleIndex = rankKeys.indexOf(rankKey);
-  const button = visibleIndex >= 0 ? pveDifficultyButtons[visibleIndex] : pveDifficultyButtons[0];
-  selectedPveRank = button?.dataset.pveRank || rankKeys[0] || RANK_ORDER.at(-1);
+  selectedPveRank = rankKey || RANK_ORDER.at(-1);
   pveDifficulty = selectedPveRank;
-  pveDifficultyButtons.forEach((button) => {
-    const selected = button.dataset.pveRank === selectedPveRank;
-    button.classList.toggle("selected", selected);
-    button.setAttribute("aria-pressed", selected ? "true" : "false");
-  });
+  const container = document.getElementById("pveRankList") || document.querySelector(".difficulty-choice-actions");
+  if (container) {
+    const buttons = container.querySelectorAll("[data-pve-rank]");
+    buttons.forEach((button) => {
+      const selected = button.dataset.pveRank === selectedPveRank;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-pressed", selected ? "true" : "false");
+    });
+  }
   if (state?.mode === "pve") {
     state.aiDifficulty = pveDifficulty;
     state.aiRank = selectedPveRank;
@@ -1121,6 +1139,7 @@ function loadPuzzle(index = 0) {
   pveSideModal.hidden = true;
   networkModal.hidden = true;
   resultModal.hidden = true;
+  passNotificationModal.hidden = true;
   modeModal.hidden = true;
   render();
 }
@@ -1262,6 +1281,12 @@ function presentSharedLocalEvents(events) {
       addLog(`${sideName(event.owner)} ${UNIT_LABELS.wizard} stayed in place.`);
     } else if (event.type === "turn_passed") {
       addLog(`${sideName(event.player)} had no legal deployment.`);
+      showPassNotification(event.player, () => {
+        render();
+        if (state.mode === "pve" && isAiTurn()) {
+          scheduleAiTurn();
+        }
+      });
     } else if (event.type === "match_ended") {
       state.resultReason = sharedMatchResultReason(event);
       const outcome = event.winner === "draw" ? text("draw") : text("wins", { side: sideName(event.winner) });
@@ -1293,6 +1318,30 @@ function addLog(message) {
   state.log.push(message);
   state.log = state.log.slice(-40);
 }
+
+let pendingPassCallback = null;
+
+function showPassNotification(player, onConfirm) {
+  if (!passNotificationModal) return;
+  pendingPassCallback = onConfirm || null;
+  if (passNoticeTitle) passNoticeTitle.textContent = text("passNoticeTitle");
+  if (passNoticeText) passNoticeText.textContent = text("noLegalMovesPass", { side: sideName(player) });
+  passNotificationModal.hidden = false;
+}
+
+function dismissPassNotification() {
+  if (!passNotificationModal) return;
+  passNotificationModal.hidden = true;
+  if (pendingPassCallback) {
+    const cb = pendingPassCallback;
+    pendingPassCallback = null;
+    cb();
+  }
+}
+
+confirmPassNoticeBtn?.addEventListener("click", () => {
+  dismissPassNotification();
+});
 
 function registerKingWallTaunt(owner, row, col, { autoUse = false } = {}) {
   if (!touchesOwnWall(owner, row, col)) return;
@@ -1813,6 +1862,7 @@ function startNewGame() {
   pveSideModal.hidden = true;
   networkModal.hidden = true;
   resultModal.hidden = true;
+  passNotificationModal.hidden = true;
   challengeModal.hidden = true;
   modeModal.hidden = false;
   renderProgressionUi();

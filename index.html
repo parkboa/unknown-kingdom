@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Serif:wght@500;600;700;800&family=Noto+Serif+KR:wght@500;600;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
-    <link rel="stylesheet" href="./styles.css?v=mode-lock-1" />
+    <link rel="stylesheet" href="./styles.css?v=special-lock-1" />
   </head>
   <body>
     <div id="splashModal" class="splash-screen" aria-live="polite">
@@ -167,12 +167,7 @@
         <h2 id="pveSideTitle" data-i18n="pveMode">AI Match</h2>
         <p class="result-reason" data-i18n="pveSidePrompt">Your side will appear at the bottom of the board.</p>
         <div class="card-control-frame ai-rank-frame">
-          <div class="side-choice-actions difficulty-choice-actions" aria-label="PvE difficulty">
-            <button type="button" data-pve-difficulty="beginner"></button>
-            <button type="button" data-pve-difficulty="intermediate"></button>
-            <button type="button" data-pve-difficulty="advanced"></button>
-            <button type="button" data-pve-difficulty="expert"></button>
-          </div>
+          <div id="pveRankList" class="difficulty-choice-actions" aria-label="PvE difficulty"></div>
         </div>
         <p class="side-choice-label" data-i18n="choosePreferredSide">Choose your side</p>
         <div class="side-choice-actions">
@@ -272,6 +267,16 @@
       </section>
     </div>
 
+    <div id="passNotificationModal" class="result-modal" hidden>
+      <section class="result-card pass-notice-card" role="dialog" aria-modal="true" aria-labelledby="passNoticeTitle">
+        <h2 id="passNoticeTitle" data-i18n="passNoticeTitle">Pass</h2>
+        <p id="passNoticeText" class="result-reason" data-i18n="noLegalMovesPass">둘 곳이 없어 패스합니다.</p>
+        <div class="result-actions">
+          <button id="confirmPassNoticeBtn" class="result-primary-button" type="button" data-i18n="confirm">확인</button>
+        </div>
+      </section>
+    </div>
+
     <div id="resultModal" class="result-modal" hidden>
       <section class="result-card match-result-card" role="dialog" aria-modal="true" aria-labelledby="resultHeading">
         <h2 id="resultHeading" data-i18n="matchComplete">Match Complete</h2>
@@ -297,6 +302,6 @@
       </section>
     </div>
 
-    <script type="module" src="./app.js?v=room-label-1"></script>
+    <script type="module" src="./app.js?v=special-lock-1"></script>
   </body>
 </html>

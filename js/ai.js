@@ -1,4 +1,16 @@
 import { SIZE } from "./config.js";
+import {
+  applyAction,
+  canDeploy,
+  collectGroup,
+  getLegalActions,
+  groupHasLiberty,
+  kingLibertyCount,
+  opponent,
+  orthogonalPositions,
+  stateForPlayer,
+  wallOwnerForEdge,
+} from "../packages/game-engine/src/index.js";
 
 export const AI_RANK_SETTINGS = {
   thirdRateMaster: {
@@ -32,53 +44,74 @@ export const AI_RANK_SETTINGS = {
     typeWeights: { soldier: 40, general: 27, wizard: 18, diplomat: 15 },
     pressureMultiplier: 8,
     specialBoost: 16,
-    variance: 2,
+    variance: 1.5,
     considerAllTypes: true,
-    searchDepth: 1,
-    score: { center: 2.4, allies: 4.5, enemies: 5.5, home: 1.2, capture: 24, threat: 11, kingPressure: 14, kingSafety: 5, defense: 6 },
+    searchDepth: 2,
+    rootCandidateLimit: 20,
+    replyCandidateLimit: 12,
+    score: { center: 2.4, allies: 4.5, enemies: 5.5, home: 1.2, capture: 24, threat: 11, kingPressure: 14, kingSafety: 8, defense: 6 },
   },
   transcendentMaster: {
     typeWeights: { soldier: 34, general: 31, wizard: 20, diplomat: 15 },
     pressureMultiplier: 10,
     specialBoost: 20,
-    variance: 1,
+    variance: 0.5,
     considerAllTypes: true,
-    searchDepth: 1,
+    searchDepth: 2,
+    rootCandidateLimit: 28,
+    replyCandidateLimit: 16,
     score: { center: 2.8, allies: 5.5, enemies: 6.5, home: 1.4, capture: 34, threat: 16, kingPressure: 24, kingSafety: 18, defense: 12 },
   },
   harmonyMaster: {
     typeWeights: { soldier: 32, general: 28, wizard: 22, diplomat: 18 },
     pressureMultiplier: 11,
     specialBoost: 22,
-    variance: 0.5,
+    variance: 0,
     considerAllTypes: true,
-    searchDepth: 2,
-    rootCandidateLimit: 20,
-    replyCandidateLimit: 12,
+    searchDepth: 3,
+    rootCandidateLimit: 32,
+    replyCandidateLimit: 20,
+    continuationCandidateLimit: 12,
     score: { center: 3, allies: 6, enemies: 7, home: 1.5, capture: 38, threat: 18, kingPressure: 28, kingSafety: 22, defense: 15 },
   },
   profoundMaster: {
     typeWeights: { soldier: 30, general: 29, wizard: 22, diplomat: 19 },
     pressureMultiplier: 12,
     specialBoost: 24,
-    variance: 0.15,
-    considerAllTypes: true,
-    searchDepth: 2,
-    rootCandidateLimit: 32,
-    replyCandidateLimit: 20,
-    score: { center: 3.2, allies: 6.5, enemies: 7.5, home: 1.7, capture: 42, threat: 21, kingPressure: 32, kingSafety: 27, defense: 18 },
-  },
-  lifeDeathMaster: {
-    typeWeights: { soldier: 28, general: 30, wizard: 22, diplomat: 20 },
-    pressureMultiplier: 14,
-    specialBoost: 28,
     variance: 0,
     considerAllTypes: true,
     searchDepth: 3,
-    rootCandidateLimit: 48,
-    replyCandidateLimit: 28,
-    continuationCandidateLimit: 20,
-    score: { center: 3.5, allies: 7, enemies: 8.5, home: 1.8, capture: 48, threat: 25, kingPressure: 38, kingSafety: 34, defense: 22 },
+    rootCandidateLimit: 40,
+    replyCandidateLimit: 24,
+    continuationCandidateLimit: 16,
+    score: { center: 3.2, allies: 6.5, enemies: 7.5, home: 1.7, capture: 44, threat: 22, kingPressure: 36, kingSafety: 30, defense: 18 },
+  },
+  lifeDeathMaster: {
+    typeWeights: { soldier: 30, general: 30, wizard: 22, diplomat: 18 },
+    pressureMultiplier: 14,
+    specialBoost: 30,
+    variance: 0,
+    considerAllTypes: true,
+    searchDepth: 4,
+    tacticalExtension: true,
+    beliefSampling: true,
+    rootCandidateLimit: 22,
+    replyCandidateLimit: 12,
+    continuationCandidateLimit: 6,
+    ply4CandidateLimit: 3,
+    score: {
+      center: 3.5,
+      allies: 7.0,
+      enemies: 8.5,
+      home: 1.8,
+      capture: 75,
+      threat: 38,
+      kingPressure: 65,
+      kingSafety: 35,
+      defense: 8,
+      influence: 14,
+      groupTactics: 28,
+    },
   },
 };
 
@@ -110,22 +143,24 @@ function chooseDeployType(state, countPieces, aiPlayer, humanPlayer) {
   const settings = difficultySettings(state);
   const weights = { ...settings.typeWeights };
 
-  if (pressure > 0) {
-    weights.general += pressure * settings.pressureMultiplier;
-    weights.diplomat += pressure * Math.max(1, settings.pressureMultiplier - 1);
+  if (occupiedCount >= 10 && pressure > 0) {
+    weights.general = Math.round(weights.general + pressure * settings.pressureMultiplier);
+    weights.wizard = Math.round(weights.wizard + pressure * (settings.pressureMultiplier * 0.75));
+    weights.diplomat = Math.round(weights.diplomat + pressure * (settings.pressureMultiplier * 0.5));
   }
-  if (humanCount >= 5) weights.wizard += settings.specialBoost;
-  if (aiCount < 2) weights.soldier += settings.considerAllTypes ? 8 : 26;
-  if (occupiedCount >= 10 && occupiedCount <= 50) {
-    weights.soldier = Math.max(20, weights.soldier - 10);
+
+  if (occupiedCount >= 16) {
     weights.general += settings.specialBoost;
     weights.wizard += settings.specialBoost;
     weights.diplomat += settings.specialBoost;
   }
 
-  const choices = Object.entries(weights)
-    .filter(([type]) => state.stock[aiPlayer][type] > 0)
-    .map(([type, weight]) => ({ type, weight }));
+  const deployments = state.deploymentCount?.[aiPlayer] ?? (state.firstDeployDone[aiPlayer] ? 1 : 0);
+  const allowSpecials = state.mode === "tutorial" || state.mode === "puzzle" || deployments >= 5;
+
+  const choices = Object.entries(state.stock[aiPlayer])
+    .filter(([type, count]) => count > 0 && type !== "king" && (allowSpecials || type === "soldier"))
+    .map(([type]) => ({ type, weight: weights[type] || 1 }));
 
   return weightedChoice(choices) || "soldier";
 }
@@ -202,11 +237,76 @@ function ownKingSafetyScore(state, row, col, aiPlayer) {
   return score;
 }
 
+function cellInfluenceScore(state, row, col, aiPlayer, humanPlayer) {
+  let influence = 0;
+  for (let r = 0; r < SIZE; r += 1) {
+    for (let c = 0; c < SIZE; c += 1) {
+      const piece = state.board[r][c];
+      if (!piece) continue;
+      const dist = Math.abs(r - row) + Math.abs(c - col);
+      if (dist === 0) continue;
+      const power = (piece.type === "king" ? 2.5 : piece.type === "general" ? 2.0 : 1.0) / (dist * dist);
+      if (piece.owner === aiPlayer) influence += power;
+      else if (piece.owner === humanPlayer) influence -= power;
+    }
+  }
+  return influence;
+}
+
+function evaluateGroupTactics(state, row, col, aiPlayer, humanPlayer, neighbors) {
+  let score = 0;
+  const allyNeighbors = [];
+  const enemyNeighbors = [];
+
+  for (const [nr, nc] of neighbors(row, col)) {
+    const piece = state.board[nr][nc];
+    if (!piece) continue;
+    if (piece.owner === aiPlayer) allyNeighbors.push([nr, nc]);
+    else if (piece.owner === humanPlayer) enemyNeighbors.push([nr, nc]);
+  }
+
+  // Connection: Connecting 2 or more separate friendly groups
+  if (allyNeighbors.length >= 2) {
+    const groups = new Set();
+    for (const [ar, ac] of allyNeighbors) {
+      const g = collectGroup(state, ar, ac);
+      if (g.length) groups.add(`${g[0][0]}-${g[0][1]}`);
+    }
+    if (groups.size >= 2) {
+      score += 24 * groups.size;
+    }
+  }
+
+  // Cutting: Slicing through enemy formations, preventing enemy connection
+  if (enemyNeighbors.length >= 2) {
+    const enemyGroups = new Set();
+    for (const [er, ec] of enemyNeighbors) {
+      const eg = collectGroup(state, er, ec);
+      if (eg.length) enemyGroups.add(`${eg[0][0]}-${eg[0][1]}`);
+    }
+    if (enemyGroups.size >= 2) {
+      score += 30 * enemyGroups.size;
+    }
+  }
+
+  // Eye Space: Rewarding placement that expands liberties
+  const afterLibs = libertiesAfterDeploy(state, row, col, aiPlayer, neighbors);
+  if (afterLibs >= 3) score += 10;
+  else if (afterLibs <= 1) score -= 20;
+
+  return score;
+}
+
 function availableDeployTypes(state, aiPlayer, countPieces, humanPlayer) {
   if (!state.firstDeployDone[aiPlayer] && state.stock[aiPlayer].king > 0) return ["king"];
-  if (!difficultySettings(state).considerAllTypes) return [chooseDeployType(state, countPieces, aiPlayer, humanPlayer)];
+  const deployments = state.deploymentCount?.[aiPlayer] ?? (state.firstDeployDone[aiPlayer] ? 1 : 0);
+  const allowSpecials = state.mode === "tutorial" || state.mode === "puzzle" || deployments >= 5;
+  if (!difficultySettings(state).considerAllTypes) {
+    if (!allowSpecials) return ["soldier"];
+    return [chooseDeployType(state, countPieces, aiPlayer, humanPlayer)];
+  }
   return Object.entries(state.stock[aiPlayer])
-    .filter(([type, count]) => count > 0 && type !== "king")
+    .filter(([type, count]) => count > 0 && type !== "king" && (allowSpecials || type === "soldier"))
     .map(([type]) => type);
 }
 
@@ -216,10 +316,26 @@ function scoreDeployType(state, unitType, row, col, neighbors, aiPlayer, humanPl
   const pressure = kingPressureScore(state, row, col, humanPlayer);
   const capturePotential = localCapturePotential(state, row, col, aiPlayer, humanPlayer, neighbors);
 
-  if (unitType === "general") return adjacentEnemies >= 2 ? 44 : adjacentEnemies === 1 ? 12 : -6;
-  if (unitType === "diplomat") return adjacentEnemies >= 2 ? 34 : adjacentEnemies === 1 ? 9 : -5;
-  if (unitType === "wizard") return adjacentEnemies > 0 ? 18 + pressure * 1.5 : -4;
-  if (unitType === "soldier") return capturePotential > 20 ? 18 : 6;
+  if (unitType === "general") {
+    if (adjacentEnemies >= 3) return 85;
+    if (adjacentEnemies === 2) return 55;
+    if (adjacentEnemies === 1) return 18;
+    return -10;
+  }
+  if (unitType === "diplomat") {
+    const ownKingDist = ownKingSafetyScore(state, row, col, aiPlayer);
+    if (adjacentEnemies >= 2) return 48 + ownKingDist * 2;
+    if (adjacentEnemies === 1) return 20;
+    return -8;
+  }
+  if (unitType === "wizard") {
+    if (pressure > 0) return 38 + pressure * 2.5;
+    if (adjacentEnemies > 0) return 25;
+    return -5;
+  }
+  if (unitType === "soldier") {
+    return capturePotential > 20 ? 25 : 8;
+  }
   return 0;
 }
 
@@ -233,7 +349,7 @@ function scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer) {
   const liberties = libertiesAfterDeploy(state, row, col, aiPlayer, neighbors);
   const dangerPenalty = Math.max(0, 2 - liberties) * weights.defense;
 
-  return centerScore * weights.center
+  let total = centerScore * weights.center
     + adjacentAllies * weights.allies
     + adjacentEnemies * weights.enemies
     + homeBoardBias * weights.home
@@ -242,6 +358,15 @@ function scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer) {
     + kingPressureScore(state, row, col, humanPlayer) * weights.kingPressure
     + ownKingSafetyScore(state, row, col, aiPlayer) * weights.kingSafety
     - dangerPenalty;
+
+  if (weights.influence) {
+    total += cellInfluenceScore(state, row, col, aiPlayer, humanPlayer) * weights.influence;
+  }
+  if (weights.groupTactics) {
+    total += evaluateGroupTactics(state, row, col, aiPlayer, humanPlayer, neighbors);
+  }
+
+  return total;
 }
 
 function compareCandidates(a, b) {
@@ -274,30 +399,207 @@ function canSearchDeploy(state, player, type, row, col, enemy) {
   return Math.abs(row - enemyKing.row) > 1 || Math.abs(col - enemyKing.col) > 1;
 }
 
-function simulateDeploy(state, move, player) {
-  const nextState = {
-    ...state,
-    board: state.board.map((row) => row.map((piece) => piece ? { ...piece } : null)),
-    stock: {
-      red: { ...state.stock.red },
-      blue: { ...state.stock.blue },
-    },
-    firstDeployDone: { ...state.firstDeployDone },
-    deploymentCount: { ...state.deploymentCount },
-  };
-  nextState.board[move.row][move.col] = {
-    id: `search-${player}-${move.type}-${move.row}-${move.col}`,
-    owner: player,
-    type: move.type,
-    originalType: move.type,
-    revealed: move.type === "king",
-    abilityUsed: false,
-    kingEscapeUsed: false,
-  };
-  nextState.stock[player][move.type] -= 1;
-  nextState.firstDeployDone[player] = true;
-  nextState.deploymentCount[player] = (nextState.deploymentCount[player] ?? 0) + 1;
-  return nextState;
+function settleSimulationState(state, aiPlayer, humanPlayer, neighbors) {
+  let safetyLimit = 12;
+  while (safetyLimit-- > 0 && !state.winner) {
+    if (state.pendingSpecial) {
+      const specialOwner = state.pendingSpecial.owner;
+      const ok = applyAction(state, specialOwner, { type: "activate_special" });
+      if (!ok) break;
+      continue;
+    }
+    if (state.teleporting) {
+      const tpOwner = state.teleporting.owner;
+      const enemy = tpOwner === aiPlayer ? humanPlayer : aiPlayer;
+      const bestDest = chooseAiTeleportDestination(state, neighbors, tpOwner, enemy);
+      if (bestDest) {
+        applyAction(state, tpOwner, { type: "wizard_teleport", row: bestDest.row, col: bestDest.col });
+      } else {
+        applyAction(state, tpOwner, { type: "wizard_stay" });
+      }
+      continue;
+    }
+    break;
+  }
+  return state;
+}
+
+function createSampledBeliefWorlds(state, perspectivePlayer, opponentPlayer, sampleCount = 2) {
+  const publicState = stateForPlayer(state, perspectivePlayer);
+
+  const startingSpecials = { general: 1, wizard: 1, diplomat: 1 };
+  const opponentStock = publicState.stock[opponentPlayer] || {};
+  let unrevealedGeneral = startingSpecials.general - (opponentStock.general || 0);
+  let unrevealedWizard = startingSpecials.wizard - (opponentStock.wizard || 0);
+  let unrevealedDiplomat = startingSpecials.diplomat - (opponentStock.diplomat || 0);
+
+  const unrevealedEnemyStones = [];
+  for (let r = 0; r < SIZE; r += 1) {
+    for (let c = 0; c < SIZE; c += 1) {
+      const piece = publicState.board[r][c];
+      if (!piece || piece.owner !== opponentPlayer) continue;
+      if (piece.revealed) {
+        if (piece.type === "general") unrevealedGeneral -= 1;
+        if (piece.type === "wizard") unrevealedWizard -= 1;
+        if (piece.type === "diplomat") unrevealedDiplomat -= 1;
+      } else {
+        unrevealedEnemyStones.push({ row: r, col: c });
+      }
+    }
+  }
+
+  unrevealedGeneral = Math.max(0, unrevealedGeneral);
+  unrevealedWizard = Math.max(0, unrevealedWizard);
+  unrevealedDiplomat = Math.max(0, unrevealedDiplomat);
+
+  const totalUnrevealedSpecials = unrevealedGeneral + unrevealedWizard + unrevealedDiplomat;
+  if (totalUnrevealedSpecials === 0 || unrevealedEnemyStones.length === 0) {
+    return [publicState];
+  }
+
+  const myKing = findKing(publicState, perspectivePlayer);
+  unrevealedEnemyStones.sort((a, b) => {
+    const distA = myKing ? Math.abs(a.row - myKing.row) + Math.abs(a.col - myKing.col) : 0;
+    const distB = myKing ? Math.abs(b.row - myKing.row) + Math.abs(b.col - myKing.col) : 0;
+    return distA - distB;
+  });
+
+  const worlds = [];
+
+  // World 1: Trap World (Highest danger stone is General, 2nd is Wizard)
+  const world1 = structuredClone(publicState);
+  let gLeft = unrevealedGeneral;
+  let wLeft = unrevealedWizard;
+  let dLeft = unrevealedDiplomat;
+  for (const pos of unrevealedEnemyStones) {
+    const target = world1.board[pos.row][pos.col];
+    if (!target) continue;
+    if (gLeft > 0) {
+      target.type = "general";
+      target.originalType = "general";
+      gLeft -= 1;
+    } else if (wLeft > 0) {
+      target.type = "wizard";
+      target.originalType = "wizard";
+      wLeft -= 1;
+    } else if (dLeft > 0) {
+      target.type = "diplomat";
+      target.originalType = "diplomat";
+      dLeft -= 1;
+    }
+  }
+  worlds.push(world1);
+
+  if (sampleCount >= 2) {
+    const world2 = structuredClone(publicState);
+    worlds.push(world2);
+  }
+
+  return worlds;
+}
+
+function simulateEngineTransition(state, player, action, neighbors) {
+  const cloned = structuredClone(state);
+  if (action.type === "deploy" && !cloned.pendingSpecial && !cloned.teleporting) {
+    cloned.turn = player;
+  }
+  const ok = applyAction(cloned, player, action);
+  if (!ok) return null;
+  return settleSimulationState(cloned, player, opponent(player), neighbors);
+}
+
+function evaluateEngineTransitionDelta(beforeState, afterState, player, enemy, settings) {
+  if (afterState.winner === player) return 100000;
+  if (afterState.winner && afterState.winner !== player) return -100000;
+
+  const weights = settings.score;
+  let scoreDelta = 0;
+
+  const captureGain = (afterState.stats?.captures?.[player] || 0) - (beforeState.stats?.captures?.[player] || 0);
+  scoreDelta += captureGain * (weights.capture || 9) * 6;
+
+  const enemyBefore = countStatePieces(beforeState, enemy);
+  const enemyAfter = countStatePieces(afterState, enemy);
+  const enemyLoss = enemyBefore - enemyAfter;
+  if (enemyLoss > 0) {
+    scoreDelta += enemyLoss * (weights.capture || 9) * 3;
+  }
+
+  const ownBefore = countStatePieces(beforeState, player);
+  const ownAfter = countStatePieces(afterState, player);
+  const ownLoss = (ownBefore + 1) - ownAfter;
+  if (ownLoss > 0) {
+    scoreDelta -= ownLoss * (weights.defense || 2) * 8;
+  }
+
+  const enemyKingAfter = findKing(afterState, enemy);
+  if (enemyKingAfter) {
+    const enemyLibs = kingLibertyCount(afterState, enemy);
+    if (enemyLibs === 1) scoreDelta += (weights.kingPressure || 10) * 14;
+    else if (enemyLibs === 2) scoreDelta += (weights.kingPressure || 10) * 5;
+  }
+
+  const ownKingAfter = findKing(afterState, player);
+  if (ownKingAfter) {
+    const ownLibs = kingLibertyCount(afterState, player);
+    if (ownLibs === 1) scoreDelta -= (weights.kingSafety || 10) * 18;
+    else if (ownLibs === 2) scoreDelta -= (weights.kingSafety || 10) * 6;
+  }
+
+  return scoreDelta;
+}
+
+function evaluateTacticalMatingNet(state, aiPlayer, humanPlayer, depthRemaining, maxDepth = 6, neighbors) {
+  if (state.winner === aiPlayer) return 100000;
+  if (state.winner && state.winner !== aiPlayer) return -100000;
+  if (depthRemaining <= 0) {
+    const enemyLibs = kingLibertyCount(state, humanPlayer);
+    if (enemyLibs === 1) return 800;
+    if (enemyLibs === 2) return 200;
+    return 0;
+  }
+
+  const enemyKing = findKing(state, humanPlayer);
+  if (!enemyKing) return 100000;
+
+  const isAiTurn = state.turn === aiPlayer;
+
+  const candidateCells = [];
+  for (const [r, c] of orthogonalPositions(enemyKing.row, enemyKing.col)) {
+    if (r >= 0 && r < SIZE && c >= 0 && c < SIZE && !state.board[r][c]) {
+      candidateCells.push([r, c]);
+    }
+  }
+
+  if (!candidateCells.length) return 0;
+
+  if (isAiTurn) {
+    let best = -Infinity;
+    for (const [r, c] of candidateCells.slice(0, 4)) {
+      const types = availableDeployTypes(state, aiPlayer, (o) => countStatePieces(state, o), humanPlayer);
+      for (const t of types.slice(0, 2)) {
+        const nextState = simulateEngineTransition(state, aiPlayer, { type: "deploy", unitType: t, row: r, col: c }, neighbors);
+        if (!nextState) continue;
+        const val = evaluateTacticalMatingNet(nextState, aiPlayer, humanPlayer, depthRemaining - 1, maxDepth, neighbors);
+        if (val > best) best = val;
+        if (best >= 100000) return 100000;
+      }
+    }
+    return best === -Infinity ? 0 : best;
+  } else {
+    let worst = Infinity;
+    for (const [r, c] of candidateCells.slice(0, 4)) {
+      const types = availableDeployTypes(state, humanPlayer, (o) => countStatePieces(state, o), aiPlayer);
+      for (const t of types.slice(0, 2)) {
+        const nextState = simulateEngineTransition(state, humanPlayer, { type: "deploy", unitType: t, row: r, col: c }, neighbors);
+        if (!nextState) continue;
+        const val = evaluateTacticalMatingNet(nextState, aiPlayer, humanPlayer, depthRemaining - 1, maxDepth, neighbors);
+        if (val < worst) worst = val;
+        if (worst <= -100000) return -100000;
+      }
+    }
+    return worst === Infinity ? 0 : worst;
+  }
 }
 
 function generateSearchCandidates(state, player, enemy, neighbors) {
@@ -321,25 +623,129 @@ function generateSearchCandidates(state, player, enemy, neighbors) {
   return candidates;
 }
 
-function scoreWithLookahead(state, candidate, settings, aiPlayer, humanPlayer, neighbors) {
-  const afterAi = simulateDeploy(state, candidate, aiPlayer);
-  const replies = generateSearchCandidates(afterAi, humanPlayer, aiPlayer, neighbors)
-    .slice(0, settings.replyCandidateLimit);
-  if (!replies.length) return candidate.score;
+function scoreWithLookahead(state, candidate, settings, aiPlayer, humanPlayer, neighbors, alpha = -Infinity) {
+  const action = { type: "deploy", unitType: candidate.type, row: candidate.row, col: candidate.col };
 
-  let strongestReply = -Infinity;
-  for (const reply of replies) {
-    let replyValue = reply.score;
-    if (settings.searchDepth >= 3) {
-      const afterReply = simulateDeploy(afterAi, reply, humanPlayer);
-      const continuation = generateSearchCandidates(afterReply, aiPlayer, humanPlayer, neighbors)
-        .slice(0, settings.continuationCandidateLimit);
-      const bestContinuation = continuation[0]?.score ?? 0;
-      replyValue -= bestContinuation * 0.6;
+  const beliefWorlds = settings.beliefSampling
+    ? createSampledBeliefWorlds(state, aiPlayer, humanPlayer, 2)
+    : [stateForPlayer(state, aiPlayer)];
+
+  let totalValue = 0;
+
+  for (const world of beliefWorlds) {
+    const afterAi = simulateEngineTransition(world, aiPlayer, action, neighbors);
+    if (!afterAi) {
+      totalValue += -100000;
+      continue;
     }
-    strongestReply = Math.max(strongestReply, replyValue);
+
+    if (afterAi.winner === aiPlayer) {
+      totalValue += 100000;
+      continue;
+    }
+    if (afterAi.winner && afterAi.winner !== aiPlayer) {
+      totalValue += -100000;
+      continue;
+    }
+
+    const rootEngineDelta = evaluateEngineTransitionDelta(world, afterAi, aiPlayer, humanPlayer, settings);
+    let worldValue = candidate.score + rootEngineDelta;
+
+    // Tactical Checkmate Extension (6~8-ply deep mating net)
+    if (settings.tacticalExtension) {
+      const enemyLibs = kingLibertyCount(afterAi, humanPlayer);
+      if (enemyLibs <= 2) {
+        const matingScore = evaluateTacticalMatingNet(afterAi, aiPlayer, humanPlayer, 4, 8, neighbors);
+        if (matingScore >= 100000) return 100000;
+        worldValue += matingScore;
+      }
+    }
+
+    if (settings.searchDepth >= 2) {
+      const replies = generateSearchCandidates(afterAi, humanPlayer, aiPlayer, neighbors)
+        .slice(0, settings.replyCandidateLimit || 12);
+
+      if (replies.length > 0) {
+        let strongestReply = -Infinity;
+        for (const reply of replies) {
+          const replyAction = { type: "deploy", unitType: reply.type, row: reply.row, col: reply.col };
+          const afterReply = simulateEngineTransition(afterAi, humanPlayer, replyAction, neighbors);
+          if (!afterReply) continue;
+
+          if (afterReply.winner === humanPlayer) {
+            strongestReply = 100000;
+            break;
+          }
+
+          const replyEngineDelta = evaluateEngineTransitionDelta(afterAi, afterReply, humanPlayer, aiPlayer, settings);
+          let replyValue = reply.score + replyEngineDelta;
+
+          if (settings.searchDepth >= 3) {
+            const continuations = generateSearchCandidates(afterReply, aiPlayer, humanPlayer, neighbors)
+              .slice(0, settings.continuationCandidateLimit || 10);
+
+            let bestContinuation = -Infinity;
+            for (const cont of continuations) {
+              const contAction = { type: "deploy", unitType: cont.type, row: cont.row, col: cont.col };
+              const afterCont = simulateEngineTransition(afterReply, aiPlayer, contAction, neighbors);
+              if (!afterCont) continue;
+
+              if (afterCont.winner === aiPlayer) {
+                bestContinuation = 100000;
+                break;
+              }
+
+              const contEngineDelta = evaluateEngineTransitionDelta(afterReply, afterCont, aiPlayer, humanPlayer, settings);
+              let contVal = cont.score + contEngineDelta;
+
+              if (settings.searchDepth >= 4) {
+                const ply4Candidates = generateSearchCandidates(afterCont, humanPlayer, aiPlayer, neighbors)
+                  .slice(0, settings.ply4CandidateLimit || 6);
+
+                let strongestPly4 = -Infinity;
+                for (const ply4 of ply4Candidates) {
+                  const ply4Action = { type: "deploy", unitType: ply4.type, row: ply4.row, col: ply4.col };
+                  const afterPly4 = simulateEngineTransition(afterCont, humanPlayer, ply4Action, neighbors);
+                  if (!afterPly4) continue;
+                  if (afterPly4.winner === humanPlayer) {
+                    strongestPly4 = 100000;
+                    break;
+                  }
+                  const ply4Delta = evaluateEngineTransitionDelta(afterCont, afterPly4, humanPlayer, aiPlayer, settings);
+                  const ply4Val = ply4.score + ply4Delta;
+                  if (ply4Val > strongestPly4) strongestPly4 = ply4Val;
+                }
+                if (strongestPly4 !== -Infinity) {
+                  contVal -= strongestPly4 * 0.5;
+                }
+              }
+
+              if (contVal > bestContinuation) bestContinuation = contVal;
+            }
+
+            if (bestContinuation !== -Infinity) {
+              replyValue -= bestContinuation * 0.6;
+            }
+          }
+
+          if (replyValue > strongestReply) {
+            strongestReply = replyValue;
+            if (worldValue - 0.8 * strongestReply <= alpha) {
+              break;
+            }
+          }
+        }
+
+        if (strongestReply !== -Infinity) {
+          worldValue -= strongestReply * 0.8;
+        }
+      }
+    }
+
+    totalValue += worldValue;
   }
-  return candidate.score - strongestReply * 0.8;
+
+  return totalValue / beliefWorlds.length;
 }
 
 export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, countPieces, neighbors }) {
@@ -362,15 +768,21 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
     }
   }
   candidates.sort(compareCandidates);
-  if (settings.searchDepth > 1) {
-    const searchedCandidates = candidates.slice(0, settings.rootCandidateLimit);
-    searchedCandidates.forEach((candidate) => {
-      candidate.deepScore = scoreWithLookahead(state, candidate, settings, aiPlayer, humanPlayer, neighbors);
-    });
-    searchedCandidates.sort(compareCandidates);
-    return searchedCandidates[0] || null;
-  }
-  return candidates[0] || null;
+  if (!candidates.length) return null;
+
+  const limit = settings.searchDepth > 1 ? (settings.rootCandidateLimit || 20) : candidates.length;
+  const searchedCandidates = candidates.slice(0, limit);
+  let bestScore = -Infinity;
+
+  searchedCandidates.forEach((candidate) => {
+    const deepScore = scoreWithLookahead(state, candidate, settings, aiPlayer, humanPlayer, neighbors, bestScore);
+    candidate.deepScore = deepScore;
+    if (deepScore > bestScore) {
+      bestScore = deepScore;
+    }
+  });
+  searchedCandidates.sort(compareCandidates);
+  return searchedCandidates[0] || null;
 }
 
 export function chooseAiTeleportDestination(state, neighbors, aiPlayer, humanPlayer) {

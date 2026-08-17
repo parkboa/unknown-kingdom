@@ -41,6 +41,7 @@ test("dispatchAction returns no events for a rejected action", () => {
 test("deployment events are ordered and hide an unrevealed special from the opponent", () => {
   const state = createGameState();
   state.firstDeployDone.red = true;
+  state.deploymentCount = { red: 5, blue: 5 };
 
   const result = dispatchAction(state, "red", { type: "deploy", unitType: "general", row: 4, col: 4 });
 

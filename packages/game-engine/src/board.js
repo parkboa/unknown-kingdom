@@ -117,6 +117,16 @@ export function boardSignature(state) {
   ).join(";");
 }
 
+export function isSpecialUnit(type) {
+  return type === "general" || type === "wizard" || type === "diplomat";
+}
+
+export function isSpecialLocked(state, player, type) {
+  if (!isSpecialUnit(type)) return false;
+  if (state.mode === "tutorial" || state.mode === "puzzle") return false;
+  return deploymentCount(state, player) < 5;
+}
+
 export function canDeploy(state, player, type, row, col) {
   return !state.winner
     && !state.teleporting
@@ -127,13 +137,14 @@ export function canDeploy(state, player, type, row, col) {
     && inBounds(row, col)
     && !state.board[row][col]
     && (state.firstDeployDone[player] || type === "king")
+    && (!isSpecialUnit(type) || !isSpecialLocked(state, player, type))
     && !isOpponentKingTerritory(state, player, row, col)
     && state.stock[player][type] > 0;
 }
 
 export function hasLegalDeployment(state, player) {
   const unitTypes = state.firstDeployDone[player]
-    ? [...UNIT_TYPES].filter((type) => state.stock[player][type] > 0)
+    ? [...UNIT_TYPES].filter((type) => state.stock[player][type] > 0 && !isSpecialLocked(state, player, type))
     : state.stock[player].king > 0 ? ["king"] : [];
   if (!unitTypes.length) return false;
   return unitTypes.some((type) =>
@@ -141,8 +152,24 @@ export function hasLegalDeployment(state, player) {
       row.some((piece, colIndex) =>
         !piece
         && inBounds(rowIndex, colIndex)
-        && (state.firstDeployDone[player] || type === "king")
-        && !isOpponentKingTerritory(state, player, rowIndex, colIndex)
+        && isOpponentKingTerritory(state, player, rowIndex, colIndex) === false
         && state.stock[player][type] > 0)));
 }
 
+export function kingLibertyCount(state, owner) {
+  const king = findKingPosition(state, owner);
+  if (!king) return -1;
+  const group = collectGroup(state, king.row, king.col);
+  const liberties = new Set();
+  for (const [row, col] of group) {
+    for (const [nextRow, nextCol] of orthogonalPositions(row, col)) {
+      if (inBounds(nextRow, nextCol)) {
+        if (!state.board[nextRow][nextCol]) liberties.add(cellKey(nextRow, nextCol));
+      } else {
+        const wallOwner = wallOwnerForEdge(row, nextRow, nextCol);
+        if (wallOwner === owner || wallOwner === null) liberties.add(`wall:${row}:${col}:${nextRow}:${nextCol}`);
+      }
+    }
+  }
+  return liberties.size;
+}
