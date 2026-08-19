@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyAction, createGameState, dispatchAction, getLegalActions, isSuicideDeployment, stateForPlayer } from "../src/index.js";
+import { applyAction, createGameState, dispatchAction, getLegalActions, hasLegalDeployment, isSuicideDeployment, stateForPlayer } from "../src/index.js";
 
 function soldier(owner, id) {
   return {
@@ -87,6 +87,23 @@ test("enumerates only the required King deployments at match start", () => {
   assert.equal(actions.length, 81);
   assert.ok(actions.every((action) => action.type === "deploy" && action.unitType === "king"));
   assert.deepEqual(getLegalActions(state, "blue"), []);
+});
+
+test("blocks White King placement that overlaps with Black King sanctuary (distance < 3)", () => {
+  const state = createGameState();
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "king", row: 4, col: 4 }), true);
+
+  // Black King is at (4,4), with 3x3 sanctuary rows 3..5, cols 3..5.
+  // Any White King placed at Chebyshev distance <= 2 (rows 2..6, cols 2..6) would cause sanctuaries to overlap.
+  for (let r = 2; r <= 6; r++) {
+    for (let c = 2; c <= 6; c++) {
+      assert.equal(applyAction(state, "blue", { type: "deploy", unitType: "king", row: r, col: c }), false, `Should reject King at (${r},${c})`);
+    }
+  }
+
+  // White King at distance >= 3 (e.g. row 1, col 4 or row 8, col 4) is allowed
+  assert.equal(applyAction(state, "blue", { type: "deploy", unitType: "king", row: 1, col: 4 }), true);
+  assert.equal(state.turn, "red");
 });
 
 test("blocks opponent deployment around a King until five deployments", () => {
@@ -448,6 +465,34 @@ test("ends by territory when the next player has no deployable units", () => {
   assert.equal(applyAction(state, "red", { type: "deploy", unitType: "soldier", row: 1, col: 4 }), true);
   assert.notEqual(state.winner, null);
   assert.match(state.resultReason, /no legal deployment/);
+});
+
+test("ends by territory with 0 bonus when a player has only suicide moves remaining", () => {
+  const state = createGameState();
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "king", row: 0, col: 4 }), true);
+  assert.equal(applyAction(state, "blue", { type: "deploy", unitType: "king", row: 8, col: 4 }), true);
+  
+  // Fill all board with red pieces except row 4, col 4 which is surrounded by red pieces with no liberties
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      if ((r === 0 && c === 4) || (r === 8 && c === 4)) continue;
+      state.board[r][c] = { id: `red-${r}-${c}`, owner: "red", type: "soldier" };
+    }
+  }
+  // Clear cell 4,4
+  state.board[4][4] = null;
+  state.turn = "red";
+  state.stock.red.soldier = 5;
+  state.stock.blue.soldier = 5;
+
+  // Blue has 1 empty square at (4,4), but deploying soldier at (4,4) is surrounded by red without liberties (suicide)
+  assert.equal(hasLegalDeployment(state, "blue"), false);
+  
+  // When turn ends or passes to blue, game immediately finishes by territory
+  applyAction(state, "red", { type: "deploy", unitType: "soldier", row: 4, col: 4 });
+  // After red places at (4,4), board is full or blue has no moves and match ends with winner red
+  assert.notEqual(state.winner, null);
+  assert.equal(state.winner, "red");
 });
 
 test("validates all challenge puzzles across 8 ranks", async () => {

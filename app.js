@@ -32,8 +32,17 @@ import {
 } from "./js/state.js?v=resume-turn-1";
 import {
   renderGame,
+  updateTurnTimerPill,
 } from "./js/render.js?v=progression-7";
-import { PUZZLES, RANK_LABELS, RANK_ORDER } from "./js/puzzles.js?v=progression-1";
+import {
+  AI_RANK_LABELS,
+  AI_RANK_ORDER,
+  CHALLENGE_DISPLAY_RANKS,
+  CHALLENGE_RANK_LABELS,
+  PUZZLES,
+  RANK_LABELS,
+  RANK_ORDER,
+} from "./js/puzzles.js?v=progression-2";
 import {
   dispatchSharedLocalAction,
   isSharedLocalSuicideDeployment,
@@ -45,10 +54,16 @@ const ASSET_VERSION = "progression-2";
 const PREVIEW_MODE = new URLSearchParams(location.search).get("preview");
 const requestedServer = new URLSearchParams(location.search).get("server");
 if (requestedServer) localStorage.setItem("unknown-kingdom-server", requestedServer);
-const defaultNetworkServer = location.hostname === "127.0.0.1" || location.hostname === "localhost"
-  ? "ws://127.0.0.1:4175/ws"
+const isLocalHost = location.hostname === "127.0.0.1"
+  || location.hostname === "localhost"
+  || location.hostname.endsWith(".local")
+  || /^192\.168\./.test(location.hostname)
+  || /^10\./.test(location.hostname)
+  || /^172\.(1[6-9]|2\d|3[01])\./.test(location.hostname);
+const defaultNetworkServer = isLocalHost
+  ? `ws://${location.hostname}:4175/ws`
   : "wss://unknown-kingdom-server.onrender.com/ws";
-const NETWORK_SERVER = requestedServer || localStorage.getItem("unknown-kingdom-server") || defaultNetworkServer;
+const NETWORK_SERVER = requestedServer || (isLocalHost ? defaultNetworkServer : (localStorage.getItem("unknown-kingdom-server") || defaultNetworkServer));
 const UNIT_LABELS = createUnitLabels(LANGUAGE);
 const text = createTranslator(LANGUAGE);
 const CHALLENGE_GUIDANCE_MIGRATION_KEY = "unknown-kingdom-help-preferences-v2";
@@ -125,6 +140,9 @@ let tauntTimer = null;
 let visibleTaunt = null;
 let lastTauntEventId = 0;
 let networkSession = createNetworkSession();
+let onlineTurnDeadline = null;
+let pveTurnDeadline = null;
+let rematchOfferedBy = null;
 let pveHumanPlayer = PVE_HUMAN;
 let pveAiPlayer = PVE_AI;
 let pveDifficulty = "thirdRateMaster";
@@ -224,6 +242,7 @@ const fortressFrame = document.querySelector(".fortress-frame");
 const gameStatusBar = document.querySelector(".game-status-bar");
 const deployDock = document.querySelector(".deploy-dock");
 const turnPill = document.querySelector("#turnPill");
+const turnTimerBadge = document.querySelector("#turnTimerBadge");
 const modeInfo = document.querySelector("#modeInfo");
 const connectionInfo = document.querySelector("#connectionInfo");
 const connectionInfoText = document.querySelector("#connectionInfoText");
@@ -268,6 +287,7 @@ const joinRoomBtn = document.querySelector("#joinRoomBtn");
 const cancelNetworkBtn = document.querySelector("#cancelNetworkBtn");
 const resultModal = document.querySelector("#resultModal");
 const playAgainBtn = document.querySelector("#playAgainBtn");
+const resultRematchNotice = document.querySelector("#resultRematchNotice");
 const resultLobbyBtn = document.querySelector("#resultLobbyBtn");
 const pendingSpecialModal = document.querySelector("#pendingSpecialModal");
 const pendingSpecialTitle = document.querySelector("#pendingSpecialTitle");
@@ -357,14 +377,14 @@ function markPuzzleComplete(index) {
 
 function renderChallengeRanks() {
   challengeRankList.innerHTML = "";
-  RANK_ORDER.forEach((rankKey, rankIndex) => {
+  CHALLENGE_DISPLAY_RANKS.forEach((rankKey, rankIndex) => {
     const rankPuzzles = PUZZLES.filter((puzzle) => puzzle.rank === rankKey);
     const hasPuzzle = rankPuzzles.length > 0;
     const completedCount = rankPuzzles.filter((puzzle) => challengeProgress.completedPuzzleIds.includes(puzzle.id)).length;
     const totalCount = rankPuzzles.length;
     const complete = hasPuzzle && completedCount === totalCount;
 
-    const prevRankKey = rankIndex > 0 ? RANK_ORDER[rankIndex - 1] : null;
+    const prevRankKey = rankIndex > 0 ? CHALLENGE_DISPLAY_RANKS[rankIndex - 1] : null;
     const prevRankPuzzles = prevRankKey ? PUZZLES.filter((p) => p.rank === prevRankKey) : [];
     const prevRankComplete = !prevRankKey || (prevRankPuzzles.length > 0 && prevRankPuzzles.every((p) => challengeProgress.completedPuzzleIds.includes(p.id)));
     const unlocked = hasPuzzle && prevRankComplete;
@@ -378,7 +398,7 @@ function renderChallengeRanks() {
     button.classList.toggle("coming-soon", !hasPuzzle);
 
     const label = document.createElement("strong");
-    label.textContent = RANK_LABELS[LANGUAGE][rankKey] || rankKey;
+    label.textContent = CHALLENGE_RANK_LABELS[LANGUAGE][rankKey] || RANK_LABELS[LANGUAGE][rankKey] || rankKey;
     const status = document.createElement("small");
     status.className = "challenge-rank-status";
     if (!hasPuzzle) {
@@ -396,7 +416,7 @@ function renderChallengeRanks() {
       icon.setAttribute("title", statusLabel);
       status.append(icon);
     } else {
-      status.textContent = `${completedCount} / ${totalCount}`;
+      status.textContent = rankKey === "thirdRateMaster" ? text("rankReady") : `${completedCount} / ${totalCount}`;
     }
     button.append(label, status);
     if (unlocked) {
@@ -478,10 +498,10 @@ function currentModeLabel() {
 
 function currentRankLabel() {
   if (state.mode === "pve" && state.aiRank) {
-    return RANK_LABELS[LANGUAGE][state.aiRank] || state.aiRank;
+    return AI_RANK_LABELS[LANGUAGE][state.aiRank] || RANK_LABELS[LANGUAGE][state.aiRank] || state.aiRank;
   }
   const rankKey = activePuzzle?.rank || "thirdRateMaster";
-  const rankName = RANK_LABELS[LANGUAGE][rankKey] || RANK_LABELS.ko.thirdRateMaster;
+  const rankName = CHALLENGE_RANK_LABELS[LANGUAGE][rankKey] || RANK_LABELS[LANGUAGE][rankKey] || RANK_LABELS.ko.thirdRateMaster;
   if (state.mode === "puzzle" && activePuzzle && activePuzzle.type !== "tutorial") {
     const rankPuzzles = PUZZLES.filter((p) => p.rank === rankKey);
     const puzzleNumInRank = rankPuzzles.indexOf(activePuzzle) + 1;
@@ -617,6 +637,15 @@ async function enterLobbyAfterSplash(showingDemo) {
   modeModal.hidden = false;
 }
 
+function isGameActive() {
+  if (splashModal && !splashModal.hidden) return false;
+  if (modeModal && !modeModal.hidden) return false;
+  if (pveSideModal && !pveSideModal.hidden) return false;
+  if (networkModal && !networkModal.hidden) return false;
+  if (challengeModal && !challengeModal.hidden) return false;
+  return true;
+}
+
 function newState() {
   const nextState = createInitialState(currentModeChoice(), pveHumanPlayer);
   if (nextState.mode === "pve") {
@@ -629,8 +658,8 @@ function newState() {
 function renderPveRankOptions() {
   const container = document.getElementById("pveRankList") || document.querySelector(".difficulty-choice-actions");
   if (!container) return;
-  const rankKeys = RANK_ORDER;
-  if (!selectedPveRank || !rankKeys.includes(selectedPveRank)) selectedPveRank = rankKeys.at(-1);
+  const rankKeys = AI_RANK_ORDER;
+  if (!selectedPveRank || !rankKeys.includes(selectedPveRank)) selectedPveRank = rankKeys[0];
 
   container.innerHTML = "";
   rankKeys.forEach((rankKey) => {
@@ -639,7 +668,7 @@ function renderPveRankOptions() {
     button.className = "challenge-rank-button";
     button.dataset.pveRank = rankKey;
     button.dataset.pveDifficulty = rankKey;
-    button.textContent = RANK_LABELS[LANGUAGE][rankKey] || rankKey;
+    button.textContent = AI_RANK_LABELS[LANGUAGE][rankKey] || RANK_LABELS[LANGUAGE][rankKey] || rankKey;
     button.addEventListener("click", () => applyPveRank(rankKey));
     container.appendChild(button);
   });
@@ -653,7 +682,7 @@ function renderPveRankOptions() {
 }
 
 function applyPveRank(rankKey) {
-  selectedPveRank = rankKey || RANK_ORDER.at(-1);
+  selectedPveRank = rankKey || AI_RANK_ORDER[0];
   pveDifficulty = selectedPveRank;
   const container = document.getElementById("pveRankList") || document.querySelector(".difficulty-choice-actions");
   if (container) {
@@ -817,6 +846,7 @@ function canDeploy(player, unitType, row, col, options = {}) {
   if (state.winner || state.teleporting || state.pendingSpecial || state.pendingKingSwap) return false;
   if (!inBounds(row, col) || state.board[row][col]) return false;
   if (!state.firstDeployDone[player] && unitType !== "king") return false;
+  if (unitType === "king" && isOpponentKingSanctuaryOverlap(player, row, col)) return false;
   if (isOpponentKingTerritory(player, row, col)) return false;
   if (state.stock[player][unitType] <= 0) return false;
   return true;
@@ -824,6 +854,15 @@ function canDeploy(player, unitType, row, col, options = {}) {
 
 function getDeploymentCount(player) {
   return state.deploymentCount?.[player] ?? (state.firstDeployDone[player] ? 1 : 0);
+}
+
+function isOpponentKingSanctuaryOverlap(player, row, col) {
+  const enemy = opponent(player);
+  const king = findKingPosition(enemy);
+  if (!king) return false;
+  const rowDistance = Math.abs(row - king.row);
+  const colDistance = Math.abs(col - king.col);
+  return Math.max(rowDistance, colDistance) < 3;
 }
 
 function isOpponentKingTerritory(player, row, col) {
@@ -939,7 +978,12 @@ function deploy(row, col, options = {}) {
   const unitType = options.unitType || currentUnitChoice();
   if (options.player && options.player !== player) return;
   if (!canDeploy(player, unitType, row, col)) {
-    const reason = isOpponentKingTerritory(player, row, col) ? text("kingTerritoryBlocked") : "";
+    let reason = "";
+    if (unitType === "king" && isOpponentKingSanctuaryOverlap(player, row, col)) {
+      reason = text("kingOverlapBlocked") || text("kingTerritoryBlocked");
+    } else if (isOpponentKingTerritory(player, row, col)) {
+      reason = text("kingTerritoryBlocked");
+    }
     addLog(reason || `${sideName(player)} cannot deploy ${UNIT_LABELS[unitType]} there.`);
     render();
     return;
@@ -1418,15 +1462,7 @@ function registerKingWallTaunt(owner, row, col, { autoUse = false } = {}) {
 function showTauntBubble(event) {
   if (!event || event.id === lastTauntEventId) return;
   lastTauntEventId = event.id;
-  const durationMs = state.mode === "pvp" && state.tauntUntil
-    ? Math.max(0, state.tauntUntil - Date.now())
-    : TAUNT_DISPLAY_MS;
-  if (durationMs <= 0) {
-    visibleTaunt = null;
-    render();
-    scheduleAiTurn();
-    return;
-  }
+  const durationMs = TAUNT_DISPLAY_MS;
   visibleTaunt = { ...event, durationMs };
   if (tauntTimer !== null) window.clearTimeout(tauntTimer);
   if (aiTimer !== null) {
@@ -1624,10 +1660,22 @@ function render() {
       ? pveHumanPlayer
       : PVE_HUMAN;
   fortressFrame.classList.toggle("view-red", viewerSide === "red");
+  if (state.mode === "pve" && !state.winner && isGameActive()) {
+    if (state.turn === pveHumanPlayer && pveTurnDeadline === null) {
+      pveTurnDeadline = Date.now() + 30000;
+    } else if (state.turn !== pveHumanPlayer) {
+      pveTurnDeadline = null;
+    }
+  } else if (state.mode !== "pve" || state.winner || !isGameActive()) {
+    pveTurnDeadline = null;
+  }
+
   renderGame({
     state,
     boardEl,
     turnPill,
+    onlineTurnDeadline,
+    pveTurnDeadline,
     modeInfo,
     connectionInfo,
     connectionInfoText,
@@ -1650,6 +1698,7 @@ function render() {
     connectionLabel: currentConnectionLabel(),
     networkPlayer: networkSession.player,
     pveHumanPlayer,
+    pveAiPlayer,
     viewerSide,
     wizardMovePromptDismissed,
     canUseTaunt: canPlayerUseTaunt(state.mode === "pvp" ? networkSession.player : pveHumanPlayer),
@@ -1668,16 +1717,49 @@ function render() {
   });
   const matchResultVisible = Boolean(state.winner && (state.mode === "pve" || state.mode === "pvp"));
   if (matchResultVisible) {
-    const waitingForRematch = state.mode === "pvp" && rematchRequested;
-    playAgainBtn.disabled = waitingForRematch;
-    playAgainBtn.textContent = waitingForRematch
-      ? text("rematchWaiting")
-      : state.mode === "pvp"
-        ? text("requestRematch")
-        : text("playAgain");
+    if (state.mode === "pvp") {
+      if (rematchRequested) {
+        playAgainBtn.disabled = true;
+        playAgainBtn.textContent = text("rematchWaiting");
+        playAgainBtn.classList.remove("rematch-offered");
+        if (resultRematchNotice) {
+          resultRematchNotice.hidden = false;
+          resultRematchNotice.textContent = text("rematchWaiting");
+        }
+      } else if (rematchOfferedBy && rematchOfferedBy !== networkSession.player) {
+        playAgainBtn.disabled = false;
+        playAgainBtn.textContent = text("acceptRematch");
+        playAgainBtn.classList.add("rematch-offered");
+        if (resultRematchNotice) {
+          resultRematchNotice.hidden = false;
+          resultRematchNotice.textContent = text("opponentRematchOffered");
+        }
+      } else {
+        playAgainBtn.disabled = false;
+        playAgainBtn.textContent = text("requestRematch");
+        playAgainBtn.classList.remove("rematch-offered");
+        if (resultRematchNotice) {
+          resultRematchNotice.hidden = true;
+        }
+      }
+    } else {
+      playAgainBtn.disabled = false;
+      playAgainBtn.textContent = text("playAgain");
+      playAgainBtn.classList.remove("rematch-offered");
+      if (resultRematchNotice) {
+        resultRematchNotice.hidden = true;
+      }
+    }
   } else {
     playAgainBtn.disabled = false;
-    if (!state.winner) rematchRequested = false;
+    playAgainBtn.classList.remove("rematch-offered");
+    if (resultRematchNotice) {
+      resultRematchNotice.hidden = true;
+    }
+    if (!state.winner) {
+      rematchRequested = false;
+      rematchOfferedBy = null;
+    }
   }
   const tutorialActive = state.mode === "tutorial";
   const puzzleActive = state.mode === "puzzle" && activePuzzle;
@@ -1777,6 +1859,7 @@ function renderPendingSpecialModal(viewerSide) {
 
 function localizeResultReason(reason) {
   if (reason === "All enemy units were eliminated.") return text("allEliminated");
+  if (reason === "Time limit exceeded (30s).") return text("timeExpired");
   const localizedSides = reason
     .replace(/\bred\b/gi, text("red"))
     .replace(/\bblue\b/gi, text("blue"));
@@ -1835,14 +1918,19 @@ confirmSuicideBtn.addEventListener("click", () => {
   if (!confirmation) return;
   closeSuicideConfirmation({ restoreFocus: false });
   if (confirmation.source === "online") {
-    sendNetworkAction({ ...confirmation.action, confirmSuicide: true });
+    sendNetworkAction({ type: "pass" });
     return;
   }
-  deploy(confirmation.row, confirmation.col, {
-    confirmedSuicide: true,
-    player: confirmation.player,
-    unitType: confirmation.unitType,
-  });
+  saveUndoCheckpoint();
+  const player = confirmation.player;
+  const nextPlayer = player === "red" ? "blue" : "red";
+  state.lastMove = { player, action: "pass" };
+  state.turn = nextPlayer;
+  addLog(text("autoPass", { side: sideName(player) }) || `${sideName(player)} passed the turn.`);
+  render();
+  if (state.mode === "pve" && state.turn === pveAiPlayer && !state.winner) {
+    scheduleAiMove();
+  }
 });
 suicideConfirmModal.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
@@ -1994,7 +2082,9 @@ function startPve(side) {
   resetGame();
   state.aiDifficulty = pveDifficulty;
   state.aiRank = selectedPveRank;
+  pveTurnDeadline = side === "red" ? Date.now() + 30000 : null;
   render();
+  if (side === "blue") scheduleAiTurn();
 }
 
 function showNetworkRoomControls() {
@@ -2137,12 +2227,23 @@ function handleNetworkMessage(message) {
     if (message.type === "match_start") {
       lastTauntEventId = 0;
       rematchRequested = false;
+      rematchOfferedBy = null;
     }
     state.mode = "pvp";
+    onlineTurnDeadline = message.turnDeadline || message.state?.turnDeadline || null;
     showNetworkRoomControls();
     networkModal.hidden = true;
     setNetworkStatus(text("roomPlayer", { room: currentBoardLabel(), side: sideName(networkSession.player) }));
     if (state.tauntEvent?.id !== lastTauntEventId) showTauntBubble(state.tauntEvent);
+    render();
+    return;
+  }
+
+  if (message.type === "rematch_offered") {
+    rematchOfferedBy = message.byPlayer;
+    if (rematchOfferedBy !== networkSession.player) {
+      setNetworkStatus(text("opponentRematchOffered"));
+    }
     render();
     return;
   }
@@ -2156,6 +2257,7 @@ function handleNetworkMessage(message) {
     if (message.message === "Opponent disconnected.") {
       networkSession.ready = false;
       networkSession.opponentDisconnected = true;
+      onlineTurnDeadline = null;
       setNetworkStatus(text("opponentDisconnected"));
       render();
       return;
@@ -2165,6 +2267,7 @@ function handleNetworkMessage(message) {
 }
 
 function disconnectNetwork() {
+  onlineTurnDeadline = null;
   closeSuicideConfirmation({ restoreFocus: false });
   networkSession = closeNetworkConnection(networkSession);
 }
@@ -2311,6 +2414,47 @@ if (showingDemo && new URLSearchParams(location.search).get("demo") === "no-move
   modeModal.hidden = true;
   commitSharedLocalAction(state.turn, { type: "pass" });
 }
+
+window.setInterval(() => {
+  if (!isGameActive() || state?.winner) return;
+
+  if (state.mode === "pvp" && onlineTurnDeadline) {
+    updateTurnTimerPill(turnPill, {
+      state,
+      onlineTurnDeadline,
+      pveTurnDeadline: null,
+      pveHumanPlayer,
+      text,
+      sideName,
+    });
+  } else if (state.mode === "pve" && state.turn === pveHumanPlayer && pveTurnDeadline) {
+    if (Date.now() >= pveTurnDeadline) {
+      pveTurnDeadline = null;
+      if (!hasLegalDeployment(state, pveHumanPlayer)) {
+        applySharedPveAction(pveHumanPlayer, { type: "pass" });
+      } else {
+        declareWinner(
+          state,
+          pveAiPlayer,
+          "Time limit exceeded (30s).",
+          undefined,
+          "timeout",
+          { defeatedPlayer: pveHumanPlayer },
+        );
+      }
+      render();
+    } else {
+      updateTurnTimerPill(turnPill, {
+        state,
+        onlineTurnDeadline: null,
+        pveTurnDeadline,
+        pveHumanPlayer,
+        text,
+        sideName,
+      });
+    }
+  }
+}, 250);
 render();
 if (showingDemo) scheduleAiTurn();
 enterLobbyAfterSplash(showingDemo);

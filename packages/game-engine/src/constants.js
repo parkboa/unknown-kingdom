@@ -1,5 +1,5 @@
 export const SIZE = 9;
-export const WHITE_TERRITORY_BONUS = 2;
+export const WHITE_TERRITORY_BONUS = 0;
 export const PLAYERS = ["red", "blue"];
 export const SPECIALS = new Set(["general", "diplomat", "wizard"]);
 export const UNIT_TYPES = new Set(["soldier", "king", ...SPECIALS]);

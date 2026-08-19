@@ -144,14 +144,41 @@ function renderDeployPicker(context) {
   }
 }
 
-function renderPanel(context) {
-  context.turnPill.textContent = context.state.winner
-    ? context.state.winner === "draw"
+export function updateTurnTimerPill(turnPill, context) {
+  if (!turnPill) return;
+  let turnText = "";
+  let isDanger = false;
+  let isWarning = false;
+
+  if (context.state.winner) {
+    turnText = context.state.winner === "draw"
       ? context.text("draw")
-      : context.text("wins", { side: context.sideName(context.state.winner) })
-    : context.text("turn", { side: context.sideName(context.state.turn) });
-  context.turnPill.classList.toggle("blue", context.state.turn === "blue");
-  context.turnPill.classList.toggle("draw", context.state.winner === "draw");
+      : context.text("wins", { side: context.sideName(context.state.winner) });
+  } else {
+    const side = context.sideName(context.state.turn);
+    const deadline = context.state.mode === "pvp" ? context.onlineTurnDeadline : context.pveTurnDeadline;
+    if (deadline && (context.state.mode === "pvp" || (context.state.mode === "pve" && context.state.turn === context.pveHumanPlayer))) {
+      const remainingMs = Math.max(0, deadline - Date.now());
+      const remainingSec = Math.ceil(remainingMs / 1000);
+      turnText = context.text("turnWithTime", { side, time: remainingSec });
+      isDanger = remainingSec <= 5;
+      isWarning = remainingSec > 5 && remainingSec <= 10;
+    } else {
+      turnText = context.text("turn", { side });
+    }
+  }
+
+  if (turnPill.textContent !== turnText) {
+    turnPill.textContent = turnText;
+  }
+  turnPill.classList.toggle("blue", (context.state.winner ? context.state.winner === "blue" : context.state.turn === "blue"));
+  turnPill.classList.toggle("draw", context.state.winner === "draw");
+  turnPill.classList.toggle("danger", isDanger);
+  turnPill.classList.toggle("warning", isWarning);
+}
+
+function renderPanel(context) {
+  updateTurnTimerPill(context.turnPill, context);
   context.redCount.textContent = context.countPieces("red");
   context.blueCount.textContent = context.countPieces("blue");
   if (context.modeInfo) context.modeInfo.textContent = context.modeLabel;

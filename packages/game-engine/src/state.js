@@ -29,8 +29,8 @@ export function occupiedSoldier(state, owner) {
   return createPiece(state, owner, "soldier");
 }
 
-export function createGameState() {
-  return {
+export function createGameState(mode = "pvp", options = {}) {
+  const base = {
     board: Array.from({ length: SIZE }, () => Array(SIZE).fill(null)),
     nextPieceId: 1,
     turn: "red",
@@ -47,7 +47,7 @@ export function createGameState() {
     tauntUntil: 0,
     winner: null,
     resultReason: "",
-    mode: "pvp",
+    mode,
     aiProfile: "balanced",
     aiThinking: false,
     stock: {
@@ -62,5 +62,6 @@ export function createGameState() {
     },
     log: ["New online match started. Black deploys first."],
   };
+  return Object.assign(base, options);
 }
 

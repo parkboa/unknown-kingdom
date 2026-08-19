@@ -5,9 +5,11 @@ import {
   applyAction,
   chooseBotAction,
   createGameState,
+  declareWinner,
   dispatchAction,
   eventsForPlayer,
   getLegalActions,
+  hasLegalDeployment,
   isSuicideDeployment,
   stateForPlayer,
 } from "./engine.js";
@@ -17,9 +19,11 @@ import { chooseBotAction as sharedChooseBotAction } from "@daeguk/game-engine/bo
 test("server adapter exposes the shared engine package API", () => {
   assert.equal(applyAction, sharedEngine.applyAction);
   assert.equal(createGameState, sharedEngine.createGameState);
+  assert.equal(declareWinner, sharedEngine.declareWinner);
   assert.equal(dispatchAction, sharedEngine.dispatchAction);
   assert.equal(eventsForPlayer, sharedEngine.eventsForPlayer);
   assert.equal(getLegalActions, sharedEngine.getLegalActions);
+  assert.equal(hasLegalDeployment, sharedEngine.hasLegalDeployment);
   assert.equal(isSuicideDeployment, sharedEngine.isSuicideDeployment);
   assert.equal(stateForPlayer, sharedEngine.stateForPlayer);
   assert.equal(chooseBotAction, sharedChooseBotAction);

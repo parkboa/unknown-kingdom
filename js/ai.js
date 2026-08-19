@@ -12,7 +12,116 @@ import {
   wallOwnerForEdge,
 } from "../packages/game-engine/src/index.js";
 
+export const AI_TIER_ORDER = [
+  "novice",
+  "intermediate",
+  "advanced",
+  "expert",
+  "grandmaster",
+];
+
 export const AI_RANK_SETTINGS = {
+  // 1단계: 초급 (기존 절정고수 수준: 특수기물 기본 활용, searchDepth 2)
+  novice: {
+    typeWeights: { soldier: 40, general: 27, wizard: 18, diplomat: 15 },
+    pressureMultiplier: 8,
+    specialBoost: 16,
+    variance: 1.5,
+    considerAllTypes: true,
+    searchDepth: 2,
+    rootCandidateLimit: 20,
+    replyCandidateLimit: 12,
+    score: { center: 2.4, allies: 4.5, enemies: 5.5, home: 1.2, capture: 24, threat: 11, kingPressure: 14, kingSafety: 8, defense: 6 },
+  },
+
+  // 2단계: 중급 (기존 초절정고수 수준: 외교관/진형 장악, searchDepth 2)
+  intermediate: {
+    typeWeights: { soldier: 34, general: 31, wizard: 20, diplomat: 15 },
+    pressureMultiplier: 10,
+    specialBoost: 20,
+    variance: 0.5,
+    considerAllTypes: true,
+    searchDepth: 2,
+    rootCandidateLimit: 28,
+    replyCandidateLimit: 16,
+    score: { center: 2.8, allies: 5.5, enemies: 6.5, home: 1.4, capture: 34, threat: 16, kingPressure: 24, kingSafety: 18, defense: 12 },
+  },
+
+  // 3단계: 상급 (기존 화경 수준: 마법사 도약 및 변칙 전술, searchDepth 3)
+  advanced: {
+    typeWeights: { soldier: 32, general: 28, wizard: 22, diplomat: 18 },
+    pressureMultiplier: 11,
+    specialBoost: 22,
+    variance: 0,
+    considerAllTypes: true,
+    searchDepth: 3,
+    rootCandidateLimit: 32,
+    replyCandidateLimit: 20,
+    continuationCandidateLimit: 12,
+    score: { center: 3, allies: 6, enemies: 7, home: 1.5, capture: 38, threat: 18, kingPressure: 28, kingSafety: 22, defense: 15 },
+  },
+
+  // 4단계: 달인 (2~3수 연계 수읽기, 넓은 실리 포진 및 전술 확장)
+  expert: {
+    typeWeights: { soldier: 30, general: 30, wizard: 22, diplomat: 18 },
+    pressureMultiplier: 12,
+    specialBoost: 26,
+    variance: 0,
+    considerAllTypes: true,
+    searchDepth: 3,
+    tacticalExtension: true,
+    beliefSampling: true,
+    rootCandidateLimit: 36,
+    replyCandidateLimit: 18,
+    continuationCandidateLimit: 10,
+    score: {
+      center: 3.0,
+      allies: 6.5,
+      enemies: 7.0,
+      home: 1.5,
+      capture: 55,
+      threat: 24,
+      kingPressure: 30,
+      kingSafety: 38,
+      defense: 14,
+      influence: 14,
+      groupTactics: 28,
+    },
+  },
+
+  // 5단계: 신의 한 수 (신규 극강 튜닝 AI: 넓은 실리 장악 + 무결점 왕 방어 + 100% 킬각 캐치)
+  grandmaster: {
+    typeWeights: { soldier: 28, general: 32, wizard: 22, diplomat: 18 },
+    pressureMultiplier: 14,
+    specialBoost: 30,
+    variance: 0,
+    considerAllTypes: true,
+    searchDepth: 3,
+    tacticalExtension: true,
+    beliefSampling: true,
+    instantKillCheck: true,
+    ironcladKingDefense: true,
+    rootCandidateLimit: 42,
+    replyCandidateLimit: 22,
+    continuationCandidateLimit: 14,
+    score: {
+      center: 3.2,
+      allies: 7.5,
+      enemies: 7.8,
+      home: 1.6,
+      capture: 68,
+      threat: 30,
+      kingPressure: 34,
+      kingSafety: 50,
+      defense: 18,
+      influence: 16,
+      groupTactics: 34,
+    },
+  },
+
+  // ==========================================
+  // 하위 호환성 (Legacy Ranks)
+  // ==========================================
   thirdRateMaster: {
     typeWeights: { soldier: 78, general: 8, wizard: 7, diplomat: 7 },
     pressureMultiplier: 1.5,
@@ -115,10 +224,23 @@ export const AI_RANK_SETTINGS = {
   },
 };
 
-function difficultySettings(state) {
-  return AI_RANK_SETTINGS[state.aiRank]
-    || AI_RANK_SETTINGS[state.aiDifficulty]
-    || AI_RANK_SETTINGS.thirdRateMaster;
+const LEGACY_RANK_MAP = {
+  thirdRateMaster: "novice",
+  secondRateMaster: "novice",
+  firstRateMaster: "novice",
+  peakMaster: "novice",
+  transcendentMaster: "intermediate",
+  harmonyMaster: "advanced",
+  profoundMaster: "expert",
+  lifeDeathMaster: "expert",
+  beginner: "novice",
+};
+
+export function difficultySettings(state) {
+  const rank = state.aiRank || state.aiDifficulty;
+  return AI_RANK_SETTINGS[rank]
+    || AI_RANK_SETTINGS[LEGACY_RANK_MAP[rank]]
+    || AI_RANK_SETTINGS.novice;
 }
 
 function weightedChoice(choices) {
@@ -202,8 +324,8 @@ function localCapturePotential(state, row, col, aiPlayer, humanPlayer, neighbors
       .length;
     const enemyAllies = adjacentCount(state, enemyRow, enemyCol, humanPlayer, neighbors);
     const isKing = enemy.type === "king";
-    if (enemyLiberties === 0) score += isKing ? 55 : 12 + enemyAllies * 4;
-    else if (enemyLiberties === 1) score += isKing ? 24 : 5 + enemyAllies * 2;
+    if (enemyLiberties === 0) score += isKing ? 70 : 25 + enemyAllies * 5;
+    else if (enemyLiberties === 1) score += isKing ? 25 : 5 + enemyAllies * 2;
   }
   return score;
 }
@@ -529,21 +651,21 @@ function evaluateEngineTransitionDelta(beforeState, afterState, player, enemy, s
   const ownAfter = countStatePieces(afterState, player);
   const ownLoss = (ownBefore + 1) - ownAfter;
   if (ownLoss > 0) {
-    scoreDelta -= ownLoss * (weights.defense || 2) * 8;
+    scoreDelta -= ownLoss * (weights.defense || 2) * (settings.ironcladKingDefense ? 14 : 8);
   }
 
   const enemyKingAfter = findKing(afterState, enemy);
   if (enemyKingAfter) {
     const enemyLibs = kingLibertyCount(afterState, enemy);
-    if (enemyLibs === 1) scoreDelta += (weights.kingPressure || 10) * 14;
-    else if (enemyLibs === 2) scoreDelta += (weights.kingPressure || 10) * 5;
+    if (enemyLibs === 1) scoreDelta += (weights.kingPressure || 10) * 18;
+    else if (enemyLibs === 2) scoreDelta += (weights.kingPressure || 10) * 6;
   }
 
   const ownKingAfter = findKing(afterState, player);
   if (ownKingAfter) {
     const ownLibs = kingLibertyCount(afterState, player);
-    if (ownLibs === 1) scoreDelta -= (weights.kingSafety || 10) * 18;
-    else if (ownLibs === 2) scoreDelta -= (weights.kingSafety || 10) * 6;
+    if (ownLibs === 1) scoreDelta -= (weights.kingSafety || 10) * (settings.ironcladKingDefense ? 60 : 25);
+    else if (ownLibs === 2) scoreDelta -= (weights.kingSafety || 10) * (settings.ironcladKingDefense ? 20 : 8);
   }
 
   return scoreDelta;
@@ -770,17 +892,32 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
   candidates.sort(compareCandidates);
   if (!candidates.length) return null;
 
+  // Fast Instant-Win check: If a candidate immediately captures the opponent King, play it instantly
+  if (settings.instantKillCheck || settings.searchDepth >= 2) {
+    for (const cand of candidates.slice(0, 10)) {
+      const quickAction = { type: "deploy", unitType: cand.type, row: cand.row, col: cand.col };
+      const simulated = simulateEngineTransition(state, aiPlayer, quickAction, neighbors);
+      if (simulated && simulated.winner === aiPlayer) {
+        return cand;
+      }
+    }
+  }
+
   const limit = settings.searchDepth > 1 ? (settings.rootCandidateLimit || 20) : candidates.length;
   const searchedCandidates = candidates.slice(0, limit);
   let bestScore = -Infinity;
 
-  searchedCandidates.forEach((candidate) => {
+  for (const candidate of searchedCandidates) {
     const deepScore = scoreWithLookahead(state, candidate, settings, aiPlayer, humanPlayer, neighbors, bestScore);
     candidate.deepScore = deepScore;
     if (deepScore > bestScore) {
       bestScore = deepScore;
+      if (deepScore >= 100000) {
+        // Guaranteed winning move found, no need to search further root candidates
+        break;
+      }
     }
-  });
+  }
   searchedCandidates.sort(compareCandidates);
   return searchedCandidates[0] || null;
 }

@@ -6,7 +6,7 @@ import {
   incrementDeploymentCount,
   touchesOwnWall,
 } from "./board.js";
-import { resolveCaptures } from "./capture.js";
+import { isSuicideDeployment, resolveCaptures } from "./capture.js";
 import { emitEvent } from "./events.js";
 import {
   activatePendingSpecial,
@@ -16,16 +16,7 @@ import {
 import { createPiece } from "./state.js";
 import { endTurn, finishNoLegalDeployment } from "./victory.js";
 
-export function isSuicideDeployment(state, player, type, row, col) {
-  if (!canDeploy(state, player, type, row, col)) return false;
-  const simulated = structuredClone(state);
-  simulated.board[row][col] = createPiece(simulated, player, type);
-  simulated.stock[player][type] -= 1;
-  simulated.firstDeployDone[player] = true;
-  incrementDeploymentCount(simulated, player);
-  resolveCaptures(simulated, player, undefined, queueSpecialActivation);
-  return simulated.board[row][col]?.owner !== player || simulated.winner === opponent(player);
-}
+export { isSuicideDeployment };
 
 export function dispatchAction(state, player, action, options = {}) {
   const events = [];

@@ -13,9 +13,12 @@ export {
   canDeploy,
   collectGroup,
   groupHasLiberty,
+  hasLegalDeployment,
+  isOpponentKingSanctuaryOverlap,
   wallOwnerForEdge,
   isSpecialLocked,
   isSpecialUnit,
 } from "./board.js";
 export { orthogonalPositions, opponent } from "./constants.js";
+export { declareWinner } from "./victory.js";
 

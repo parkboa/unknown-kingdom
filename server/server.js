@@ -1,9 +1,19 @@
 import http from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
-import { applyAction, chooseBotAction, createGameState, isSuicideDeployment, stateForPlayer } from "./engine.js";
+import {
+  applyAction,
+  chooseBotAction,
+  createGameState,
+  declareWinner,
+  hasLegalDeployment,
+  isSuicideDeployment,
+  opponent,
+  stateForPlayer,
+} from "./engine.js";
 
 const PORT = Number(process.env.PORT || 4175);
 const TAUNT_DISPLAY_MS = 3000;
+const TURN_TIMEOUT_MS = 30000;
 const rooms = new Map();
 const lobbySockets = new Set();
 let nextBoardNumber = 1;
@@ -40,16 +50,64 @@ function broadcastRoomList() {
   for (const socket of lobbySockets) sendRoomList(socket);
 }
 
+function clearTurnTimer(room) {
+  if (room.turnTimer) {
+    clearTimeout(room.turnTimer);
+    room.turnTimer = null;
+  }
+}
+
+function resetTurnTimer(room) {
+  clearTurnTimer(room);
+  if (room.state.winner || !room.sideChosen || !room.players.red || !room.players.blue) {
+    room.turnDeadline = null;
+    return;
+  }
+  const tauntDelay = Math.max(0, Number(room.state.tauntUntil || 0) - Date.now());
+  const duration = TURN_TIMEOUT_MS + tauntDelay;
+  room.turnDeadline = Date.now() + duration;
+
+  room.turnTimer = setTimeout(() => {
+    room.turnTimer = null;
+    if (rooms.get(room.code) !== room || room.state.winner) return;
+    const timedOutPlayer = room.state.turn;
+    if (!timedOutPlayer) return;
+
+    if (!hasLegalDeployment(room.state, timedOutPlayer)) {
+      applyAction(room.state, timedOutPlayer, { type: "pass" });
+    } else {
+      declareWinner(
+        room.state,
+        opponent(timedOutPlayer),
+        "Time limit exceeded (30s).",
+        undefined,
+        "timeout",
+        { defeatedPlayer: timedOutPlayer },
+      );
+    }
+    broadcastState(room);
+  }, duration);
+}
+
 function broadcastState(room, type = "state") {
+  if (type === "match_start" || (room.sideChosen && !room.state.winner)) {
+    resetTurnTimer(room);
+  } else if (room.state.winner) {
+    clearTurnTimer(room);
+    room.turnDeadline = null;
+  }
   for (const player of ["red", "blue"]) {
     const socket = room.players[player];
     if (!socket) continue;
+    const playerState = stateForPlayer(room.state, player);
+    playerState.turnDeadline = room.turnDeadline;
     send(socket, {
       type,
       roomCode: room.code,
       boardNumber: room.boardNumber,
       player,
-      state: stateForPlayer(room.state, player),
+      turnDeadline: room.turnDeadline,
+      state: playerState,
     });
   }
 }
@@ -127,7 +185,16 @@ function leaveRoom(socket) {
   const room = rooms.get(membership.roomCode);
   if (!room) return;
   room.players[membership.player] = null;
-  if (!room.botPlayer) room.sideChosen = false;
+  clearTurnTimer(room);
+  const hasStarted = Boolean(
+    room.state.deploymentCount?.red > 0
+    || room.state.deploymentCount?.blue > 0
+    || room.state.firstDeployDone?.red
+    || room.state.firstDeployDone?.blue,
+  );
+  if (!room.botPlayer && !hasStarted) {
+    room.sideChosen = false;
+  }
   if (!room.players.red && !room.players.blue && room.botTimer) {
     clearTimeout(room.botTimer);
     room.botTimer = null;
@@ -229,7 +296,11 @@ webSocketServer.on("connection", (socket) => {
       const player = room.players.red ? "blue" : "red";
       room.players[player] = socket;
       socket.membership = { roomCode: code, player };
-      if (room.sideSelectionEnabled && message.protocolVersion === 2) {
+
+      if (room.sideChosen) {
+        // Reconnecting to active game or existing chosen sides
+        broadcastState(room, "state");
+      } else if (room.sideSelectionEnabled && message.protocolVersion === 2) {
         requestSideSelection(room);
       } else {
         room.sideChosen = true;
@@ -275,7 +346,11 @@ webSocketServer.on("connection", (socket) => {
         return;
       }
       room.rematch.add(player);
-      if (room.rematch.size === 2) {
+      if (room.rematch.size === 1) {
+        for (const p of ["red", "blue"]) {
+          send(room.players[p], { type: "rematch_offered", byPlayer: player });
+        }
+      } else if (room.rematch.size === 2) {
         room.state = createGameState();
         room.rematch.clear();
         broadcastState(room, "match_start");

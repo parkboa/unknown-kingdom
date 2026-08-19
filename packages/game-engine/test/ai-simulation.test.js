@@ -158,3 +158,90 @@ test("AI handles special reaction transaction settling when surrounding a Wizard
   assert.ok(move, "AI should return a valid move with Wizard reaction settling");
 });
 
+test("All 5 primary AI tiers (novice, intermediate, advanced, expert, grandmaster) generate valid moves", () => {
+  const tiers = [
+    "novice",
+    "intermediate",
+    "advanced",
+    "expert",
+    "grandmaster",
+  ];
+
+  for (const tier of tiers) {
+    const state = createGameState("pve", { aiRank: tier });
+    state.firstDeployDone.red = true;
+    state.firstDeployDone.blue = true;
+    state.deploymentCount.red = 6;
+    state.deploymentCount.blue = 6;
+    state.board[0][0] = { id: "blue-king", owner: "blue", type: "king", originalType: "king", revealed: true };
+    state.board[8][8] = { id: "red-king", owner: "red", type: "king", originalType: "king", revealed: true };
+
+    const move = findAiDeployMove(state, {
+      aiPlayer: "blue",
+      humanPlayer: "red",
+      canDeploy: (player, type, row, col) => !state.board[row][col] && state.stock[player][type] > 0,
+      countPieces: (owner) => countPieces(state, owner),
+      neighbors,
+    });
+
+    assert.ok(move, `AI tier ${tier} should return a valid move`);
+    assert.ok(move.row >= 0 && move.row < 9, `AI tier ${tier} row should be in bounds`);
+    assert.ok(move.col >= 0 && move.col < 9, `AI tier ${tier} col should be in bounds`);
+  }
+});
+
+test("Grandmaster AI instantly captures King in 1 move (<200ms)", () => {
+  const state = createGameState("pve", { aiRank: "grandmaster" });
+  state.firstDeployDone.red = true;
+  state.firstDeployDone.blue = true;
+  state.deploymentCount.red = 6;
+  state.deploymentCount.blue = 6;
+
+  // Red King at (4,4) surrounded on 3 sides by Blue soldiers
+  state.board[4][4] = { id: "red-king", owner: "red", type: "king", originalType: "king", revealed: true };
+  state.board[3][4] = { id: "blue-1", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[5][4] = { id: "blue-2", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[4][3] = { id: "blue-3", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
+  // (4,5) is the 4th surrounding cell
+
+  const startTime = Date.now();
+  const move = findAiDeployMove(state, {
+    aiPlayer: "blue",
+    humanPlayer: "red",
+    canDeploy: (player, type, row, col) => !state.board[row][col] && state.stock[player][type] > 0,
+    countPieces: (owner) => countPieces(state, owner),
+    neighbors,
+  });
+  const elapsedMs = Date.now() - startTime;
+
+  assert.ok(move, "Grandmaster AI should find winning move");
+  assert.equal(move.row, 4, "Grandmaster AI should target row 4");
+  assert.equal(move.col, 5, "Grandmaster AI should target col 5");
+  assert.ok(elapsedMs < 200, `Grandmaster AI instant kill should take < 200ms (took ${elapsedMs}ms)`);
+});
+
+test("Grandmaster AI defends own King when in severe danger", () => {
+  const state = createGameState("pve", { aiRank: "grandmaster" });
+  state.firstDeployDone.red = true;
+  state.firstDeployDone.blue = true;
+  state.deploymentCount.red = 6;
+  state.deploymentCount.blue = 6;
+
+  // Blue AI King at (4,4) surrounded on 3 sides by Red soldiers
+  state.board[4][4] = { id: "blue-king", owner: "blue", type: "king", originalType: "king", revealed: true };
+  state.board[3][4] = { id: "red-1", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[5][4] = { id: "red-2", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[4][3] = { id: "red-3", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[8][8] = { id: "red-king", owner: "red", type: "king", originalType: "king", revealed: true };
+
+  const move = findAiDeployMove(state, {
+    aiPlayer: "blue",
+    humanPlayer: "red",
+    canDeploy: (player, type, row, col) => !state.board[row][col] && state.stock[player][type] > 0,
+    countPieces: (owner) => countPieces(state, owner),
+    neighbors,
+  });
+
+  assert.ok(move, "Grandmaster AI should find a defensive move");
+});
+

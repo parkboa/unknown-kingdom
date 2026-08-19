@@ -25,6 +25,7 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   let pathname = decodeURIComponent(url.pathname);
   if (pathname === "/") pathname = "/index.html";
+  if (pathname === "/favicon.ico") pathname = "/assets/units/king.svg";
 
   const filePath = path.join(__dirname, pathname);
   if (!filePath.startsWith(__dirname)) {

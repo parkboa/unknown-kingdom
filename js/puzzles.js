@@ -707,10 +707,15 @@ export const PUZZLES = [
   },
 ];
 
-export const RANK_LABELS = {
+export const CHALLENGE_DISPLAY_RANKS = [
+  "thirdRateMaster",
+  "secondRateMaster",
+];
+
+export const CHALLENGE_RANK_LABELS = {
   en: {
-    thirdRateMaster: "Third-rate Master",
-    secondRateMaster: "Second-rate Master",
+    thirdRateMaster: "Tutorial",
+    secondRateMaster: "Daily Quiz",
     firstRateMaster: "First-rate Master",
     peakMaster: "Peak Master",
     transcendentMaster: "Transcendent Master",
@@ -719,14 +724,47 @@ export const RANK_LABELS = {
     lifeDeathMaster: "Life-and-Death Master",
   },
   ko: {
-    thirdRateMaster: "삼류 고수",
-    secondRateMaster: "이류 고수",
+    thirdRateMaster: "튜토리얼",
+    secondRateMaster: "데일리 퀴즈",
     firstRateMaster: "일류 고수",
     peakMaster: "절정 고수",
     transcendentMaster: "초절정 고수",
     harmonyMaster: "화경",
     profoundMaster: "현경",
     lifeDeathMaster: "생사경",
+  },
+};
+
+export const RANK_LABELS = {
+  en: {
+    thirdRateMaster: "Tutorial",
+    secondRateMaster: "Daily Quiz",
+    firstRateMaster: "First-rate Master",
+    peakMaster: "Peak Master",
+    transcendentMaster: "Transcendent Master",
+    harmonyMaster: "Harmony Master",
+    profoundMaster: "Profound Master",
+    lifeDeathMaster: "Life-and-Death Master",
+    novice: "Novice",
+    intermediate: "Intermediate",
+    advanced: "Advanced",
+    expert: "Expert",
+    grandmaster: "Grandmaster",
+  },
+  ko: {
+    thirdRateMaster: "튜토리얼",
+    secondRateMaster: "데일리 퀴즈",
+    firstRateMaster: "일류 고수",
+    peakMaster: "절정 고수",
+    transcendentMaster: "초절정 고수",
+    harmonyMaster: "화경",
+    profoundMaster: "현경",
+    lifeDeathMaster: "생사경",
+    novice: "초급",
+    intermediate: "중급",
+    advanced: "상급",
+    expert: "달인",
+    grandmaster: "신의 한 수",
   },
 };
 
@@ -739,4 +777,29 @@ export const RANK_ORDER = [
   "harmonyMaster",
   "profoundMaster",
   "lifeDeathMaster",
+];
+
+export const AI_RANK_LABELS = {
+  en: {
+    novice: "Novice",
+    intermediate: "Intermediate",
+    advanced: "Advanced",
+    expert: "Expert",
+    grandmaster: "Grandmaster",
+  },
+  ko: {
+    novice: "초급",
+    intermediate: "중급",
+    advanced: "상급",
+    expert: "달인",
+    grandmaster: "신의 한 수",
+  },
+};
+
+export const AI_RANK_ORDER = [
+  "novice",
+  "intermediate",
+  "advanced",
+  "expert",
+  "grandmaster",
 ];

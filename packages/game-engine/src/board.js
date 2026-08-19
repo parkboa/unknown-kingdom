@@ -7,6 +7,7 @@ import {
   opponent,
   orthogonalPositions,
 } from "./constants.js";
+import { isSuicideDeployment } from "./capture.js";
 
 export function countPieces(state, owner) {
   return state.board.flat().filter((piece) => piece?.owner === owner).length;
@@ -40,6 +41,15 @@ function isOpponentKingTerritory(state, player, row, col) {
   const rowDistance = Math.abs(row - king.row);
   const colDistance = Math.abs(col - king.col);
   return rowDistance <= 1 && colDistance <= 1 && (rowDistance !== 0 || colDistance !== 0);
+}
+
+export function isOpponentKingSanctuaryOverlap(state, player, row, col) {
+  const enemy = opponent(player);
+  const king = findKingPosition(state, enemy);
+  if (!king) return false;
+  const rowDistance = Math.abs(row - king.row);
+  const colDistance = Math.abs(col - king.col);
+  return Math.max(rowDistance, colDistance) < 3;
 }
 
 export function hasEmptyCell(state) {
@@ -127,19 +137,23 @@ export function isSpecialLocked(state, player, type) {
   return deploymentCount(state, player) < 5;
 }
 
-export function canDeploy(state, player, type, row, col) {
+export function canDeployPosition(state, player, type, row, col) {
   return !state.winner
     && !state.teleporting
     && !state.pendingSpecial
     && !state.pendingKingSwap
-    && player === state.turn
     && UNIT_TYPES.has(type)
     && inBounds(row, col)
     && !state.board[row][col]
     && (state.firstDeployDone[player] || type === "king")
     && (!isSpecialUnit(type) || !isSpecialLocked(state, player, type))
+    && !(type === "king" && isOpponentKingSanctuaryOverlap(state, player, row, col))
     && !isOpponentKingTerritory(state, player, row, col)
     && state.stock[player][type] > 0;
+}
+
+export function canDeploy(state, player, type, row, col) {
+  return player === state.turn && canDeployPosition(state, player, type, row, col);
 }
 
 export function hasLegalDeployment(state, player) {
@@ -150,10 +164,8 @@ export function hasLegalDeployment(state, player) {
   return unitTypes.some((type) =>
     state.board.some((row, rowIndex) =>
       row.some((piece, colIndex) =>
-        !piece
-        && inBounds(rowIndex, colIndex)
-        && isOpponentKingTerritory(state, player, rowIndex, colIndex) === false
-        && state.stock[player][type] > 0)));
+        canDeployPosition(state, player, type, rowIndex, colIndex)
+        && (!state.firstDeployDone[player] || !isSuicideDeployment(state, player, type, rowIndex, colIndex)))));
 }
 
 export function kingLibertyCount(state, owner) {

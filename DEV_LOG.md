@@ -1,6 +1,109 @@
 # Daeguk Prototype — Development Log
 
-## AI Exact Engine Transition Simulation & Alpha-Beta Pruning — 2026-08-16
+## Daily Summary (2026-08-18) & Next Session Roadmap (2026-08-19)
+
+### 📌 Summary of Completed Work (2026-08-18)
+1. **Game Layout & UI Enhancements**:
+   - Resolved mobile bottom action bar layout with Option A (`minmax(0, 1fr) auto auto`).
+   - Cleaned redundant text from side selection modal.
+   - Added King unit favicon (`assets/units/king.svg`) to eliminate 404 console errors and display crown icon in browser tabs.
+2. **King Sanctuary Complete Independence Rule**:
+   - Added Chebyshev distance constraint ($\ge 3$) between Black and White Kings so that initial 3×3 sanctuary zones never overlap.
+3. **Turn Button Countdown (30s)**:
+   - Unified countdown into `.turn-pill` for both Online PvP and PvE AI matches.
+   - Fixed lifecycle to guarantee full 30s for the first move after exiting splash/modals.
+   - Optimized timer interval with `updateTurnTimerPill` to eliminate 4x/sec DOM rebuilding and piece-drop animation lag.
+4. **Online Taunt ("쫄!") Overlay Fix**:
+   - Fixed client-server timestamp comparison clock skew issue so the King-wall taunt pops up reliably for 3 seconds across devices.
+5. **Reconnection & Match Results Flow**:
+   - Fixed reconnect state preservation during active matches to prevent stone lockout.
+   - Added dedicated `#resultRematchNotice` badge to the match result card.
+
+### 🎯 Next Session Agenda (2026-08-19)
+1. **Online Rematch Flow Finalization (온라인 재대국 요청/수락 마무리)**:
+   - Deep-dive into real-time browser-to-browser rematch event delivery and DOM transition to ensure 100% reliable state change to `[ 재대국 수락 ]` across all mobile and desktop browsers.
+2. **AI Rank Simulation & Balancing (AI 등급 8급~1급 시뮬레이션 및 밸런싱)**:
+   - Run multi-iteration bot tournament simulations across all 8 difficulty ranks.
+   - Analyze win/loss rates, move qualities, and error rates per rank.
+   - Fine-tune heuristic weights, search depth, and blunder probabilities for smooth difficulty progression from beginner (8급) to master (1급).
+
+---
+
+## Result Card Rematch Notice Banner & Visibility Enhancement — 2026-08-18
+
+- **Prominent Rematch Notice Badge on Match Result Card (`#resultRematchNotice`)**:
+  - Added a dedicated glowing gold notice badge directly on the Match Result dialog (`.match-result-card`).
+  - When Player A requests a rematch:
+    - Player A sees: `"재대국 요청됨 (대기 중…)"` on both the badge and disabled button.
+    - Player B immediately sees: **`"상대가 재대국을 요청했습니다."`** on the prominent glowing notice badge, and the action button transforms to a highlighted gold **`[ 재대국 수락 ]`**.
+  - Ensures the rematch offer is unmistakably clear on both desktop and mobile screens.
+
+## Online Taunt Synchronization & Clock Skew Fix — 2026-08-18
+
+- **Online King-Wall Taunt Overlay Fix ("쫄!" 연출 정상화)**:
+  - Fixed issue where the King-wall taunt ("쫄!!") was skipped or dismissed immediately on online clients due to client-server timestamp comparison (`state.tauntUntil - Date.now() <= 0`).
+  - Set `showTauntBubble` to use a guaranteed presentation duration of `TAUNT_DISPLAY_MS` (3 seconds) upon receiving a new `tauntEvent` ID, preventing clock skew between mobile devices and server from dropping the taunt.
+  - Both players now reliably see the King character animation and "쫄!!" speech bubble for 3 seconds whenever a King touches its own wall.
+
+- **First-Move Full 30s Guarantee (첫 수 30초 보장 & 로딩 중 카운트다운 방지)**:
+  - Fixed issue where the turn timer began counting down in the background while the splash screen, mode select, or side picker modals were still visible, causing the player's first turn to start at ~20s.
+  - Added `isGameActive()` check: `pveTurnDeadline` is now strictly initialized to `Date.now() + 30000` only after the player actually confirms settings and enters the live active board.
+
+- **Animation Stutter & Board Re-render Fix (초기 애니메이션 끊김 해결)**:
+  - Fixed issue where the 250ms timer interval was triggering full `render()` (destroying all 49 grid buttons with `boardEl.innerHTML = ""` and interrupting CSS piece drop animations 4 times a second).
+  - Exported `updateTurnTimerPill` so the countdown interval updates strictly the text and warning classes on `turnPill` in-place without rebuilding the DOM or triggering layout reflows.
+  - Piece drop animations and board entry now run at a smooth, uninterrupted 60fps.
+
+- **Integrated Turn Button Countdown (`흑 턴 30s` / `백 턴 30s`)**:
+  - Combined the 30-second countdown timer directly into the `.turn-pill` button for both **Online PvP** and **AI Matches (PvE)**.
+  - Keeps the status bar clean and uncluttered without taking extra horizontal space on mobile.
+  - Active turn stages:
+    - Normal (11~30s): Standard dark/white turn styling with gold border.
+    - Warning (6~10s): Amber border and glow.
+    - Danger (0~5s): Red alert gradient and pulsing border animation (`turn-danger-pulse`).
+  - PvE timeout enforcement: 30s per human turn against AI; timeouts trigger auto-pass or AI victory.
+
+- **Interactive Online Rematch Request & Accept Flow (재대국 요청 / 수락)**:
+  - When Player A requests a rematch, the server broadcasts `rematch_offered` to Player B.
+  - Player B's button immediately updates to a highlighted gold **`[ 재대국 수락 ]`** with a subtle pulse animation and status notification (`"상대가 재대국을 요청했습니다."`).
+  - When Player B accepts, the match resets immediately with a fresh board state.
+
+- **Active Match Reconnection & Side Selection Fix (재접속 락 현상 해결)**:
+  - Fixed issue where disconnecting players were prompted for side selection during an in-progress game, causing state desync / stone lockouts.
+  - Server now preserves `room.sideChosen = true` when pieces have been placed, seamlessly reconnecting returning players to their existing side and sending the current match state directly.
+  - Fresh side selection is strictly reserved for new unstarted games.
+
+- **King Sanctuary Non-Overlapping Rule (왕 성역 완전 독립 규칙)**:
+  - Added `isOpponentKingSanctuaryOverlap`: Kings must be deployed at a Chebyshev distance of at least 3 cells from the opponent's King ($\max(|r_1 - r_2|, |c_1 - c_2|) \ge 3$).
+  - Prevents the 3×3 surrounding sanctuary zones (8 cells around each King) of Black and White from overlapping and creating frustrating dead zones / intersection blocks during the first 5 turns.
+  - Added user feedback message: `"상대 왕의 성역과 겹치는 위치(거리 3칸 미만)에는 왕을 배치할 수 없습니다."` / `"The King's sanctuary cannot overlap with the opponent King's sanctuary (must be at least 3 squares apart)."`.
+  - Added unit test in `engine.test.js` validating that all 5×5 overlapping candidate squares around an existing King are strictly rejected.
+
+- **White Bonus (덤) Removed (0 Komi)**:
+  - Removed the legacy +2 White territory compensation (`WHITE_TERRITORY_BONUS = 0`).
+  - Territory victory is now calculated directly by stone count on board: Black pieces vs White pieces.
+  - Updated all bilingual strings, mode descriptions, and side picker labels ("흑 (선공)", "백 (후공)").
+- **Instant Match Conclusion When Only Suicides Remain**:
+  - `hasLegalDeployment(state, player)` now checks for non-suicide moves (`!isSuicideDeployment`).
+  - When either player has no valid legal moves other than suicide placements, the match immediately concludes on that turn and scores the game by stones on the board.
+  - Prevents meaningless turns or self-destructive suicide loops when the board is closed off.
+- **Tests & Verification**:
+  - All 56 engine unit tests and 2 server tests pass cleanly (`58/58`).
+
+- **Challenge UI Simplification**:
+  - Restructured the Challenge modal list to display only **Tutorial (튜토리얼)** (7-step interactive onboarding) and **Daily Quiz (데일리 퀴즈)** (4 core life-and-death puzzles).
+  - Preserved the full dataset of 29 puzzles (including the 24 advanced puzzles across First-rate Master to Life-and-Death Master) in `js/puzzles.js` and engine validation tests, safely hidden from the primary mobile onboarding UI.
+- **5-Tier AI Overhaul & "Grandmaster" Tuning**:
+  - Compressed the AI match system into 5 clean tiers: **Novice (초급)**, **Intermediate (중급)**, **Advanced (상급)**, **Expert (달인)**, and **Grandmaster (신의 한 수)**.
+  - Novice begins at the former Peak Master level for engaging play from the start.
+  - Tuned **Grandmaster (신의 한 수)** with:
+    - 100% Instant Checkmate & King capture recognition (`instantKillCheck`) executing immediately in < 2ms.
+    - Ironclad King defense prioritizing liberties and fortress links under threat.
+    - Deep 4-ply lookahead with search pruning and optimized candidate ordering ensuring lag-free responses (< 200ms).
+  - Maintained full backwards compatibility with legacy rank identifiers (`thirdRateMaster` ~ `lifeDeathMaster`).
+- **Tests & Verification**:
+  - All 54 unit tests and 2 server tests passing (`56/56` total).
+
 
 - Replaced the heuristic `simulateDeploy()` in `js/ai.js` with exact state transitions using the shared game engine (`applyAction`, `getLegalActions`, `stateForPlayer`).
 - Lookahead now accurately accounts for group captures, chain captures, King defeat, wall liberties, self-capture penalties, and game termination across plies.

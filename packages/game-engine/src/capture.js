@@ -1,13 +1,27 @@
-import { SIZE, cellKey, sideLabel } from "./constants.js";
+import { SIZE, cellKey, opponent, sideLabel } from "./constants.js";
 import {
   boardSignature,
+  canDeployPosition,
   captureOwners,
   collectGroup,
   groupHasLiberty,
+  incrementDeploymentCount,
 } from "./board.js";
 import { emitEvent } from "./events.js";
-import { occupiedSoldier } from "./state.js";
+import { queueSpecialActivation } from "./reactions.js";
+import { createPiece, occupiedSoldier } from "./state.js";
 import { declareWinner } from "./victory.js";
+
+export function isSuicideDeployment(state, player, type, row, col) {
+  if (!canDeployPosition(state, player, type, row, col)) return false;
+  const simulated = structuredClone(state);
+  simulated.board[row][col] = createPiece(simulated, player, type);
+  simulated.stock[player][type] -= 1;
+  simulated.firstDeployDone[player] = true;
+  incrementDeploymentCount(simulated, player);
+  resolveCaptures(simulated, player, undefined, queueSpecialActivation);
+  return simulated.board[row][col]?.owner !== player || simulated.winner === opponent(player);
+}
 
 function occupyGroup(state, group, captor, events) {
   const defender = state.board[group[0][0]][group[0][1]].owner;

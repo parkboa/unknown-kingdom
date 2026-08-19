@@ -647,6 +647,29 @@ body.iphone-preview .lobby-logo {
   opacity: 1;
 }
 
+.result-rematch-notice {
+  margin: 10px 0 2px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  color: #ffd700;
+  background: rgba(216, 165, 50, 0.16);
+  border: 1px solid rgba(216, 165, 50, 0.45);
+  animation: rematch-notice-pulse 1.5s infinite alternate;
+}
+
+@keyframes rematch-notice-pulse {
+  0% {
+    box-shadow: 0 0 4px rgba(255, 215, 0, 0.25);
+  }
+  100% {
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.65);
+  }
+}
+
 .match-result-card .result-actions .card-back-button {
   border: 1px solid rgb(216 165 50 / 28%);
   color: rgb(247 239 224 / 84%);
@@ -1328,6 +1351,8 @@ body.iphone-preview .lobby-logo {
 }
 
 .challenge-card {
+  height: auto;
+  min-height: auto;
   max-height: calc(100% - 20px);
   overflow: hidden;
   border: 1px solid rgb(216 165 50 / 34%);
@@ -1350,13 +1375,15 @@ body.iphone-preview .lobby-logo {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
+  height: auto;
   max-height: 216px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
 .challenge-rank-frame {
-  height: 238px;
+  height: auto;
+  min-height: auto;
   max-height: min(44vh, 238px);
   margin-bottom: 18px;
   padding: 10px;
@@ -2468,25 +2495,75 @@ body.iphone-preview .lobby-logo {
   width: auto;
   min-width: 0;
   min-height: 34px;
-  padding: 0 18px;
+  padding: 0 16px;
   text-align: center;
   border-radius: 999px;
-  color: white;
+  color: var(--gold-light);
   font-family: var(--font-ui);
   font-size: var(--font-size-body);
   font-weight: 800;
-  color: var(--gold-light);
   background: linear-gradient(180deg, #3e4142, #111213);
   box-shadow: inset 0 1px 2px rgb(255 255 255 / 18%);
+  border: 1px solid rgb(216 165 50 / 26%);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
 }
 
 .turn-pill.blue {
   color: #795714;
   background: linear-gradient(180deg, #fff, #d3d0c6);
+  border-color: rgb(216 165 50 / 40%);
 }
 
 .turn-pill.draw {
   background: var(--grid-dark);
+}
+
+.turn-pill.warning {
+  border-color: rgba(255, 152, 0, 0.75);
+  box-shadow: 0 0 6px rgba(255, 152, 0, 0.35), inset 0 1px 2px rgb(255 255 255 / 18%);
+}
+
+.turn-pill.danger {
+  color: #fff;
+  border-color: rgba(255, 82, 82, 0.9);
+  background: linear-gradient(180deg, #661818, #2a0808);
+  animation: turn-danger-pulse 1s infinite alternate;
+}
+
+.turn-pill.blue.danger {
+  color: #661818;
+  border-color: rgba(255, 82, 82, 0.9);
+  background: linear-gradient(180deg, #ffe5e5, #f5baba);
+  animation: turn-danger-pulse 1s infinite alternate;
+}
+
+@keyframes turn-danger-pulse {
+  0% {
+    box-shadow: 0 0 4px rgba(255, 82, 82, 0.4), inset 0 1px 2px rgb(255 255 255 / 18%);
+  }
+  100% {
+    box-shadow: 0 0 12px rgba(255, 82, 82, 0.85), inset 0 1px 2px rgb(255 255 255 / 18%);
+  }
+}
+
+#playAgainBtn.rematch-offered {
+  border-color: #ffd700;
+  background: linear-gradient(180deg, #ffe27a, #d9a72e);
+  color: #2b210d;
+  font-weight: 900;
+  animation: rematch-offer-pulse 1.2s infinite alternate;
+}
+
+@keyframes rematch-offer-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 4px rgba(255, 215, 0, 0.4);
+  }
+  100% {
+    transform: scale(1.03);
+    box-shadow: 0 0 14px rgba(255, 215, 0, 0.85);
+  }
 }
 
 .control-group {
@@ -2970,7 +3047,7 @@ body.iphone-preview .piece {
 
 .game-action-bar {
   display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px;
   min-width: 0;
   padding: 10px;
@@ -2988,7 +3065,7 @@ body.iphone-preview .piece {
   gap: 6px;
   min-width: 0;
   min-height: 44px;
-  padding: 0 10px;
+  padding: 0 12px;
   border: 1px solid rgb(216 165 50 / 28%);
   border-radius: 12px;
   color: rgb(247 239 224 / 88%);
@@ -3002,7 +3079,9 @@ body.iphone-preview .piece {
 .action-bar-button:has(svg:only-child) {
   width: 44px;
   min-width: 44px;
+  height: 44px;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .action-bar-button svg {
@@ -3041,6 +3120,8 @@ body.iphone-preview .piece {
   }
 
   .game-action-bar {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
     padding: 8px;
   }
 
@@ -3048,6 +3129,14 @@ body.iphone-preview .piece {
     min-height: 42px;
     padding-inline: 8px;
     font-size: var(--font-size-body);
+  }
+
+  .action-bar-button:has(svg:only-child) {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    min-height: 42px;
+    padding: 0;
   }
 }
 
@@ -3068,6 +3157,8 @@ body.iphone-preview .game-info-bar {
 }
 
 body.iphone-preview .game-action-bar {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
   padding: 8px;
 }
 
@@ -3075,6 +3166,14 @@ body.iphone-preview .action-bar-button {
   min-height: 42px;
   padding-inline: 8px;
   font-size: var(--font-size-body);
+}
+
+body.iphone-preview .action-bar-button:has(svg:only-child) {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
 }
 
 /* Match info card: mode, connection, and rank. */

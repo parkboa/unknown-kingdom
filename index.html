@@ -4,12 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Daeguk: Ascension</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/units/king.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Serif:wght@500;600;700;800&family=Noto+Serif+KR:wght@500;600;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
-    <link rel="stylesheet" href="./styles.css?v=iphone-frame-1" />
+    <link rel="stylesheet" href="./styles.css?v=turn-timer-perf-6" />
   </head>
   <body>
     <div id="splashModal" class="splash-screen" aria-live="polite">
@@ -226,53 +227,60 @@
         <h2 id="suicideConfirmTitle" data-i18n="suicideWarningTitle">Confirm Suicide Move</h2>
         <p id="suicideConfirmText" class="result-reason" data-i18n="suicideWarning">This unit will die immediately if placed here.</p>
         <div class="suicide-confirm-actions">
-          <button id="cancelSuicideBtn" class="card-back-button" type="button" data-i18n="cancelSuicide">Cancel</button>
-          <button id="confirmSuicideBtn" class="suicide-confirm-primary" type="button" data-i18n="confirmSuicide">Place Anyway</button>
+          <button id="cancelSuicideBtn" class="card-back-button" type="button" data-i18n="cancelSuicide">Reselect</button>
+          <button id="confirmSuicideBtn" class="suicide-confirm-primary" type="button" data-i18n="confirmSuicide">Pass Turn</button>
         </div>
       </section>
     </div>
 
     <div id="settingsModal" class="result-modal" hidden>
       <section class="result-card mode-card settings-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-        <div class="settings-heading">
-          <h2 id="settingsTitle" data-i18n="settings">Settings</h2>
-        </div>
-        <div class="settings-options">
-          <label class="settings-row">
+        <h2 id="settingsTitle" data-i18n="settings">Settings</h2>
+        <div class="settings-section">
+          <div class="settings-row">
             <span data-i18n="language">Language</span>
-            <select id="languageSelect">
-              <option value="en">English</option>
+            <select id="languageSelect" aria-label="Language">
               <option value="ko">한국어</option>
+              <option value="en">English</option>
             </select>
-          </label>
-          <section class="settings-section" aria-label="Sound">
-            <label class="settings-toggle">
-              <span data-i18n="musicSetting">Music</span>
-              <input id="musicToggle" type="checkbox" />
-            </label>
-            <label class="settings-toggle">
-              <span data-i18n="sfxSetting">Effects</span>
-              <input id="sfxToggle" type="checkbox" />
-            </label>
-          </section>
-          <label class="settings-toggle">
+          </div>
+          <div class="settings-toggle">
+            <span data-i18n="musicSetting">Music</span>
+            <input type="checkbox" id="musicToggle" aria-label="Background music toggle" checked />
+          </div>
+          <div class="settings-toggle">
+            <span data-i18n="sfxSetting">Effects</span>
+            <input type="checkbox" id="sfxToggle" aria-label="Sound effects toggle" checked />
+          </div>
+          <div class="settings-toggle unavailable-setting" aria-disabled="true">
             <span data-i18n="specialHelpSetting">Challenge guidance</span>
-            <input id="specialHelpToggle" type="checkbox" />
-          </label>
-          <p id="settingsStatus" class="settings-status" aria-live="polite" hidden></p>
+            <input type="checkbox" id="specialHelpToggle" aria-label="Challenge guidance toggle" />
+          </div>
         </div>
+        <p id="settingsStatus" class="settings-status" role="status" aria-live="polite"></p>
         <div class="settings-actions">
           <button id="closeSettingsBtn" class="card-back-button" type="button" data-i18n="close">Close</button>
         </div>
       </section>
     </div>
 
+    <div id="puzzleFailedModal" class="result-modal" hidden>
+      <section class="result-card mode-card" role="dialog" aria-modal="true" aria-labelledby="puzzleFailedTitle">
+        <h2 id="puzzleFailedTitle" data-i18n="puzzleFailed">Puzzle Failed</h2>
+        <p id="puzzleFailedReason" class="result-reason" data-i18n="puzzleFailedReason">The move limit was reached. Try the puzzle again.</p>
+        <div class="puzzle-retry-actions">
+          <button id="puzzleRetryBtn" type="button" data-i18n="retryChallenge">Retry</button>
+          <button id="puzzleBackToChallengesBtn" class="card-back-button" type="button" data-i18n="backToChallenges">Back to Challenges</button>
+        </div>
+      </section>
+    </div>
+
     <div id="passNotificationModal" class="result-modal" hidden>
-      <section class="result-card pass-notice-card" role="dialog" aria-modal="true" aria-labelledby="passNoticeTitle">
+      <section class="result-card mode-card" role="dialog" aria-modal="true" aria-labelledby="passNoticeTitle">
         <h2 id="passNoticeTitle" data-i18n="passNoticeTitle">Pass</h2>
-        <p id="passNoticeText" class="result-reason" data-i18n="noLegalMovesPass">둘 곳이 없어 패스합니다.</p>
-        <div class="result-actions">
-          <button id="confirmPassNoticeBtn" class="result-primary-button" type="button" data-i18n="confirm">확인</button>
+        <p id="passNoticeText" class="result-reason" data-i18n="noLegalMovesPass">No legal moves available. Turn passes.</p>
+        <div class="modal-actions">
+          <button id="confirmPassNoticeBtn" type="button" data-i18n="confirm">OK</button>
         </div>
       </section>
     </div>
@@ -289,6 +297,7 @@
           <div><strong id="resultRedCaptures">0</strong><span data-i18n="redCaptures">Black captures</span></div>
           <div><strong id="resultBlueCaptures">0</strong><span data-i18n="blueCaptures">White captures</span></div>
         </div>
+        <p id="resultRematchNotice" class="result-rematch-notice" aria-live="polite" hidden></p>
         <div class="result-actions">
           <button id="playAgainBtn" class="result-primary-button" type="button" data-i18n="playAgain">Play Again</button>
           <button id="resultLobbyBtn" class="card-back-button result-home-button" type="button" aria-label="Lobby" title="Lobby">
@@ -302,6 +311,6 @@
       </section>
     </div>
 
-    <script type="module" src="./app.js?v=iphone-frame-1"></script>
+    <script type="module" src="./app.js?v=turn-timer-perf-6"></script>
   </body>
 </html>
