@@ -1,5 +1,35 @@
 # Daeguk Prototype — Development Log
 
+## Daily Summary (2026-08-19)
+
+### 📌 Summary of Completed Work (2026-08-19)
+1. **Online PvP Flow & Rock-Paper-Scissors (가위바위보 선후공)**:
+   - Implemented real-time Rock-Paper-Scissors (가위바위보) system for online PvP match startup.
+   - Added custom vector icons (`rock.svg`, `paper.svg`, `scissors.svg`), interactive modals, draw re-rolls, and winner's choice of Black (1st / 선공) vs White (2nd / 후공).
+2. **Resign (기권 / 백기) System**:
+   - Added in-match surrender button (`#resignBtn`) with white flag styling (`.resign-flag-cloth` filled with `#ffffff`).
+   - Integrated confirmation modal and instant opponent victory declaration over network & local play.
+3. **Rematch Synchronization & Instant Decline Lobby Return**:
+   - Resolved rematch race condition when players request simultaneously or one declines.
+   - Handled `decline_rematch` action and `rematch_declined` protocol: both requester and decliner are instantly returned to the waiting room (`networkModal`) without modal deadlocks.
+4. **PvE AI Turn Order Fix & 5-Level Difficulty Calibration**:
+   - Fixed PvE side selection bug so that Black (`red`) always executes the first deployment regardless of human/AI side choice.
+   - Calibrated 5 difficulty levels (**초급, 중급, 상급, 달인, 신의 한 수**) with full-board instant-kill scanning (`instantKillCheck`) and 1-liberty King crisis rescue (`King Crisis Rescue`).
+5. **Codebase Architecture & Modular Refactoring**:
+   - **Unified Game Engine**: Replaced duplicate rule/territory/sanctuary checks in `app.js` with direct `@daeguk/game-engine` standard API calls.
+   - **Domain Module Separation**:
+     - `js/audio.js`: BGM loop, stone placement SFX, gesture initialization, volume/mute persistence.
+     - `js/settings.js`: Language preferences, challenge guidance toggles, `localStorage` synchronization.
+     - `js/puzzle-controller.js`: Challenge puzzles, progression persistence, tutorial scripted reactions.
+     - `js/online-ui.js`: Room list rendering, RPS modal interactions, rematch toast notifications.
+   - **app.js Streamlining**: Converted `app.js` into a lean coordinator connecting engine, state, renderers, and UI modules.
+6. **Challenge Puzzles 29-Stage Full Validation**:
+   - Programmatically validated all 29 puzzles (Tutorial + 7 Ranks x 4 Puzzles) for board setup, stock bounds, and win conditions.
+7. **Automated Testing**:
+   - 60 comprehensive unit and integration tests passing with 100% success rate.
+
+---
+
 ## Daily Summary (2026-08-18) & Next Session Roadmap (2026-08-19)
 
 ### 📌 Summary of Completed Work (2026-08-18)
