@@ -5,13 +5,19 @@ import {
   SIZE,
   SPECIALS,
   createUnitLabels,
-} from "./js/config.js?v=suicide-modal-4";
+} from "./js/config.js?v=pve-side-turn-1";
 import {
   inBounds,
   neighbors,
   opponent,
 } from "./js/board.js";
-import { touchesOwnWall } from "./packages/game-engine/src/board.js";
+import {
+  activeKingZones as engineActiveKingZones,
+  canDeploy as engineCanDeploy,
+  countPieces as engineCountPieces,
+  findKingPosition as engineFindKingPosition,
+  touchesOwnWall,
+} from "./packages/game-engine/src/index.js";
 import {
   chooseAiTeleportDestination,
   findAiDeployMove,
@@ -47,9 +53,45 @@ import {
   dispatchSharedLocalAction,
   isSharedLocalSuicideDeployment,
 } from "./js/shared-engine-adapter.mjs?v=local-shared-1";
+import {
+  initAudioGesture,
+  isMusicEnabled,
+  isSfxEnabled,
+  playPlacementSound,
+  setMusicEnabled,
+  setSfxEnabled,
+  syncBackgroundMusic,
+} from "./js/audio.js";
+import {
+  disableChallengeGuidance,
+  enableChallengeGuidance,
+  getSavedLanguage,
+  isChallengeGuidanceEnabled,
+  setSavedLanguage,
+} from "./js/settings.js";
+import {
+  TUTORIAL_SPECIAL_ACTIVATE_DELAY_MS,
+  TUTORIAL_SPECIAL_SURROUND_DELAY_MS,
+  TUTORIAL_STEPS,
+  challengeProgress,
+  firstUnresolvedRankIndex,
+  isPuzzleComplete,
+  isPuzzleUnlocked,
+  isValidPuzzlePiece,
+  localizedPuzzleText,
+  markPuzzleComplete,
+  normalizePuzzleStock,
+} from "./js/puzzle-controller.js";
+import {
+  hideRematchToast as uiHideRematchToast,
+  renderOpenRoomsList,
+  resetRpsButtons as uiResetRpsButtons,
+  showNetworkRoomControls as uiShowNetworkRoomControls,
+  showNetworkRpsPicker as uiShowNetworkRpsPicker,
+  showRematchToast as uiShowRematchToast,
+} from "./js/online-ui.js";
 
-const requestedLanguage = new URLSearchParams(location.search).get("lang") || localStorage.getItem("unknown-kingdom-language");
-const LANGUAGE = requestedLanguage === "ko" ? "ko" : "en";
+const LANGUAGE = getSavedLanguage("ko");
 const ASSET_VERSION = "progression-2";
 const PREVIEW_MODE = new URLSearchParams(location.search).get("preview");
 const requestedServer = new URLSearchParams(location.search).get("server");
@@ -66,71 +108,13 @@ const defaultNetworkServer = isLocalHost
 const NETWORK_SERVER = requestedServer || (isLocalHost ? defaultNetworkServer : (localStorage.getItem("unknown-kingdom-server") || defaultNetworkServer));
 const UNIT_LABELS = createUnitLabels(LANGUAGE);
 const text = createTranslator(LANGUAGE);
-const CHALLENGE_GUIDANCE_MIGRATION_KEY = "unknown-kingdom-help-preferences-v2";
-const CHALLENGE_GUIDANCE_SETTING_KEY = "unknown-kingdom-special-help-enabled";
-const CHALLENGE_PROGRESS_KEY = "daeguk-challenge-progress-v1";
-const MUSIC_SETTING_KEY = "unknown-kingdom-music";
-const SFX_SETTING_KEY = "unknown-kingdom-sfx";
-const backgroundMusic = new Audio("./assets/audio/daeguk_bgm_v1.mp3?v=audio-3");
-backgroundMusic.preload = "metadata";
-backgroundMusic.loop = true;
-backgroundMusic.volume = 0.24;
-const placementSound = new Audio("./assets/audio/piece-place.mp3?v=audio-2");
-placementSound.preload = "auto";
-placementSound.volume = 0.58;
 
 document.body.classList.toggle("iphone-preview", PREVIEW_MODE === "iphone");
-
-function enableChallengeGuidance() {
-  SPECIALS.forEach((unitType) => {
-    localStorage.removeItem(`unknown-kingdom-hide-help-${unitType}`);
-  });
-  localStorage.setItem(CHALLENGE_GUIDANCE_SETTING_KEY, "enabled");
-}
-
-function disableChallengeGuidance() {
-  localStorage.setItem(CHALLENGE_GUIDANCE_SETTING_KEY, "disabled");
-}
-
-function isChallengeGuidanceEnabled() {
-  return localStorage.getItem(CHALLENGE_GUIDANCE_SETTING_KEY) !== "disabled";
-}
-
-function isMusicEnabled() {
-  return localStorage.getItem(MUSIC_SETTING_KEY) === "enabled";
-}
-
-function isSfxEnabled() {
-  return localStorage.getItem(SFX_SETTING_KEY) !== "disabled";
-}
-
-function saveToggleSetting(key, enabled) {
-  localStorage.setItem(key, enabled ? "enabled" : "disabled");
-}
-
-function syncBackgroundMusic() {
-  if (!isMusicEnabled()) {
-    backgroundMusic.pause();
-    return;
-  }
-  backgroundMusic.play().catch(() => {});
-}
-
-function playPlacementSound() {
-  if (!isSfxEnabled()) return;
-  placementSound.currentTime = 0;
-  placementSound.play().catch(() => {});
-}
 
 function lastDeploymentKey(move) {
   if (!move || move.action) return "";
   if (!Number.isInteger(move.row) || !Number.isInteger(move.col)) return "";
   return `${move.player}:${move.unitType}:${move.row}:${move.col}`;
-}
-
-if (!localStorage.getItem(CHALLENGE_GUIDANCE_MIGRATION_KEY)) {
-  enableChallengeGuidance();
-  localStorage.setItem(CHALLENGE_GUIDANCE_MIGRATION_KEY, "reset");
 }
 
 let state;
@@ -253,6 +237,7 @@ const blueCount = document.querySelector("#blueCount");
 const confirmTeleportBtn = document.querySelector("#confirmTeleportBtn");
 const cancelTeleportBtn = document.querySelector("#cancelTeleportBtn");
 const undoBtn = document.querySelector("#undoBtn");
+const resignBtn = document.querySelector("#resignBtn");
 const newGameBtn = document.querySelector("#newGameBtn");
 const settingsBtn = document.querySelector("#settingsBtn");
 const lobbySettingsBtn = document.querySelector("#lobbySettingsBtn");
@@ -280,15 +265,18 @@ const publicRoomList = document.querySelector("#publicRoomList");
 const publicRoomItems = document.querySelector("#publicRoomItems");
 const refreshRoomListBtn = document.querySelector("#refreshRoomListBtn");
 const networkRoomControls = document.querySelector("#networkRoomControls");
-const networkSidePicker = document.querySelector("#networkSidePicker");
-const onlineSideButtons = document.querySelectorAll("[data-online-side]");
+const networkRpsPicker = document.querySelector("#networkRpsPicker");
+const rpsButtons = document.querySelectorAll("[data-rps]");
 const createRoomBtn = document.querySelector("#createRoomBtn");
-const joinRoomBtn = document.querySelector("#joinRoomBtn");
 const cancelNetworkBtn = document.querySelector("#cancelNetworkBtn");
 const resultModal = document.querySelector("#resultModal");
 const playAgainBtn = document.querySelector("#playAgainBtn");
 const resultRematchNotice = document.querySelector("#resultRematchNotice");
 const resultLobbyBtn = document.querySelector("#resultLobbyBtn");
+const rematchToast = document.querySelector("#rematchToast");
+const rematchToastTitle = document.querySelector("#rematchToastTitle");
+const toastAcceptRematchBtn = document.querySelector("#toastAcceptRematchBtn");
+const toastDeclineRematchBtn = document.querySelector("#toastDeclineRematchBtn");
 const pendingSpecialModal = document.querySelector("#pendingSpecialModal");
 const pendingSpecialTitle = document.querySelector("#pendingSpecialTitle");
 const pendingSpecialText = document.querySelector("#pendingSpecialText");
@@ -296,6 +284,9 @@ const activateSpecialBtn = document.querySelector("#activateSpecialBtn");
 const suicideConfirmModal = document.querySelector("#suicideConfirmModal");
 const cancelSuicideBtn = document.querySelector("#cancelSuicideBtn");
 const confirmSuicideBtn = document.querySelector("#confirmSuicideBtn");
+const resignConfirmModal = document.querySelector("#resignConfirmModal");
+const cancelResignBtn = document.querySelector("#cancelResignBtn");
+const confirmResignBtn = document.querySelector("#confirmResignBtn");
 const passNotificationModal = document.querySelector("#passNotificationModal");
 const passNoticeTitle = document.querySelector("#passNoticeTitle");
 const passNoticeText = document.querySelector("#passNoticeText");
@@ -318,43 +309,6 @@ const unitInputs = document.querySelectorAll("input[name='unit']");
 
 function sideName(side) {
   return text(side);
-}
-
-function loadChallengeProgress() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(CHALLENGE_PROGRESS_KEY) || "{}");
-    const completed = Array.isArray(saved.completedPuzzleIds)
-      ? saved.completedPuzzleIds.filter((id) => typeof id === "string" && PUZZLES.some((p) => p.id === id))
-      : [];
-    return {
-      completedPuzzleIds: completed,
-    };
-  } catch {
-    return { completedPuzzleIds: [] };
-  }
-}
-
-function saveChallengeProgress() {
-  localStorage.setItem(CHALLENGE_PROGRESS_KEY, JSON.stringify(challengeProgress));
-}
-
-function isPuzzleComplete(index) {
-  const puzzle = PUZZLES[index];
-  return Boolean(puzzle && challengeProgress.completedPuzzleIds.includes(puzzle.id));
-}
-
-function isPuzzleUnlocked(index) {
-  if (index === 0) return true;
-  const prevPuzzle = PUZZLES[index - 1];
-  return Boolean(prevPuzzle && challengeProgress.completedPuzzleIds.includes(prevPuzzle.id));
-}
-
-function firstUnresolvedRankIndex() {
-  const unresolvedIndex = RANK_ORDER.findIndex((rankKey) => {
-    const rankPuzzles = PUZZLES.filter((p) => p.rank === rankKey);
-    return rankPuzzles.some((p) => !challengeProgress.completedPuzzleIds.includes(p.id));
-  });
-  return unresolvedIndex >= 0 ? unresolvedIndex : RANK_ORDER.length - 1;
 }
 
 function visiblePveRanks() {
@@ -547,6 +501,10 @@ function applyLanguage() {
   undoBtn.textContent = text("undo");
   undoBtn.setAttribute("aria-label", text("undo"));
   undoBtn.title = text("undo");
+  if (resignBtn) {
+    resignBtn.setAttribute("aria-label", text("resign"));
+    resignBtn.title = text("resign");
+  }
   newGameBtn.setAttribute("aria-label", text("home"));
   newGameBtn.title = text("home");
   const newGameLabel = newGameBtn.querySelector("span");
@@ -583,8 +541,24 @@ function applyLanguage() {
   setIconButtonLabel(exitTutorialBtn, "backToChallenges");
   document.querySelector(".red-counter").setAttribute("aria-label", text("redUnits"));
   document.querySelector(".blue-counter").setAttribute("aria-label", text("blueUnits"));
+  if (rematchToastTitle) rematchToastTitle.textContent = text("rematchOfferedToast");
+  if (toastAcceptRematchBtn) toastAcceptRematchBtn.textContent = text("acceptRematch");
+  if (toastDeclineRematchBtn) toastDeclineRematchBtn.textContent = text("declineRematch");
   syncSettingsControls();
   renderOpenRooms();
+}
+
+function showRematchToast() {
+  if (!rematchToast) return;
+  if (rematchToastTitle) rematchToastTitle.textContent = text("rematchOfferedToast");
+  if (toastAcceptRematchBtn) toastAcceptRematchBtn.textContent = text("acceptRematch");
+  if (toastDeclineRematchBtn) toastDeclineRematchBtn.textContent = text("declineRematch");
+  rematchToast.hidden = false;
+}
+
+function hideRematchToast() {
+  if (!rematchToast) return;
+  rematchToast.hidden = true;
 }
 
 function wait(ms) {
@@ -843,83 +817,19 @@ function canDeploy(player, unitType, row, col, options = {}) {
       && !state.board[row][col]
       && state.stock[player][unitType] > 0;
   }
-  if (state.winner || state.teleporting || state.pendingSpecial || state.pendingKingSwap) return false;
-  if (!inBounds(row, col) || state.board[row][col]) return false;
-  if (!state.firstDeployDone[player] && unitType !== "king") return false;
-  if (unitType === "king" && isOpponentKingSanctuaryOverlap(player, row, col)) return false;
-  if (isOpponentKingTerritory(player, row, col)) return false;
-  if (state.stock[player][unitType] <= 0) return false;
-  return true;
-}
-
-function getDeploymentCount(player) {
-  return state.deploymentCount?.[player] ?? (state.firstDeployDone[player] ? 1 : 0);
-}
-
-function isOpponentKingSanctuaryOverlap(player, row, col) {
-  const enemy = opponent(player);
-  const king = findKingPosition(enemy);
-  if (!king) return false;
-  const rowDistance = Math.abs(row - king.row);
-  const colDistance = Math.abs(col - king.col);
-  return Math.max(rowDistance, colDistance) < 3;
-}
-
-function isOpponentKingTerritory(player, row, col) {
-  const enemy = opponent(player);
-  return isKingTerritory(enemy, row, col);
-}
-
-function isKingTerritory(owner, row, col) {
-  const deployments = getDeploymentCount(owner);
-  if (deployments <= 0 || deployments >= 5) return false;
-  const king = findKingPosition(owner);
-  if (!king) return false;
-  const rowDistance = Math.abs(row - king.row);
-  const colDistance = Math.abs(col - king.col);
-  return rowDistance <= 1 && colDistance <= 1 && (rowDistance !== 0 || colDistance !== 0);
-}
-
-function kingTerritoryOwner(row, col) {
-  if (isKingTerritory("red", row, col)) return "red";
-  if (isKingTerritory("blue", row, col)) return "blue";
-  return null;
+  return engineCanDeploy(state, player, unitType, row, col);
 }
 
 function activeKingZones() {
-  return ["red", "blue"].flatMap((owner) => {
-    const deployments = getDeploymentCount(owner);
-    const king = findKingPosition(owner);
-    if (deployments <= 0 || deployments >= 5 || !king) return [];
+  return engineActiveKingZones(state);
+}
 
-    const cells = [];
-    const minRow = Math.max(0, king.row - 1);
-    const maxRow = Math.min(SIZE - 1, king.row + 1);
-    const minCol = Math.max(0, king.col - 1);
-    const maxCol = Math.min(SIZE - 1, king.col + 1);
-    for (let rowOffset = -1; rowOffset <= 1; rowOffset += 1) {
-      for (let colOffset = -1; colOffset <= 1; colOffset += 1) {
-        const row = king.row + rowOffset;
-        const col = king.col + colOffset;
-        if (!inBounds(row, col)) continue;
-        cells.push({
-          owner,
-          row,
-          col,
-          rowSpan: 1,
-          colSpan: 1,
-          center: rowOffset === 0 && colOffset === 0,
-          corners: {
-            topLeft: row === minRow && col === minCol,
-            topRight: row === minRow && col === maxCol,
-            bottomLeft: row === maxRow && col === minCol,
-            bottomRight: row === maxRow && col === maxCol,
-          },
-        });
-      }
-    }
-    return cells;
-  });
+function countPieces(owner) {
+  return engineCountPieces(state, owner);
+}
+
+function findKingPosition(owner) {
+  return engineFindKingPosition(state, owner);
 }
 
 function saveUndoCheckpoint() {
@@ -1147,40 +1057,9 @@ function startTutorial({ puzzleEntry = false, index = 0 } = {}) {
   render();
 }
 
-function localizedPuzzleText(value) {
-  return typeof value === "string" ? value : value?.[LANGUAGE] || value?.en || "";
-}
-
 function selectPuzzleUnit(unitType) {
   const input = document.querySelector(`input[name="unit"][value="${unitType}"]`);
   if (input) input.checked = true;
-}
-
-function createEmptyStock() {
-  return {
-    red: { soldier: 0, king: 0, general: 0, diplomat: 0, wizard: 0 },
-    blue: { soldier: 0, king: 0, general: 0, diplomat: 0, wizard: 0 },
-  };
-}
-
-function normalizePuzzleStock(stock = {}) {
-  const normalized = createEmptyStock();
-  for (const owner of ["red", "blue"]) {
-    for (const unitType of DEPLOY_ORDER) {
-      normalized[owner][unitType] = Math.max(0, Number(stock[owner]?.[unitType] || 0));
-    }
-  }
-  return normalized;
-}
-
-function isValidPuzzlePiece(piece) {
-  if (!Array.isArray(piece) || piece.length !== 4) return false;
-  const [owner, type, row, col] = piece;
-  return ["red", "blue"].includes(owner)
-    && DEPLOY_ORDER.includes(type)
-    && Number.isInteger(row)
-    && Number.isInteger(col)
-    && inBounds(row, col);
 }
 
 function loadPuzzle(index = 0) {
@@ -1687,8 +1566,10 @@ function render() {
     cancelTeleportBtn,
     tauntBtn,
     undoBtn,
+    resignBtn,
     resultModal,
     showMatchResult: state.mode === "pve" || state.mode === "pvp",
+    networkModalHidden: networkModal ? networkModal.hidden : true,
     networkStatusGroup,
     unitInputs,
     networkReady: networkSession.ready,
@@ -1718,12 +1599,22 @@ function render() {
   const matchResultVisible = Boolean(state.winner && (state.mode === "pve" || state.mode === "pvp"));
   if (matchResultVisible) {
     if (state.mode === "pvp") {
-      if (rematchRequested) {
+      if (networkSession.opponentDisconnected) {
         playAgainBtn.disabled = true;
-        playAgainBtn.textContent = text("rematchWaiting");
+        playAgainBtn.textContent = text("requestRematch");
         playAgainBtn.classList.remove("rematch-offered");
         if (resultRematchNotice) {
           resultRematchNotice.hidden = false;
+          resultRematchNotice.classList.add("disconnected");
+          resultRematchNotice.textContent = text("opponentLeftRoom");
+        }
+      } else if (rematchRequested) {
+        playAgainBtn.disabled = true;
+        playAgainBtn.textContent = text("requestRematch");
+        playAgainBtn.classList.remove("rematch-offered");
+        if (resultRematchNotice) {
+          resultRematchNotice.hidden = false;
+          resultRematchNotice.classList.remove("disconnected");
           resultRematchNotice.textContent = text("rematchWaiting");
         }
       } else if (rematchOfferedBy && rematchOfferedBy !== networkSession.player) {
@@ -1732,6 +1623,7 @@ function render() {
         playAgainBtn.classList.add("rematch-offered");
         if (resultRematchNotice) {
           resultRematchNotice.hidden = false;
+          resultRematchNotice.classList.remove("disconnected");
           resultRematchNotice.textContent = text("opponentRematchOffered");
         }
       } else {
@@ -1740,6 +1632,7 @@ function render() {
         playAgainBtn.classList.remove("rematch-offered");
         if (resultRematchNotice) {
           resultRematchNotice.hidden = true;
+          resultRematchNotice.classList.remove("disconnected");
         }
       }
     } else {
@@ -1858,8 +1751,13 @@ function renderPendingSpecialModal(viewerSide) {
 }
 
 function localizeResultReason(reason) {
+  if (!reason) return "";
   if (reason === "All enemy units were eliminated.") return text("allEliminated");
   if (reason === "Time limit exceeded (30s).") return text("timeExpired");
+  if (reason.includes("resigned.")) {
+    const side = reason.startsWith("Black") || reason.startsWith("red") ? text("red") : text("blue");
+    return text("resignReason", { side });
+  }
   const localizedSides = reason
     .replace(/\bred\b/gi, text("red"))
     .replace(/\bblue\b/gi, text("blue"));
@@ -1872,7 +1770,60 @@ function localizeResultReason(reason) {
     .replaceAll("Diplomat conversion", "외교관 전환");
 }
 
+function closeResignConfirmation() {
+  resignConfirmModal.hidden = true;
+}
+
 undoBtn.addEventListener("click", undoLastMove);
+if (resignBtn) {
+  resignBtn.addEventListener("click", () => {
+    if (state.winner || state.phase === "complete") return;
+    if (state.mode === "pvp" && !networkSession.ready) return;
+    resignConfirmModal.hidden = false;
+    cancelResignBtn.focus();
+  });
+}
+if (cancelResignBtn) {
+  cancelResignBtn.addEventListener("click", () => {
+    closeResignConfirmation();
+  });
+}
+if (confirmResignBtn) {
+  confirmResignBtn.addEventListener("click", () => {
+    closeResignConfirmation();
+    if (state.winner || state.phase === "complete") return;
+    if (state.mode === "pvp") {
+      sendNetworkAction({ type: "resign" });
+      return;
+    }
+    const resigningSide = state.mode === "pve" ? pveHumanPlayer : state.turn;
+    const winningSide = opponent(resigningSide);
+    state.phase = "complete";
+    state.winner = winningSide;
+    state.resultReason = `${resigningSide === "red" ? "Black" : "White"} resigned.`;
+    recordMatchHistory();
+    render();
+  });
+}
+if (resignConfirmModal) {
+  resignConfirmModal.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeResignConfirmation();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const firstButton = cancelResignBtn;
+    const lastButton = confirmResignBtn;
+    if (event.shiftKey && document.activeElement === firstButton) {
+      event.preventDefault();
+      lastButton.focus();
+    } else if (!event.shiftKey && document.activeElement === lastButton) {
+      event.preventDefault();
+      firstButton.focus();
+    }
+  });
+}
 confirmTeleportBtn.addEventListener("click", () => {
   if (!state.teleporting) return;
   wizardMovePromptDismissed = true;
@@ -1966,6 +1917,7 @@ function resetGame() {
   tutorialReactionPending = false;
   tutorialReactionPhase = null;
   closeSuicideConfirmation({ restoreFocus: false });
+  closeResignConfirmation();
   if (state?.mode === "puzzle") {
     loadPuzzle(puzzleIndex);
     return;
@@ -2011,6 +1963,7 @@ function startNewGame() {
 
 function playAgain() {
   if (state.mode === "pvp") {
+    hideRematchToast();
     rematchRequested = true;
     sendNetworkAction({ type: "rematch" });
     setNetworkStatus(text("rematchWaiting"));
@@ -2087,19 +2040,31 @@ function startPve(side) {
   if (side === "blue") scheduleAiTurn();
 }
 
-function showNetworkRoomControls() {
-  publicRoomList.hidden = false;
-  networkRoomControls.hidden = false;
-  joinRoomBtn.hidden = false;
-  networkSidePicker.hidden = true;
-  updateJoinButton();
+function resetRpsButtons() {
+  rpsButtons.forEach((btn) => {
+    btn.disabled = false;
+    btn.classList.remove("selected");
+  });
 }
 
-function showNetworkSidePicker() {
-  publicRoomList.hidden = true;
-  networkRoomControls.hidden = true;
-  joinRoomBtn.hidden = true;
-  networkSidePicker.hidden = false;
+function showNetworkRoomControls() {
+  uiShowNetworkRoomControls({ publicRoomList, networkRoomControls, networkRpsPicker });
+}
+
+function showNetworkRpsPicker() {
+  uiShowNetworkRpsPicker({ publicRoomList, networkRoomControls, networkRpsPicker, rpsButtons });
+}
+
+function showRematchToast() {
+  uiShowRematchToast(rematchToast);
+}
+
+function hideRematchToast() {
+  uiHideRematchToast(rematchToast);
+}
+
+function resetRpsButtons() {
+  uiResetRpsButtons(rpsButtons);
 }
 
 function setNetworkStatus(message) {
@@ -2122,43 +2087,35 @@ function currentBoardLabel() {
   return boardName(displayBoardNumber(networkSession.boardNumber || room?.boardNumber, fallback));
 }
 
-function updateJoinButton() {
-  joinRoomBtn.disabled = !selectedOpenRoomCode;
-}
-
-function selectOpenRoom(roomCode) {
-  selectedOpenRoomCode = roomCode;
-  renderOpenRooms();
-  updateJoinButton();
-}
-
 function renderOpenRooms() {
-  publicRoomItems.innerHTML = "";
-  if (!openRooms.length) {
-    const emptyMessage = document.createElement("p");
-    emptyMessage.className = "public-room-empty";
-    emptyMessage.textContent = text("noOpenRooms");
-    publicRoomItems.append(emptyMessage);
-    return;
-  }
-  openRooms.forEach((room, index) => {
-    const button = document.createElement("button");
-    button.className = "public-room-button";
-    button.type = "button";
-    button.dataset.roomCode = room.roomCode;
-    button.classList.toggle("selected", room.roomCode === selectedOpenRoomCode);
-    button.innerHTML = `<span></span><small></small>`;
-    button.querySelector("span").textContent = boardName(displayBoardNumber(room.boardNumber, index + 1));
-    button.querySelector("small").textContent = text("boardWaiting");
-    button.addEventListener("click", () => selectOpenRoom(room.roomCode));
-    publicRoomItems.append(button);
+  renderOpenRoomsList({
+    openRooms,
+    container: publicRoomItems,
+    onJoin: joinNetworkRoom,
+    text,
+    boardName,
+    displayBoardNumber,
   });
-  updateJoinButton();
 }
 
 function requestRoomList() {
   showNetworkRoomControls();
   connectNetwork({ type: "list_rooms" });
+}
+
+function returnToNetworkLobby() {
+  resultModal.hidden = true;
+  hideRematchToast();
+  rematchRequested = false;
+  rematchOfferedBy = null;
+  state = createInitialState("pvp", "red");
+  state.mode = "pvp";
+  networkModal.hidden = false;
+  showNetworkRoomControls();
+  openRooms = [];
+  renderOpenRooms();
+  requestRoomList();
+  render();
 }
 
 function connectNetwork(command) {
@@ -2194,16 +2151,42 @@ function handleNetworkMessage(message) {
   if (message.type === "room_created" || message.type === "waiting") {
     networkSession.roomCode = message.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
+    state.mode = "pvp";
+    networkModal.hidden = true;
     setNetworkStatus(text("roomWaiting", { room: currentBoardLabel() }));
     render();
     return;
   }
 
-  if (message.type === "side_selection") {
+  if (message.type === "rps_start" || message.type === "side_selection") {
     networkSession.roomCode = message.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
-    showNetworkSidePicker();
-    setNetworkStatus(text("sideSelectionReady", { room: currentBoardLabel() }));
+    resultModal.hidden = true;
+    hideRematchToast();
+    rematchRequested = false;
+    rematchOfferedBy = null;
+    state = createInitialState("pvp", networkSession.player);
+    state.mode = "pvp";
+    showNetworkRpsPicker();
+    networkModal.hidden = false;
+    setNetworkStatus(text("rpsPrompt"));
+    render();
+    return;
+  }
+
+  if (message.type === "rps_result") {
+    if (message.result === "draw") {
+      setNetworkStatus(text("rpsDraw"));
+      setTimeout(() => {
+        resetRpsButtons();
+        setNetworkStatus(text("rpsPrompt"));
+      }, 1200);
+    } else if (message.result === "win") {
+      const won = message.yourSide === "red";
+      setNetworkStatus(won ? text("rpsWin") : text("rpsLose"));
+      if (won) playPlacementSound();
+    }
+    render();
     return;
   }
 
@@ -2228,6 +2211,9 @@ function handleNetworkMessage(message) {
       lastTauntEventId = 0;
       rematchRequested = false;
       rematchOfferedBy = null;
+      hideRematchToast();
+      resultModal.hidden = true;
+      networkModal.hidden = true;
     }
     state.mode = "pvp";
     onlineTurnDeadline = message.turnDeadline || message.state?.turnDeadline || null;
@@ -2243,8 +2229,15 @@ function handleNetworkMessage(message) {
     rematchOfferedBy = message.byPlayer;
     if (rematchOfferedBy !== networkSession.player) {
       setNetworkStatus(text("opponentRematchOffered"));
+      playPlacementSound();
+      showRematchToast();
     }
     render();
+    return;
+  }
+
+  if (message.type === "rematch_declined") {
+    returnToNetworkLobby();
     return;
   }
 
@@ -2258,6 +2251,7 @@ function handleNetworkMessage(message) {
       networkSession.ready = false;
       networkSession.opponentDisconnected = true;
       onlineTurnDeadline = null;
+      hideRematchToast();
       setNetworkStatus(text("opponentDisconnected"));
       render();
       return;
@@ -2268,6 +2262,9 @@ function handleNetworkMessage(message) {
 
 function disconnectNetwork() {
   onlineTurnDeadline = null;
+  hideRematchToast();
+  rematchOfferedBy = null;
+  rematchRequested = false;
   closeSuicideConfirmation({ restoreFocus: false });
   networkSession = closeNetworkConnection(networkSession);
 }
@@ -2317,20 +2314,33 @@ closeSettingsBtn.addEventListener("click", () => {
 document.addEventListener("pointerdown", syncBackgroundMusic, { once: true });
 playAgainBtn.addEventListener("click", playAgain);
 resultLobbyBtn.addEventListener("click", startNewGame);
+toastAcceptRematchBtn?.addEventListener("click", () => {
+  hideRematchToast();
+  playAgain();
+});
+toastDeclineRematchBtn?.addEventListener("click", () => {
+  if (state.mode === "pvp") {
+    sendNetworkAction({ type: "decline_rematch" });
+  }
+  returnToNetworkLobby();
+});
 createRoomBtn.addEventListener("click", () => connectNetwork({
   type: "create_room",
   protocolVersion: 2,
 }));
 refreshRoomListBtn.addEventListener("click", requestRoomList);
-joinRoomBtn.addEventListener("click", () => {
-  joinNetworkRoom(selectedOpenRoomCode);
-});
-onlineSideButtons.forEach((button) => {
+rpsButtons.forEach((button) => {
   button.addEventListener("click", () => {
+    const choice = button.dataset.rps;
+    rpsButtons.forEach((b) => {
+      b.disabled = true;
+      b.classList.toggle("selected", b === button);
+    });
+    setNetworkStatus(text("rpsWaitingOpponent"));
     const sent = sendNetworkCommand(networkSession, {
-      type: "choose_side",
+      type: "rps_choice",
       roomCode: networkSession.roomCode,
-      side: button.dataset.onlineSide,
+      choice,
     });
     if (!sent) setNetworkStatus(text("notConnected"));
   });

@@ -185,3 +185,40 @@ export function kingLibertyCount(state, owner) {
   }
   return liberties.size;
 }
+
+export function activeKingZones(state) {
+  return ["red", "blue"].flatMap((owner) => {
+    const deployments = deploymentCount(state, owner);
+    const king = findKingPosition(state, owner);
+    if (deployments <= 0 || deployments >= 5 || !king) return [];
+
+    const cells = [];
+    const minRow = Math.max(0, king.row - 1);
+    const maxRow = Math.min(SIZE - 1, king.row + 1);
+    const minCol = Math.max(0, king.col - 1);
+    const maxCol = Math.min(SIZE - 1, king.col + 1);
+    for (let rowOffset = -1; rowOffset <= 1; rowOffset += 1) {
+      for (let colOffset = -1; colOffset <= 1; colOffset += 1) {
+        const row = king.row + rowOffset;
+        const col = king.col + colOffset;
+        if (!inBounds(row, col)) continue;
+        cells.push({
+          owner,
+          row,
+          col,
+          rowSpan: 1,
+          colSpan: 1,
+          center: rowOffset === 0 && colOffset === 0,
+          corners: {
+            topLeft: row === minRow && col === minCol,
+            topRight: row === minRow && col === maxCol,
+            bottomLeft: row === maxRow && col === minCol,
+            bottomRight: row === maxRow && col === maxCol,
+          },
+        });
+      }
+    }
+    return cells;
+  });
+}
+

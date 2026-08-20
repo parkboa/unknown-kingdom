@@ -523,3 +523,16 @@ test("validates all challenge puzzles across 8 ranks", async () => {
     }
   }
 });
+
+test("player resignation immediately awards victory to the opponent", () => {
+  const state = createGameState();
+  const result = dispatchAction(state, "red", { type: "resign" });
+  assert.equal(result.accepted, true);
+  assert.equal(state.winner, "blue");
+  assert.equal(state.resultReason, "Black resigned.");
+  assert.equal(result.events.length, 1);
+  assert.equal(result.events[0].type, "match_ended");
+  assert.equal(result.events[0].reason, "resignation");
+  assert.equal(result.events[0].winner, "blue");
+});
+

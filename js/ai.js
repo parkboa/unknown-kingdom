@@ -892,15 +892,31 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
   candidates.sort(compareCandidates);
   if (!candidates.length) return null;
 
-  // Fast Instant-Win check: If a candidate immediately captures the opponent King, play it instantly
+  // 1. Fast Instant-Win check: If ANY candidate immediately wins the game, play it immediately
   if (settings.instantKillCheck || settings.searchDepth >= 2) {
-    for (const cand of candidates.slice(0, 10)) {
+    for (const cand of candidates) {
       const quickAction = { type: "deploy", unitType: cand.type, row: cand.row, col: cand.col };
       const simulated = simulateEngineTransition(state, aiPlayer, quickAction, neighbors);
       if (simulated && simulated.winner === aiPlayer) {
         return cand;
       }
     }
+  }
+
+  // 2. King Crisis Rescue: If own King has only 1 liberty (단수 / Atari), boost rescue moves
+  const ownKingLibs = kingLibertyCount(state, aiPlayer);
+  if (ownKingLibs === 1) {
+    for (const cand of candidates) {
+      const quickAction = { type: "deploy", unitType: cand.type, row: cand.row, col: cand.col };
+      const simulated = simulateEngineTransition(state, aiPlayer, quickAction, neighbors);
+      if (simulated) {
+        const afterLibs = kingLibertyCount(simulated, aiPlayer);
+        if (afterLibs > 1) {
+          cand.score += 5000;
+        }
+      }
+    }
+    candidates.sort(compareCandidates);
   }
 
   const limit = settings.searchDepth > 1 ? (settings.rootCandidateLimit || 20) : candidates.length;

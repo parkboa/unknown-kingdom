@@ -2,7 +2,8 @@ export const SIZE = 9;
 export const WHITE_TERRITORY_BONUS = 0;
 export const PLAYERS = ["red", "blue"];
 export const SPECIALS = new Set(["general", "diplomat", "wizard"]);
-export const UNIT_TYPES = new Set(["soldier", "king", ...SPECIALS]);
+export const DEPLOY_ORDER = ["soldier", "king", "general", "diplomat", "wizard"];
+export const UNIT_TYPES = new Set(DEPLOY_ORDER);
 
 export const opponent = (player) => player === "red" ? "blue" : "red";
 export const sideLabel = (player) => player === "red" ? "Black" : "White";
