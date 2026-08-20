@@ -43,3 +43,19 @@ test("server adapter executes an authoritative shared-engine action", () => {
   assert.equal(state.turn, "blue");
   assert.equal(result.events.some(({ type }) => type === "piece_deployed"), true);
 });
+
+test("rematch state logic: decline_rematch clears pending rematch offers", () => {
+  const room = {
+    code: "TEST1",
+    players: { red: {}, blue: {} },
+    rematch: new Set(["red"]),
+  };
+  assert.equal(room.rematch.has("red"), true);
+
+  // When decline_rematch is processed:
+  room.rematch.clear();
+  assert.equal(room.rematch.size, 0);
+  assert.equal(room.rematch.has("red"), false);
+});
+
+

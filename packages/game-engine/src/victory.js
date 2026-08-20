@@ -66,3 +66,15 @@ export function startTurn(state, next, events, reason) {
 export function endTurn(state, events) {
   startTurn(state, opponent(state.turn), events, "action_complete");
 }
+
+export function declareResignation(state, player, events) {
+  const winner = opponent(player);
+  declareWinner(
+    state,
+    winner,
+    `${sideLabel(player)} resigned.`,
+    events,
+    "resignation",
+    { resigningPlayer: player },
+  );
+}

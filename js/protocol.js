@@ -1,6 +1,19 @@
 import { AI_PROFILES, DEPLOY_ORDER, SIZE } from "./config.js";
 
-const MESSAGE_TYPES = new Set(["room_created", "waiting", "room_list", "side_selection", "match_start", "state", "error", "suicide_warning"]);
+const MESSAGE_TYPES = new Set([
+  "room_created",
+  "waiting",
+  "room_list",
+  "side_selection",
+  "match_start",
+  "state",
+  "error",
+  "suicide_warning",
+  "rematch_offered",
+  "rematch_declined",
+  "rps_start",
+  "rps_result",
+]);
 const PLAYERS = new Set(["red", "blue"]);
 const WINNERS = new Set(["red", "blue", "draw"]);
 const UNIT_TYPES = new Set(DEPLOY_ORDER);
@@ -158,6 +171,18 @@ export function validateNetworkMessage(message) {
       && message.action.type === "deploy"
       && UNIT_TYPES.has(message.action.unitType)
       && isCoordinate(message.action);
+  }
+
+  if (message.type === "rematch_offered" || message.type === "rematch_declined") {
+    return PLAYERS.has(message.byPlayer);
+  }
+
+  if (message.type === "rps_start") {
+    return isRoomCode(message.roomCode) && hasOptionalBoardNumber(message);
+  }
+
+  if (message.type === "rps_result") {
+    return ["draw", "win"].includes(message.result);
   }
 
   return message.message === undefined

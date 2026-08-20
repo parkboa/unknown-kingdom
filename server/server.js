@@ -122,6 +122,17 @@ function requestSideSelection(room) {
   }
 }
 
+function requestRpsSelection(room) {
+  room.rps = { red: null, blue: null };
+  for (const player of ["red", "blue"]) {
+    send(room.players[player], {
+      type: "rps_start",
+      roomCode: room.code,
+      boardNumber: room.boardNumber,
+    });
+  }
+}
+
 function assignSelectedSide(room, socket, selectedSide) {
   if (room.sideChosen || !room.players.red || !room.players.blue) return false;
   const membership = socket.membership;
@@ -246,6 +257,7 @@ webSocketServer.on("connection", (socket) => {
         botPlayer: null,
         botTimer: null,
         rematch: new Set(),
+        rps: { red: null, blue: null },
       };
       room.players.red = socket;
       rooms.set(code, room);
@@ -269,6 +281,7 @@ webSocketServer.on("connection", (socket) => {
         botPlayer: "red",
         botTimer: null,
         rematch: new Set(),
+        rps: { red: null, blue: null },
       };
       rooms.set(code, room);
       socket.membership = { roomCode: code, player: "blue" };
@@ -301,7 +314,7 @@ webSocketServer.on("connection", (socket) => {
         // Reconnecting to active game or existing chosen sides
         broadcastState(room, "state");
       } else if (room.sideSelectionEnabled && message.protocolVersion === 2) {
-        requestSideSelection(room);
+        requestRpsSelection(room);
       } else {
         room.sideChosen = true;
         broadcastState(room, "match_start");
@@ -323,6 +336,68 @@ webSocketServer.on("connection", (socket) => {
       return;
     }
 
+    if (message.type === "rps_choice" && socket.membership) {
+      const room = rooms.get(socket.membership.roomCode);
+      if (!room || room.code !== message.roomCode) {
+        send(socket, { type: "error", message: "Invalid room." });
+        return;
+      }
+      if (room.sideChosen) return;
+      const player = socket.membership.player;
+      if (!["scissors", "rock", "paper"].includes(message.choice)) {
+        send(socket, { type: "error", message: "Invalid choice." });
+        return;
+      }
+      if (!room.rps) room.rps = { red: null, blue: null };
+      room.rps[player] = message.choice;
+
+      if (room.rps.red && room.rps.blue) {
+        const redChoice = room.rps.red;
+        const blueChoice = room.rps.blue;
+
+        if (redChoice === blueChoice) {
+          for (const p of ["red", "blue"]) {
+            send(room.players[p], {
+              type: "rps_result",
+              result: "draw",
+              choices: { red: redChoice, blue: blueChoice },
+            });
+          }
+          room.rps = { red: null, blue: null };
+        } else {
+          const redWins = (redChoice === "scissors" && blueChoice === "paper")
+            || (redChoice === "rock" && blueChoice === "scissors")
+            || (redChoice === "paper" && blueChoice === "rock");
+
+          if (!redWins) {
+            const redSocket = room.players.red;
+            const blueSocket = room.players.blue;
+            room.players.red = blueSocket;
+            room.players.blue = redSocket;
+            blueSocket.membership.player = "red";
+            redSocket.membership.player = "blue";
+          }
+
+          for (const p of ["red", "blue"]) {
+            send(room.players[p], {
+              type: "rps_result",
+              result: "win",
+              yourSide: p,
+              choices: { red: redChoice, blue: blueChoice },
+            });
+          }
+
+          room.sideChosen = true;
+          setTimeout(() => {
+            if (rooms.get(room.code) === room) {
+              broadcastState(room, "match_start");
+            }
+          }, 1400);
+        }
+      }
+      return;
+    }
+
     if (message.type !== "action" || !socket.membership) {
       send(socket, { type: "error", message: "Join a room first." });
       return;
@@ -338,6 +413,16 @@ webSocketServer.on("connection", (socket) => {
       return;
     }
     const player = socket.membership.player;
+    if (message.action?.type === "decline_rematch") {
+      room.rematch.clear();
+      for (const p of ["red", "blue"]) {
+        send(room.players[p], {
+          type: "rematch_declined",
+          byPlayer: player,
+        });
+      }
+      return;
+    }
     if (message.action?.type === "rematch") {
       if (room.botPlayer) {
         room.state = createGameState();
@@ -348,12 +433,16 @@ webSocketServer.on("connection", (socket) => {
       room.rematch.add(player);
       if (room.rematch.size === 1) {
         for (const p of ["red", "blue"]) {
-          send(room.players[p], { type: "rematch_offered", byPlayer: player });
+          send(room.players[p], {
+            type: "rematch_offered",
+            byPlayer: player,
+          });
         }
-      } else if (room.rematch.size === 2) {
+      } else if (room.rematch.size >= 2) {
         room.state = createGameState();
         room.rematch.clear();
-        broadcastState(room, "match_start");
+        room.sideChosen = false;
+        requestRpsSelection(room);
       }
       return;
     }

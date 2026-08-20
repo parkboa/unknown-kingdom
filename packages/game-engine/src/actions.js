@@ -14,7 +14,7 @@ import {
   resumeNormalTurnIfReady,
 } from "./reactions.js";
 import { createPiece } from "./state.js";
-import { endTurn, finishNoLegalDeployment } from "./victory.js";
+import { declareResignation, endTurn, finishNoLegalDeployment } from "./victory.js";
 
 export { isSuicideDeployment };
 
@@ -28,6 +28,10 @@ function performAction(state, player, action, events, options) {
   const queueReaction = (nextState, group, defender, captor, nextEvents) =>
     queueSpecialActivation(nextState, group, defender, captor, nextEvents, options);
   if (!PLAYERS.includes(player) || !action || typeof action !== "object" || state.winner) return false;
+  if (action.type === "resign") {
+    declareResignation(state, player, events);
+    return true;
+  }
   if (action.type === "pass") {
     if (
       state.turn !== player

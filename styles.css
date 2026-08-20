@@ -40,6 +40,11 @@
   --card-small-control-height: 34px;
   --card-control-gap: 8px;
   --card-frame-padding: 10px;
+  --z-modal-base: 200;
+  --z-modal-card: 220;
+  --z-modal-alert: 250;
+  --z-modal-toast: 270;
+  --z-modal-highest: 300;
 }
 
 @media (min-width: 768px) {
@@ -132,10 +137,13 @@ body.iphone-preview .app-shell {
   z-index: 210;
 }
 
-body.iphone-preview .splash-screen,
+body.iphone-preview .splash-screen {
+  z-index: var(--z-modal-highest);
+}
+
 body.iphone-preview .result-modal,
 body.iphone-preview .taunt-art-overlay {
-  z-index: 220;
+  z-index: var(--z-modal-card);
 }
 
 body.iphone-preview .app-shell::after {
@@ -435,7 +443,7 @@ body.iphone-preview .lobby-logo {
 
 .result-modal {
   position: fixed;
-  z-index: 20;
+  z-index: var(--z-modal-card);
   inset: 0;
   display: grid;
   place-items: center;
@@ -469,6 +477,7 @@ body.iphone-preview .lobby-logo {
   color: var(--muted);
   font-family: var(--font-ui);
   line-height: 1.5;
+  text-align: left;
 }
 
 .result-grid {
@@ -649,25 +658,19 @@ body.iphone-preview .lobby-logo {
 
 .result-rematch-notice {
   margin: 10px 0 2px;
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 4px 8px;
   font-family: var(--font-ui);
   font-size: 13px;
   font-weight: 700;
   text-align: center;
-  color: #ffd700;
-  background: rgba(216, 165, 50, 0.16);
-  border: 1px solid rgba(216, 165, 50, 0.45);
-  animation: rematch-notice-pulse 1.5s infinite alternate;
+  color: #ffd866;
+  background: transparent;
+  border: none;
+  letter-spacing: -0.01em;
 }
 
-@keyframes rematch-notice-pulse {
-  0% {
-    box-shadow: 0 0 4px rgba(255, 215, 0, 0.25);
-  }
-  100% {
-    box-shadow: 0 0 12px rgba(255, 215, 0, 0.65);
-  }
+.result-rematch-notice.disconnected {
+  color: #ff9b9b;
 }
 
 .match-result-card .result-actions .card-back-button {
@@ -1097,13 +1100,13 @@ body.iphone-preview .lobby-logo {
   border: 0;
 }
 
-.network-side-picker legend {
-  grid-column: 1 / -1;
-  margin-bottom: 2px;
-  color: var(--muted);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-body);
-  font-weight: 800;
+.network-side-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 .network-side-picker button {
@@ -1122,8 +1125,71 @@ body.iphone-preview .lobby-logo {
   background: rgb(255 255 255 / 72%);
 }
 
-.network-side-picker[hidden] {
+.network-side-picker[hidden],
+.network-rps-picker[hidden] {
   display: none;
+}
+
+.network-rps-picker {
+  margin: 10px 0 16px;
+}
+
+.rps-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+.rps-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 12px;
+  margin: 0;
+  font-size: 0;
+  line-height: 0;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1.5px solid rgb(216 165 50 / 35%);
+  background: linear-gradient(180deg, rgb(34 30 22 / 92%), rgb(18 16 12 / 96%));
+  color: #f1df9c;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+
+.rps-button:hover {
+  border-color: #ffd866;
+  color: #ffd866;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(216, 165, 50, 0.35);
+}
+
+.rps-button:active,
+.rps-button.selected {
+  border-color: #ffd866 !important;
+  color: #fff2b2 !important;
+  background: linear-gradient(180deg, rgb(68 56 28 / 96%), rgb(36 30 14 / 98%)) !important;
+  box-shadow: 0 0 0 2px rgb(255 216 102 / 60%), inset 0 0 14px rgb(216 165 50 / 30%) !important;
+  transform: scale(0.98);
+}
+
+.rps-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.rps-svg {
+  width: auto;
+  height: 52px;
+  max-width: 48px;
+  max-height: 52px;
+  margin: auto;
+  display: block;
+  fill: currentColor;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
 }
 
 .side-choice-actions {
@@ -1212,7 +1278,7 @@ body.iphone-preview .lobby-logo {
 .lobby-subcard > .result-reason,
 .lobby-subcard .side-choice-label {
   color: rgb(247 239 224 / 60%);
-  text-align: center;
+  text-align: left;
 }
 
 .lobby-subcard .side-choice-label {
@@ -1368,7 +1434,7 @@ body.iphone-preview .lobby-logo {
 }
 
 .challenge-card > .result-reason {
-  text-align: center;
+  text-align: left;
 }
 
 .challenge-rank-list {
@@ -1513,7 +1579,7 @@ body.iphone-preview .lobby-logo {
 }
 
 #suicideConfirmModal {
-  z-index: 260;
+  z-index: var(--z-modal-alert);
 }
 
 .suicide-confirm-card {
@@ -1534,6 +1600,7 @@ body.iphone-preview .lobby-logo {
   margin: 0 0 20px;
   font-size: var(--font-size-body);
   line-height: 1.55;
+  text-align: left;
 }
 
 .suicide-confirm-actions {
@@ -2384,6 +2451,7 @@ body.iphone-preview .lobby-logo {
   font-size: var(--font-size-body);
   line-height: 1.55;
   color: rgb(247 239 224 / 78%);
+  text-align: left;
 }
 
 .special-notice-card .result-actions {
@@ -3047,7 +3115,7 @@ body.iphone-preview .piece {
 
 .game-action-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   gap: 8px;
   min-width: 0;
   padding: 10px;
@@ -3096,6 +3164,14 @@ body.iphone-preview .piece {
   stroke-linejoin: round;
 }
 
+#resignBtn .resign-flag-cloth {
+  fill: #ffffff;
+}
+
+#resignBtn:disabled .resign-flag-cloth {
+  fill: rgb(255 255 255 / 30%);
+}
+
 .action-bar-button:disabled {
   color: rgb(247 239 224 / 34%);
   border-color: rgb(247 239 224 / 10%);
@@ -3120,7 +3196,7 @@ body.iphone-preview .piece {
   }
 
   .game-action-bar {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     gap: 8px;
     padding: 8px;
   }
@@ -3157,7 +3233,7 @@ body.iphone-preview .game-info-bar {
 }
 
 body.iphone-preview .game-action-bar {
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   gap: 8px;
   padding: 8px;
 }
@@ -3375,4 +3451,117 @@ body.iphone-preview .game-status-bar {
   body.iphone-preview .game-status-bar.guide-active {
     padding: 0;
   }
+}
+
+/* Rematch Top Floating Toast Banner */
+.rematch-toast {
+  position: fixed;
+  top: max(24px, calc(env(safe-area-inset-top) + 16px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-modal-toast);
+  width: min(calc(100vw - 32px), 380px);
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgb(32 28 20 / 98%), rgb(16 14 10 / 99%));
+  border: 1.5px solid #d6a532;
+  box-shadow:
+    0 16px 48px rgb(0 0 0 / 64%),
+    0 0 20px rgb(214 165 50 / 35%),
+    inset 0 0 0 1px rgb(255 225 130 / 15%);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: rematch-toast-slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.rematch-toast[hidden] {
+  display: none;
+}
+
+@keyframes rematch-toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.rematch-toast-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2px 4px;
+}
+
+.rematch-toast-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
+
+.rematch-toast-body strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffe27a;
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+
+.rematch-toast-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.toast-btn {
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.toast-btn:active {
+  transform: scale(0.97);
+}
+
+.toast-btn-accept {
+  border: 1px solid #ffd700;
+  background: linear-gradient(180deg, #ffe27a, #d9a72e);
+  color: #241a06;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(214, 165, 50, 0.35);
+}
+
+.toast-btn-accept:hover {
+  filter: brightness(1.08);
+}
+
+.toast-btn-decline {
+  border: 1px solid rgb(247 239 224 / 18%);
+  background: rgb(255 255 255 / 6%);
+  color: rgb(247 239 224 / 76%);
+}
+
+.toast-btn-decline:hover {
+  background: rgb(255 255 255 / 12%);
+  color: rgb(247 239 224 / 94%);
+}
+
+body.iphone-preview .rematch-toast {
+  position: fixed;
+  top: calc(50% - 437px + 64px);
+  left: 50%;
+  width: min(calc(var(--mobile-stage-width) - 32px), 360px);
 }
