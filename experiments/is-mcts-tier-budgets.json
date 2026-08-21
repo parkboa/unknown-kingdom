@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "status": "promotion_gate_rejected",
+  "evaluation": {
+    "resultFile": "is-mcts-promotion-result.json",
+    "games": 20,
+    "pairedGames": 10,
+    "candidateScoreRate": 0.225,
+    "confidenceInterval95": [0.09593259180462468, 0.44268624524429334],
+    "promotionThreshold": 0.55,
+    "decision": "retain_heuristic_five_tiers"
+  },
+  "tiers": {
+    "novice": {
+      "searchAlgorithm": "heuristic",
+      "reason": "retain variance and low-cost tactical search"
+    },
+    "intermediate": {
+      "searchAlgorithm": "heuristic",
+      "reason": "retain deterministic shallow lookahead"
+    },
+    "advanced": {
+      "searchAlgorithm": "heuristic",
+      "reason": "retain depth-3 lookahead"
+    },
+    "expert": {
+      "searchAlgorithm": "heuristic",
+      "reason": "retain the promoted baseline after the IS-MCTS candidate scored below threshold"
+    },
+    "grandmaster": {
+      "searchAlgorithm": "heuristic",
+      "reason": "retain tactical extensions and King-risk safeguards; do not promote the rejected IS-MCTS candidate"
+    }
+  }
+}

@@ -1,0 +1,119 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  createGameJournal,
+  createGameState,
+  dispatchRecordedAction,
+  parseGameJournalJsonl,
+  replayGameJournal,
+  serializeGameJournalJsonl,
+  stateDigest,
+} from "../src/index.js";
+import { createJsonlGameRecorder } from "../../../scripts/lib/game-journal-jsonl.mjs";
+
+test("records and deterministically replays actions and domain events", () => {
+  const state = createGameState();
+  const journal = createGameJournal(state, { matchId: "test-match" });
+
+  assert.equal(dispatchRecordedAction(state, journal, "red", {
+    type: "deploy", unitType: "king", row: 0, col: 4,
+  }).accepted, true);
+  assert.equal(dispatchRecordedAction(state, journal, "blue", {
+    type: "deploy", unitType: "king", row: 8, col: 4,
+  }).accepted, true);
+  assert.equal(dispatchRecordedAction(state, journal, "red", { type: "resign" }).accepted, true);
+
+  const replay = replayGameJournal(journal);
+  assert.equal(replay.ok, true);
+  assert.equal(replay.actionCount, 3);
+  assert.equal(replay.finalDigest, stateDigest(state));
+  assert.deepEqual(replay.state, state);
+});
+
+test("round-trips a complete action, event, and digest journal through JSONL", () => {
+  const state = createGameState();
+  const journal = createGameJournal(state, { gameId: "jsonl-1" });
+  dispatchRecordedAction(state, journal, "red", {
+    type: "deploy", unitType: "king", row: 0, col: 4,
+  });
+  const outcome = { winner: null, capped: true };
+
+  const jsonl = serializeGameJournalJsonl(journal, outcome);
+  const parsed = parseGameJournalJsonl(jsonl);
+
+  assert.equal(jsonl.trim().split("\n").length, 3);
+  assert.deepEqual(parsed.journal, journal);
+  assert.deepEqual(parsed.outcome, outcome);
+  assert.equal(parsed.replay.finalDigest, stateDigest(state));
+});
+
+test("streams a complete replayable JSONL journal to a real file", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "daeguk-jsonl-recorder-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const outputPath = join(directory, "nested", "match.jsonl");
+  const state = createGameState();
+  const recorder = createJsonlGameRecorder(outputPath, state, { matchId: "file-match" });
+
+  assert.equal(recorder.dispatch(state, "red", {
+    type: "deploy", unitType: "king", row: 0, col: 4,
+  }).accepted, true);
+  assert.equal(recorder.dispatch(state, "blue", {
+    type: "deploy", unitType: "king", row: 8, col: 4,
+  }).accepted, true);
+  assert.equal(recorder.dispatch(state, "red", { type: "resign" }).accepted, true);
+  const outcome = { winner: "blue", reason: "resignation" };
+  recorder.finalize(outcome);
+
+  const jsonl = readFileSync(outputPath, "utf8");
+  const parsed = parseGameJournalJsonl(jsonl);
+  assert.equal(jsonl.trim().split("\n").length, 5);
+  assert.deepEqual(parsed.outcome, outcome);
+  assert.equal(parsed.journal.metadata.matchId, "file-match");
+  assert.equal(parsed.replay.actionCount, 3);
+  assert.equal(parsed.replay.finalDigest, stateDigest(state));
+  assert.throws(() => recorder.dispatch(state, "blue", { type: "resign" }), /after game_end/);
+  assert.throws(() => recorder.finalize(outcome), /already finalized/);
+});
+
+test("rejects a JSONL journal with a tampered action", () => {
+  const state = createGameState();
+  const journal = createGameJournal(state);
+  dispatchRecordedAction(state, journal, "red", {
+    type: "deploy", unitType: "king", row: 0, col: 4,
+  });
+  const records = serializeGameJournalJsonl(journal).trim().split("\n").map(JSON.parse);
+  records[1].action.row = 4;
+
+  assert.throws(
+    () => parseGameJournalJsonl(`${records.map(JSON.stringify).join("\n")}\n`),
+    /replay failed/,
+  );
+});
+
+test("reports the first divergence when a recorded action is changed", () => {
+  const state = createGameState();
+  const journal = createGameJournal(state);
+  dispatchRecordedAction(state, journal, "red", {
+    type: "deploy", unitType: "king", row: 0, col: 4,
+  });
+  journal.actions[0].action.row = 4;
+
+  const replay = replayGameJournal(journal);
+  assert.equal(replay.ok, false);
+  assert.equal(replay.index, 0);
+  assert.equal(replay.reason, "event_mismatch");
+});
+
+test("refuses to append when authoritative state changed outside the journal", () => {
+  const state = createGameState();
+  const journal = createGameJournal(state);
+  state.turn = "blue";
+
+  assert.throws(
+    () => dispatchRecordedAction(state, journal, "blue", { type: "resign" }),
+    /Journal state diverged/,
+  );
+});

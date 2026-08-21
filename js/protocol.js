@@ -75,6 +75,15 @@ function isStock(value) {
     && DEPLOY_ORDER.every((unitType) => isNonNegativeInteger(value[unitType]));
 }
 
+function isVisibleStock(value) {
+  return value === null || isStock(value);
+}
+
+function hasStockForPlayer(state, player) {
+  const opponent = player === "red" ? "blue" : "red";
+  return isStock(state.stock[player]) && state.stock[opponent] === null;
+}
+
 function isPlayerMap(value, validator) {
   return isPlainObject(value) && validator(value.red) && validator(value.blue);
 }
@@ -118,7 +127,8 @@ export function validateGameState(value) {
   if (value.mode !== "pvp") return false;
   if (!AI_PROFILES.includes(value.aiProfile)) return false;
   if (typeof value.aiThinking !== "boolean") return false;
-  if (!isPlayerMap(value.stock, isStock)) return false;
+  if (!isPlayerMap(value.stock, isVisibleStock)) return false;
+  if (value.stock.red === null && value.stock.blue === null) return false;
   if (!isPlayerMap(value.firstDeployDone, (item) => typeof item === "boolean")) return false;
   if (!isPlainObject(value.stats)) return false;
   if (!isPlayerMap(value.stats.captures, isNonNegativeInteger)) return false;
@@ -150,14 +160,16 @@ export function validateNetworkMessage(message) {
     return isRoomCode(message.roomCode)
       && hasOptionalBoardNumber(message)
       && PLAYERS.has(message.player)
-      && validateGameState(message.state);
+      && validateGameState(message.state)
+      && hasStockForPlayer(message.state, message.player);
   }
 
   if (message.type === "state") {
     return (message.roomCode === undefined || isRoomCode(message.roomCode))
       && hasOptionalBoardNumber(message)
       && (message.player === undefined || PLAYERS.has(message.player))
-      && validateGameState(message.state);
+      && validateGameState(message.state)
+      && (message.player === undefined || hasStockForPlayer(message.state, message.player));
   }
 
   if (message.type === "suicide_warning") {

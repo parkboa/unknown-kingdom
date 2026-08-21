@@ -1,13 +1,15 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
-  applyAction,
   canDeploy,
   countPieces,
+  createGameJournal,
   createGameState,
+  dispatchRecordedAction,
   getLegalActions,
   kingLibertyCount,
   neighbors,
+  replayGameJournal,
   stateForPlayer,
 } from "../packages/game-engine/src/index.js";
 import {
@@ -84,9 +86,10 @@ function seededRandom(initialSeed) {
 Math.random = seededRandom(seed);
 
 function deployMove(state, player, tier) {
-  state.aiRank = tier;
   const enemy = player === "red" ? "blue" : "red";
-  return findAiDeployMove(stateForPlayer(state, player), {
+  const playerView = stateForPlayer(state, player);
+  playerView.aiRank = tier;
+  return findAiDeployMove(playerView, {
     aiPlayer: player,
     humanPlayer: enemy,
     canDeploy: (owner, type, row, col) => canDeploy(state, owner, type, row, col),
@@ -95,26 +98,33 @@ function deployMove(state, player, tier) {
   });
 }
 
-function settleRequiredDecision(state, tiers) {
+function settleRequiredDecision(state, journal, tiers) {
   if (state.pendingSpecial) {
-    return applyAction(state, state.pendingSpecial.owner, { type: "activate_special" });
+    return dispatchRecordedAction(
+      state,
+      journal,
+      state.pendingSpecial.owner,
+      { type: "activate_special" },
+    ).accepted;
   }
   if (state.teleporting) {
     const owner = state.teleporting.owner;
-    state.aiRank = tiers[owner];
+    const playerView = stateForPlayer(state, owner);
+    playerView.aiRank = tiers[owner];
     const destination = chooseAiTeleportDestination(
-      stateForPlayer(state, owner),
+      playerView,
       neighbors,
       owner,
       owner === "red" ? "blue" : "red",
     );
-    return applyAction(
+    return dispatchRecordedAction(
       state,
+      journal,
       owner,
       destination
         ? { type: "wizard_teleport", row: destination.row, col: destination.col }
         : { type: "wizard_stay" },
-    );
+    ).accepted;
   }
   return false;
 }
@@ -175,6 +185,12 @@ function playGame(redTier, blueTier, gameNumber) {
   state.turn = startingPlayer;
   state.log = [`Simulation match started. ${startingPlayer} deploys first.`];
   const tiers = { red: redTier, blue: blueTier };
+  const journal = createGameJournal(state, {
+    seed,
+    gameNumber,
+    tiers,
+    startingPlayer,
+  });
   const gameCandidates = [];
   const tracing = traceGames.has(gameNumber);
   const traceEvents = [];
@@ -199,7 +215,7 @@ function playGame(redTier, blueTier, gameNumber) {
             row: state.teleporting.row,
             col: state.teleporting.col,
           };
-      if (!settleRequiredDecision(state, tiers)) {
+      if (!settleRequiredDecision(state, journal, tiers)) {
         throw new Error(`Could not settle required decision at deployment ${deployments}`);
       }
       if (tracing) {
@@ -223,18 +239,18 @@ function playGame(redTier, blueTier, gameNumber) {
     const move = deployMove(state, player, tiers[player]);
     if (!move) {
       const pass = getLegalActions(state, player).find((action) => action.type === "pass");
-      if (!pass || !applyAction(state, player, pass)) {
+      if (!pass || !dispatchRecordedAction(state, journal, player, pass).accepted) {
         throw new Error(`${tiers[player]} returned no legal move for ${player}`);
       }
       continue;
     }
 
-    if (!applyAction(state, player, {
+    if (!dispatchRecordedAction(state, journal, player, {
       type: "deploy",
       unitType: move.type,
       row: move.row,
       col: move.col,
-    })) {
+    }).accepted) {
       throw new Error(`${tiers[player]} returned an illegal move ${move.type}@${move.row},${move.col}`);
     }
     deployments += 1;
@@ -290,6 +306,10 @@ function playGame(redTier, blueTier, gameNumber) {
   }
 
   const capped = !state.winner;
+  const replay = replayGameJournal(journal);
+  if (!replay.ok) {
+    throw new Error(`Replay diverged in game ${gameNumber} at action ${replay.index}: ${replay.reason}`);
+  }
   const winner = state.winner || territoryWinner(state);
   const reason = state.resultReason || (capped ? "simulation_cap_territory" : "unknown");
   const finishType = reason.includes("King") ? "king_capture" : "territory";
@@ -313,8 +333,13 @@ function playGame(redTier, blueTier, gameNumber) {
       deployments,
       finishType,
       reason,
+      replay: {
+        actionCount: replay.actionCount,
+        finalDigest: replay.finalDigest,
+      },
       finalPieces: { red: countPieces(state, "red"), blue: countPieces(state, "blue") },
       events: traceEvents,
+      journal,
     });
   }
   return {

@@ -108,15 +108,17 @@ function renderDeployPicker(context) {
   context.deployDock?.classList.toggle("deploy-white", context.viewerSide === "blue");
   context.deployDock?.classList.toggle("deploy-black", context.viewerSide === "red");
 
-  const deployments = context.state.deploymentCount?.[context.state.turn] ?? (context.state.firstDeployDone[context.state.turn] ? 1 : 0);
+  const stockOwner = context.state.mode === "pvp" ? context.networkPlayer : context.state.turn;
+  const visibleStock = context.state.stock[stockOwner] || {};
+  const deployments = context.state.deploymentCount?.[stockOwner] ?? (context.state.firstDeployDone[stockOwner] ? 1 : 0);
 
   context.unitInputs.forEach((input) => {
-    const remaining = context.state.stock[context.state.turn][input.value];
+    const remaining = visibleStock[input.value] ?? 0;
     const label = input.closest("label");
     const status = label.querySelector("small");
     const exhausted = remaining <= 0;
     const isSpecial = SPECIALS.has(input.value);
-    const firstMoveLocked = !context.state.firstDeployDone[context.state.turn] && input.value !== "king";
+    const firstMoveLocked = !context.state.firstDeployDone[stockOwner] && input.value !== "king";
     const specialLocked = isSpecial && context.state.mode !== "tutorial" && context.state.mode !== "puzzle" && deployments < 5;
     const locked = firstMoveLocked || specialLocked;
     const onlineLocked = context.state.mode === "pvp" && (!context.networkReady || context.state.turn !== context.networkPlayer);

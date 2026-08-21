@@ -10,7 +10,9 @@
   ],
   "scripts": {
     "start": "npm start --workspace=server",
-    "test": "npm test --workspace=packages/game-engine && npm test --workspace=server"
+    "test": "npm test --workspace=packages/game-engine && npm test --workspace=server",
+    "ai:promotion": "node scripts/ai-promotion-gate.mjs",
+    "ai:is-mcts-benchmark": "node scripts/is-mcts-benchmark.mjs"
   },
   "engines": {
     "node": ">=20"

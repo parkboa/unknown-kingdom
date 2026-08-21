@@ -1,5 +1,12 @@
+import { PLAYERS, SPECIALS } from "./constants.js";
+
 export function stateForPlayer(state, player) {
+  if (!PLAYERS.includes(player)) throw new TypeError(`Unknown player: ${player}`);
   const view = structuredClone(state);
+  const opponent = player === "red" ? "blue" : "red";
+  if (view.stock && Object.hasOwn(view.stock, opponent)) {
+    view.stock[opponent] = null;
+  }
   if (view.pendingSpecial && view.pendingSpecial.owner !== player) {
     view.pendingSpecial = {
       row: view.pendingSpecial.row,
@@ -16,6 +23,12 @@ export function stateForPlayer(state, player) {
       piece.abilityUsed = false;
     }
   }
+  if (
+    view.lastMove?.player === opponent
+    && SPECIALS.has(view.lastMove.unitType)
+  ) {
+    const movedPiece = view.board[view.lastMove.row]?.[view.lastMove.col];
+    if (!movedPiece?.revealed) view.lastMove.unitType = "soldier";
+  }
   return view;
 }
-

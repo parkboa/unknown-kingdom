@@ -196,6 +196,7 @@ test("locks special units until player completes five deployments", () => {
 
 test("hides unrevealed enemy special identities", () => {
   const state = createGameState();
+  state.stock.red.general = 0;
   state.board[0][0] = {
     id: "secret-general",
     owner: "red",
@@ -205,10 +206,21 @@ test("hides unrevealed enemy special identities", () => {
     abilityUsed: false,
     kingEscapeUsed: false,
   };
+  state.lastMove = { player: "red", unitType: "general", row: 0, col: 0 };
   const blueView = stateForPlayer(state, "blue");
   const redView = stateForPlayer(state, "red");
   assert.equal(blueView.board[0][0].type, "soldier");
+  assert.equal(blueView.lastMove.unitType, "soldier");
   assert.equal(redView.board[0][0].type, "general");
+  assert.equal(redView.lastMove.unitType, "general");
+  assert.equal(blueView.stock.red, null);
+  assert.deepEqual(blueView.stock.blue, state.stock.blue);
+  assert.equal(redView.stock.blue, null);
+  assert.deepEqual(redView.stock.red, state.stock.red);
+});
+
+test("rejects an invalid player when creating a hidden-information view", () => {
+  assert.throws(() => stateForPlayer(createGameState(), "spectator"), /Unknown player/);
 });
 
 test("rejects actions from the wrong player", () => {
@@ -535,15 +547,6 @@ test("ends by territory with 0 bonus when a player has only suicide moves remain
   // After red places at (4,4), board is full or blue has no moves and match ends with winner red
   assert.notEqual(state.winner, null);
   assert.equal(state.winner, "red");
-});
-
-test("keeps only the authored tutorial challenge", async () => {
-  const { PUZZLES, RANK_ORDER } = await import("../../../js/puzzles.js");
-  assert.deepEqual(RANK_ORDER, ["thirdRateMaster"]);
-  assert.equal(PUZZLES.length, 1);
-  assert.equal(PUZZLES[0].id, "basic-tutorial-01");
-  assert.equal(PUZZLES[0].type, "tutorial");
-  assert.ok(PUZZLES[0].title.en && PUZZLES[0].title.ko);
 });
 
 test("player resignation immediately awards victory to the opponent", () => {

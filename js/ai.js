@@ -11,6 +11,7 @@ import {
   stateForPlayer,
   wallOwnerForEdge,
 } from "../packages/game-engine/src/index.js";
+import { evaluateStateTransition } from "./state-evaluation.js";
 
 export const AI_TIER_ORDER = [
   "novice",
@@ -23,6 +24,7 @@ export const AI_TIER_ORDER = [
 export const AI_RANK_SETTINGS = {
   // 1단계: 초급 (기존 절정고수 수준: 특수기물 기본 활용, searchDepth 2)
   novice: {
+    searchAlgorithm: "heuristic",
     typeWeights: { soldier: 40, general: 27, wizard: 18, diplomat: 15 },
     pressureMultiplier: 8,
     specialBoost: 16,
@@ -39,6 +41,7 @@ export const AI_RANK_SETTINGS = {
 
   // 2단계: 중급 (기존 초절정고수 수준: 외교관/진형 장악, searchDepth 2)
   intermediate: {
+    searchAlgorithm: "heuristic",
     typeWeights: { soldier: 34, general: 31, wizard: 20, diplomat: 15 },
     pressureMultiplier: 10,
     specialBoost: 20,
@@ -55,6 +58,7 @@ export const AI_RANK_SETTINGS = {
 
   // 3단계: 상급 (기존 화경 수준: 마법사 도약 및 변칙 전술, searchDepth 3)
   advanced: {
+    searchAlgorithm: "heuristic",
     typeWeights: { soldier: 32, general: 28, wizard: 22, diplomat: 18 },
     pressureMultiplier: 11,
     specialBoost: 22,
@@ -72,6 +76,7 @@ export const AI_RANK_SETTINGS = {
 
   // 4단계: 달인 (2~3수 연계 수읽기, 넓은 실리 포진 및 전술 확장)
   expert: {
+    searchAlgorithm: "heuristic",
     typeWeights: { soldier: 30, general: 30, wizard: 22, diplomat: 18 },
     pressureMultiplier: 12,
     specialBoost: 26,
@@ -103,6 +108,7 @@ export const AI_RANK_SETTINGS = {
 
   // 5단계: 신의 한 수 (신규 극강 튜닝 AI: 넓은 실리 장악 + 무결점 왕 방어 + 100% 킬각 캐치)
   grandmaster: {
+    searchAlgorithm: "heuristic",
     typeWeights: { soldier: 28, general: 32, wizard: 22, diplomat: 18 },
     pressureMultiplier: 14,
     specialBoost: 30,
@@ -150,7 +156,7 @@ const LEGACY_RANK_MAP = {
 };
 
 export function difficultySettings(state) {
-  return AI_RANK_SETTINGS[normalizeAiTier(state.aiRank || state.aiDifficulty)];
+  return state.aiSettings || AI_RANK_SETTINGS[normalizeAiTier(state.aiRank || state.aiDifficulty)];
 }
 
 export function normalizeAiTier(value) {
@@ -472,12 +478,11 @@ export function compareBeliefStonePositions(a, b, myKing, perspectivePlayer) {
 
 function unrevealedSpecialCounts(publicState, opponentPlayer) {
   const counts = { general: 1, wizard: 1, diplomat: 1 };
-  const stock = publicState.stock[opponentPlayer] || {};
-  for (const type of Object.keys(counts)) counts[type] -= stock[type] || 0;
 
   for (const piece of publicState.board.flat()) {
     if (!piece || piece.owner !== opponentPlayer || !piece.revealed) continue;
-    if (Object.hasOwn(counts, piece.type)) counts[piece.type] -= 1;
+    const knownType = piece.originalType || piece.type;
+    if (Object.hasOwn(counts, knownType)) counts[knownType] -= 1;
   }
   for (const type of Object.keys(counts)) counts[type] = Math.max(0, counts[type]);
   return counts;
@@ -584,8 +589,34 @@ function evaluateCriticalBeliefRisk(
   };
 }
 
+function materializeUnknownStockForSimulation(state, player) {
+  if (state.stock[player] !== null) return;
+
+  const deployedSpecials = new Set();
+  for (const piece of state.board.flat()) {
+    if (!piece || piece.owner !== player) continue;
+    const knownType = piece.originalType || piece.type;
+    if (["general", "wizard", "diplomat"].includes(knownType)) {
+      deployedSpecials.add(knownType);
+    }
+  }
+
+  const kingUsed = state.firstDeployDone[player] ? 1 : 0;
+  const deployments = state.deploymentCount?.[player] ?? kingUsed;
+  const assumedSoldiersUsed = Math.max(0, deployments - kingUsed - deployedSpecials.size);
+  state.stock[player] = {
+    soldier: Math.max(0, 77 - assumedSoldiersUsed),
+    king: kingUsed ? 0 : 1,
+    general: deployedSpecials.has("general") ? 0 : 1,
+    diplomat: deployedSpecials.has("diplomat") ? 0 : 1,
+    wizard: deployedSpecials.has("wizard") ? 0 : 1,
+  };
+}
+
 function simulateEngineTransition(state, player, action, neighbors) {
   const cloned = structuredClone(state);
+  materializeUnknownStockForSimulation(cloned, "red");
+  materializeUnknownStockForSimulation(cloned, "blue");
   if (action.type === "deploy" && !cloned.pendingSpecial && !cloned.teleporting) {
     cloned.turn = player;
   }
@@ -595,44 +626,7 @@ function simulateEngineTransition(state, player, action, neighbors) {
 }
 
 function evaluateEngineTransitionDelta(beforeState, afterState, player, enemy, settings) {
-  if (afterState.winner === player) return 100000;
-  if (afterState.winner && afterState.winner !== player) return -100000;
-
-  const weights = settings.score;
-  let scoreDelta = 0;
-
-  const captureGain = (afterState.stats?.captures?.[player] || 0) - (beforeState.stats?.captures?.[player] || 0);
-  scoreDelta += captureGain * (weights.capture || 9) * 6;
-
-  const enemyBefore = countStatePieces(beforeState, enemy);
-  const enemyAfter = countStatePieces(afterState, enemy);
-  const enemyLoss = enemyBefore - enemyAfter;
-  if (enemyLoss > 0) {
-    scoreDelta += enemyLoss * (weights.capture || 9) * 3;
-  }
-
-  const ownBefore = countStatePieces(beforeState, player);
-  const ownAfter = countStatePieces(afterState, player);
-  const ownLoss = (ownBefore + 1) - ownAfter;
-  if (ownLoss > 0) {
-    scoreDelta -= ownLoss * (weights.defense || 2) * (settings.ironcladKingDefense ? 14 : 8);
-  }
-
-  const enemyKingAfter = findKing(afterState, enemy);
-  if (enemyKingAfter) {
-    const enemyLibs = kingLibertyCount(afterState, enemy);
-    if (enemyLibs === 1) scoreDelta += (weights.kingPressure || 10) * 18;
-    else if (enemyLibs === 2) scoreDelta += (weights.kingPressure || 10) * 6;
-  }
-
-  const ownKingAfter = findKing(afterState, player);
-  if (ownKingAfter) {
-    const ownLibs = kingLibertyCount(afterState, player);
-    if (ownLibs === 1) scoreDelta -= (weights.kingSafety || 10) * (settings.ironcladKingDefense ? 60 : 25);
-    else if (ownLibs === 2) scoreDelta -= (weights.kingSafety || 10) * (settings.ironcladKingDefense ? 20 : 8);
-  }
-
-  return scoreDelta;
+  return evaluateStateTransition(beforeState, afterState, player, settings);
 }
 
 function evaluateTacticalMatingNet(state, aiPlayer, humanPlayer, depthRemaining, maxDepth = 6, neighbors) {

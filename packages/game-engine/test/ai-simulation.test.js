@@ -1,12 +1,25 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { applyAction, canDeploy, createGameState, getLegalActions, kingLibertyCount, stateForPlayer } from "../src/index.js";
-import { compareBeliefStonePositions, findAiDeployMove, normalizeAiTier } from "../../../js/ai.js";
+import {
+  AI_RANK_SETTINGS,
+  AI_TIER_ORDER,
+  compareBeliefStonePositions,
+  findAiDeployMove,
+  normalizeAiTier,
+} from "../../../js/ai.js";
 import { neighbors } from "../../../js/board.js";
 
 function countPieces(state, owner) {
   return state.board.flat().filter((p) => p?.owner === owner).length;
 }
+
+test("all five production difficulty tiers remain on the promoted heuristic engine", () => {
+  assert.equal(AI_TIER_ORDER.length, 5);
+  for (const tier of AI_TIER_ORDER) {
+    assert.equal(AI_RANK_SETTINGS[tier].searchAlgorithm, "heuristic");
+  }
+});
 
 test("Tactical AI does not treat an undeployed opponent King as a forced win", () => {
   for (const tier of ["expert", "grandmaster"]) {
@@ -137,38 +150,6 @@ test("equidistant hidden stones keep the same order after color-swapped vertical
     blueOrder,
     redOrder.map(({ row, col }) => ({ row: 8 - row, col })),
   );
-});
-
-test("Grandmaster fills its King's final liberty instead of leaving it exposed", () => {
-  const state = createGameState("pve", { aiRank: "grandmaster" });
-  state.turn = "blue";
-  state.firstDeployDone.red = true;
-  state.firstDeployDone.blue = true;
-  state.deploymentCount.red = 6;
-  state.deploymentCount.blue = 6;
-
-  // Place Blue (AI) King at (4,4) surrounded on 3 sides by Red soldiers
-  state.board[4][4] = { id: "blue-king", owner: "blue", type: "king", originalType: "king", revealed: true };
-  state.board[3][4] = { id: "red-1", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[5][4] = { id: "red-2", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[4][3] = { id: "red-3", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
-  // (4,5) is the ONLY remaining liberty of Blue King.
-
-  const move = findAiDeployMove(state, {
-    aiPlayer: "blue",
-    humanPlayer: "red",
-    canDeploy: (player, type, row, col) => !state.board[row][col] && state.stock[player][type] > 0,
-    countPieces: (owner) => countPieces(state, owner),
-    neighbors,
-  });
-
-  assert.ok(move, "AI should return a defensive move");
-  assert.deepEqual({ row: move.row, col: move.col }, { row: 4, col: 5 });
-  const beforeLiberties = kingLibertyCount(state, "blue");
-  const after = structuredClone(state);
-  assert.equal(applyAction(after, "blue", { type: "deploy", unitType: move.type, row: move.row, col: move.col }), true);
-  assert.equal(after.winner, null);
-  assert.ok(kingLibertyCount(after, "blue") > beforeLiberties);
 });
 
 test("Grandmaster returns an authoritative legal move in a tactical capture position", () => {

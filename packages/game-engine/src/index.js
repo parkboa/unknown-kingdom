@@ -9,6 +9,17 @@ export { eventsForPlayer } from "./events.js";
 export { createGameState } from "./state.js";
 export { stateForPlayer } from "./visibility.js";
 export {
+  createGameJournal,
+  dispatchRecordedAction,
+  gameJournalActionRecord,
+  gameJournalEndRecord,
+  gameJournalStartRecord,
+  parseGameJournalJsonl,
+  replayGameJournal,
+  serializeGameJournalJsonl,
+  stateDigest,
+} from "./replay.js";
+export {
   activeKingZones,
   boardSignature,
   canDeploy,
@@ -29,4 +40,3 @@ export {
 } from "./board.js";
 export { orthogonalPositions, opponent, inBounds, neighbors, SIZE, DEPLOY_ORDER } from "./constants.js";
 export { declareWinner } from "./victory.js";
-

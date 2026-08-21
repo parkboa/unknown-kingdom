@@ -17,6 +17,12 @@ Engine-created pieces use the state-owned `nextPieceId` sequence. Given equivale
 - `getLegalActions(state, player)`
 - `isSuicideDeployment(state, player, type, row, col)`
 - `stateForPlayer(state, player)`
+- `createGameJournal(initialState, metadata)`
+- `dispatchRecordedAction(state, journal, player, action)`
+- `replayGameJournal(journal)`
+- `stateDigest(state)`
+- `serializeGameJournalJsonl(journal, outcome)`
+- `parseGameJournalJsonl(jsonl)`
 
 `applyAction` remains a compatibility wrapper around `dispatchAction` and returns only the acceptance boolean. Existing `state.log` strings also remain temporarily for the current UI; new consumers should use events and localize them outside the engine.
 
@@ -40,6 +46,24 @@ An accepted action returns its events in deterministic occurrence order. Rejecte
 
 Events contain domain data rather than localized messages or UI commands. Before sending events to a client, call `eventsForPlayer`; it masks unrevealed enemy special types with `soldier`, matching `stateForPlayer`.
 
+`stateForPlayer` keeps the viewer's stock, replaces the opponent's stock with `null`, and masks hidden special identities on both board pieces and `lastMove`. The returned view is suitable for clients and information-set AI, but it is not an authoritative state for applying both players' actions.
+
+## Deterministic Journals
+
+`dispatchRecordedAction` stores every attempted action with its ordered domain events and the full-state digest before and after the transition. `replayGameJournal` starts from the embedded initial state and reports the first acceptance, event, or state-digest divergence. Journals contain the authoritative state and must not be sent to an opponent; use player-filtered state and events at the network boundary.
+
+JSONL journals use one `game_start` record, one `action` record per attempted action, and one `game_end` record. `scripts/lib/game-journal-jsonl.mjs` writes these records incrementally so a long-running evaluation retains every completed action even if the process stops early.
+
+`scripts/ai-promotion-gate.mjs` runs candidate-versus-baseline pairs with the same seed and swapped colors. It promotes only when the candidate's Wilson lower confidence bound reaches the configured score threshold, rejects when the upper bound falls below it, and otherwise continues until the maximum pair count.
+
+## AI Evaluation Experiments
+
+`js/state-evaluation.js` is the shared zero-sum state evaluator used by lookahead and search experiments. It scores terminal results, material, captures, King liberties, connectivity, influence, center control, and color-symmetric home position from either player's perspective.
+
+`js/is-mcts.js` is an experimental information-set MCTS implementation. Every iteration resamples a possible hidden-special world, keys tree nodes by the acting player and their visible information state, and uses the shared evaluator for action ordering and rollout values. `experiments/is-mcts-candidate.json` can be passed to the promotion gate with `--candidate-settings`; it is an experiment profile, not a production difficulty preset.
+
+`npm run ai:is-mcts-benchmark` measures fast, balanced, and deep budgets on deterministic opening and hidden-midgame positions. `experiments/is-mcts-tier-budgets.json` records the current proposed five-tier allocation. Expert and Grandmaster IS-MCTS profiles remain disabled in production until they beat their same-tier heuristic baselines through the promotion gate.
+
 ## Internal Modules
 
 - `constants.js`: shared board and unit constants plus coordinate helpers
@@ -51,6 +75,7 @@ Events contain domain data rather than localized messages or UI commands. Before
 - `reactions.js`: General, Diplomat, Wizard, and `resumeTurn` reaction flow
 - `actions.js`: action dispatch, legal-action enumeration, and suicide simulation
 - `visibility.js`: player-specific hidden-information state views
+- `replay.js`: canonical state digests plus action journal recording and verification
 - `index.js`: stable public facade only
 
 `capture.js` accepts the special-reaction queue function as an injected callback. This keeps generic capture resolution below reaction handling and avoids a circular module dependency.

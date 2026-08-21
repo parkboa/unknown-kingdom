@@ -1,0 +1,12 @@
+{
+  "searchAlgorithm": "is-mcts",
+  "variance": 0,
+  "isMctsIterations": 48,
+  "isMctsRootCandidateLimit": 8,
+  "isMctsTreeCandidateLimit": 8,
+  "isMctsRolloutCandidateLimit": 5,
+  "isMctsRootEvaluationLimit": 32,
+  "isMctsTreeEvaluationLimit": 16,
+  "isMctsRolloutEvaluationLimit": 8,
+  "isMctsRolloutDepth": 8
+}

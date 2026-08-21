@@ -3,10 +3,7 @@ import assert from "node:assert/strict";
 import { createGameState } from "../src/index.js";
 import {
   dispatchSharedLocalAction,
-  dispatchSharedPveAction,
   isSharedLocalSuicideDeployment,
-  isSharedPveSuicideDeployment,
-  previewSharedPveDeployment,
 } from "../../../js/shared-engine-adapter.mjs";
 
 function soldier(owner, id) {
@@ -21,7 +18,7 @@ function soldier(owner, id) {
   };
 }
 
-test("browser PvE adapter adopts ordinary shared-engine deployment and capture transitions", () => {
+test("browser local adapter clones ordinary deployment and capture transitions", () => {
   const state = createGameState();
   state.mode = "pve";
   state.firstDeployDone = { red: true, blue: true };
@@ -33,7 +30,12 @@ test("browser PvE adapter adopts ordinary shared-engine deployment and capture t
   state.board[5][4] = soldier("blue", "south");
   state.board[4][3] = soldier("blue", "west");
 
-  const result = previewSharedPveDeployment(state, "blue", "soldier", 4, 5);
+  const result = dispatchSharedLocalAction(
+    state,
+    "blue",
+    { type: "deploy", unitType: "soldier", row: 4, col: 5 },
+    "blue",
+  );
 
   assert.equal(result.status, "accepted");
   assert.deepEqual(result.events.map(({ type }) => type), [
@@ -63,42 +65,28 @@ function surroundedSpecialState(type, turn = "blue") {
   return state;
 }
 
-test("browser PvE adapter adopts General and Diplomat reaction actions", () => {
-  for (const type of ["general", "diplomat"]) {
-    const state = surroundedSpecialState(type);
-    const surrounded = previewSharedPveDeployment(state, "blue", "soldier", 4, 5, "blue");
-
-    assert.equal(surrounded.status, "accepted");
-    assert.equal(surrounded.events.some((event) => event.type === "special_revealed"), true);
-    assert.equal(surrounded.state.pendingSpecial.type, type);
-    assert.equal(state.pendingSpecial, null);
-
-    const activated = dispatchSharedPveAction(
-      surrounded.state,
-      "red",
-      { type: "activate_special" },
-      "blue",
-    );
-    assert.equal(activated.status, "accepted");
-    assert.equal(activated.events[0].type, "special_activated");
-    assert.equal(activated.state.pendingSpecial, null);
-    assert.equal(activated.state.turn, "red");
-    assert.equal(activated.state.board[4][4].type, "soldier");
-  }
-});
-
-test("browser PvE adapter adopts Wizard move and stay decisions", () => {
+test("browser local adapter adopts Wizard move and stay decisions", () => {
   for (const action of [
     { type: "wizard_teleport", row: 0, col: 0 },
     { type: "wizard_stay" },
   ]) {
     const state = surroundedSpecialState("wizard");
-    const surrounded = previewSharedPveDeployment(state, "blue", "soldier", 4, 5, "blue");
-    const activated = dispatchSharedPveAction(surrounded.state, "red", { type: "activate_special" }, "blue");
+    const surrounded = dispatchSharedLocalAction(
+      state,
+      "blue",
+      { type: "deploy", unitType: "soldier", row: 4, col: 5 },
+      "blue",
+    );
+    const activated = dispatchSharedLocalAction(
+      surrounded.state,
+      "red",
+      { type: "activate_special" },
+      "blue",
+    );
 
     assert.equal(activated.status, "accepted");
     assert.equal(activated.events.at(-1).type, "wizard_move_required");
-    const decided = dispatchSharedPveAction(activated.state, "red", action, "blue");
+    const decided = dispatchSharedLocalAction(activated.state, "red", action, "blue");
     assert.equal(decided.status, "accepted");
     assert.equal(decided.events[0].type, action.type === "wizard_stay" ? "wizard_stayed" : "wizard_moved");
     assert.equal(decided.state.teleporting, null);
@@ -106,28 +94,7 @@ test("browser PvE adapter adopts Wizard move and stay decisions", () => {
   }
 });
 
-test("browser PvE adapter adopts shared match completion", () => {
-  const state = createGameState();
-  state.mode = "pve";
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 5, blue: 5 };
-  state.turn = "blue";
-  state.board[4][4] = { ...soldier("red", "red-king"), type: "king", originalType: "king", revealed: true };
-  state.board[8][4] = { ...soldier("blue", "blue-king"), type: "king", originalType: "king", revealed: true };
-  state.board[3][4] = soldier("blue", "north");
-  state.board[5][4] = soldier("blue", "south");
-  state.board[4][3] = soldier("blue", "west");
-
-  const result = previewSharedPveDeployment(state, "blue", "soldier", 4, 5, "blue");
-
-  assert.equal(result.status, "accepted");
-  assert.equal(result.events.at(-1).type, "match_ended");
-  assert.equal(result.events.at(-1).reason, "king_captured");
-  assert.equal(result.state.winner, "blue");
-  assert.equal(state.winner, null);
-});
-
-test("browser PvE suicide checks use the player-filtered shared state", () => {
+test("browser local suicide checks use the player-filtered shared state", () => {
   const state = createGameState();
   state.mode = "pve";
   state.firstDeployDone = { red: true, blue: true };
@@ -138,7 +105,7 @@ test("browser PvE suicide checks use the player-filtered shared state", () => {
   state.board[4][3] = soldier("blue", "west");
   state.board[4][5] = soldier("blue", "east");
 
-  assert.equal(isSharedPveSuicideDeployment(state, "red", "soldier", 4, 4), true);
+  assert.equal(isSharedLocalSuicideDeployment(state, "red", "soldier", 4, 4), true);
   assert.equal(state.board[4][4], null);
 });
 
