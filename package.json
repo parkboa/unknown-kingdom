@@ -10,6 +10,10 @@
   ],
   "scripts": {
     "start": "npm start --workspace=server",
+    "build:mobile": "node scripts/build-mobile.mjs",
+    "ios:sync": "npm run build:mobile && cap sync ios",
+    "ios:open": "npm run ios:sync && cap open ios",
+    "ios:archive": "bash scripts/archive-ios.sh",
     "test": "npm test --workspace=packages/game-engine && npm test --workspace=server",
     "ai:promotion": "node scripts/ai-promotion-gate.mjs",
     "ai:reproduce-losses": "node scripts/reproduce-is-mcts-losses.mjs",
@@ -21,5 +25,12 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@capacitor/core": "7.6.8",
+    "@capacitor/ios": "7.6.8"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.6.8"
   }
 }

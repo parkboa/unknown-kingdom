@@ -91,12 +91,13 @@ const ASSET_VERSION = "progression-2";
 const PREVIEW_MODE = new URLSearchParams(location.search).get("preview");
 const requestedServer = new URLSearchParams(location.search).get("server");
 if (requestedServer) localStorage.setItem("unknown-kingdom-server", requestedServer);
-const isLocalHost = location.hostname === "127.0.0.1"
+const isNativeApp = location.protocol === "capacitor:";
+const isLocalHost = !isNativeApp && (location.hostname === "127.0.0.1"
   || location.hostname === "localhost"
   || location.hostname.endsWith(".local")
   || /^192\.168\./.test(location.hostname)
   || /^10\./.test(location.hostname)
-  || /^172\.(1[6-9]|2\d|3[01])\./.test(location.hostname);
+  || /^172\.(1[6-9]|2\d|3[01])\./.test(location.hostname));
 const requestedDeveloperMode = new URLSearchParams(location.search).get("dev");
 const DEVELOPER_MODE = requestedDeveloperMode === "1"
   || (requestedDeveloperMode !== "0" && isLocalHost);

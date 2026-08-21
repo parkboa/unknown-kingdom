@@ -1,0 +1,17 @@
+{
+  "appId": "com.boahspark.daeguk",
+  "appName": "DAEGUK",
+  "webDir": "dist-mobile",
+  "ios": {
+    "scheme": "App",
+    "backgroundColor": "#0b0c0d",
+    "contentInset": "never",
+    "preferredContentMode": "mobile"
+  },
+  "server": {
+    "iosScheme": "capacitor",
+    "allowNavigation": [
+      "unknown-kingdom-server.onrender.com"
+    ]
+  }
+}
