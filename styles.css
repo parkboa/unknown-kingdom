@@ -1874,18 +1874,6 @@ body.iphone-preview .lobby-logo {
   gap: 8px;
 }
 
-.taunt-button {
-  min-width: 54px;
-  height: 48px;
-  padding: 0 12px;
-  border: 1px solid #8e6213;
-  border-radius: var(--radius);
-  color: #2b210d;
-  font-weight: 900;
-  background: linear-gradient(180deg, #ffe27a, #d9a72e);
-  box-shadow: inset 0 1px 1px rgb(255 255 255 / 72%), 0 3px 8px rgb(70 48 8 / 22%);
-}
-
 .unit-counters {
   display: flex;
   gap: 7px;
@@ -3101,11 +3089,6 @@ body.iphone-preview .piece {
     height: 32px;
   }
 
-  .taunt-button {
-    min-width: 44px;
-    padding-inline: 6px;
-  }
-
   .icon-button {
     width: 36px;
     height: 40px;
@@ -3309,8 +3292,7 @@ body.iphone-preview .game-status-bar {
   padding: 0;
 }
 
-.game-status-bar.guide-active > .status-left-group,
-.game-status-bar.guide-active > .taunt-button {
+.game-status-bar.guide-active > .status-left-group {
   visibility: hidden;
 }
 

@@ -1,0 +1,5160 @@
+{
+  "config": {
+    "gamesPerColor": 1,
+    "maxDeployments": 180,
+    "seed": 20260822,
+    "totalGames": 20,
+    "startingPlayer": "red",
+    "commonScoreProfile": null,
+    "scoreAblations": [],
+    "traceGames": [
+      10,
+      13,
+      18
+    ],
+    "puzzleCollection": null
+  },
+  "standings": [
+    {
+      "tier": "novice",
+      "games": 8,
+      "wins": 6,
+      "draws": 0,
+      "losses": 2,
+      "scoreRate": 75,
+      "blackWinRate": 50,
+      "whiteWinRate": 100,
+      "starterWinRate": 50,
+      "secondPlayerWinRate": 100,
+      "kingCaptureWins": 3,
+      "territoryWins": 3,
+      "averageDeployments": 55.8
+    },
+    {
+      "tier": "intermediate",
+      "games": 8,
+      "wins": 5,
+      "draws": 0,
+      "losses": 3,
+      "scoreRate": 62.5,
+      "blackWinRate": 50,
+      "whiteWinRate": 75,
+      "starterWinRate": 50,
+      "secondPlayerWinRate": 75,
+      "kingCaptureWins": 3,
+      "territoryWins": 2,
+      "averageDeployments": 44
+    },
+    {
+      "tier": "advanced",
+      "games": 8,
+      "wins": 4,
+      "draws": 0,
+      "losses": 4,
+      "scoreRate": 50,
+      "blackWinRate": 25,
+      "whiteWinRate": 75,
+      "starterWinRate": 25,
+      "secondPlayerWinRate": 75,
+      "kingCaptureWins": 4,
+      "territoryWins": 0,
+      "averageDeployments": 30.8
+    },
+    {
+      "tier": "expert",
+      "games": 8,
+      "wins": 3,
+      "draws": 0,
+      "losses": 5,
+      "scoreRate": 37.5,
+      "blackWinRate": 25,
+      "whiteWinRate": 50,
+      "starterWinRate": 25,
+      "secondPlayerWinRate": 50,
+      "kingCaptureWins": 3,
+      "territoryWins": 0,
+      "averageDeployments": 46.5
+    },
+    {
+      "tier": "grandmaster",
+      "games": 8,
+      "wins": 2,
+      "draws": 0,
+      "losses": 6,
+      "scoreRate": 25,
+      "blackWinRate": 25,
+      "whiteWinRate": 25,
+      "starterWinRate": 25,
+      "secondPlayerWinRate": 25,
+      "kingCaptureWins": 2,
+      "territoryWins": 0,
+      "averageDeployments": 49.8
+    }
+  ],
+  "cappedGames": 0,
+  "outcomeSummary": {
+    "redWins": 7,
+    "blueWins": 13,
+    "starterWins": 7,
+    "secondPlayerWins": 13,
+    "draws": 0
+  },
+  "averageGameMs": 18597,
+  "traces": [
+    {
+      "gameNumber": 10,
+      "redTier": "advanced",
+      "blueTier": "intermediate",
+      "startingPlayer": "red",
+      "winner": "red",
+      "deployments": 24,
+      "finishType": "king_capture",
+      "reason": "White King was captured by Diplomat conversion.",
+      "finalPieces": {
+        "red": 11,
+        "blue": 13
+      },
+      "events": [
+        {
+          "kind": "deploy",
+          "deployment": 1,
+          "player": "red",
+          "tier": "advanced",
+          "move": {
+            "unitType": "king",
+            "row": 5,
+            "col": 4,
+            "staticScore": 25.5,
+            "searchScore": 98.3
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": -1,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": -1,
+            "enemyLibertiesAfter": -1,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 0,
+              "blue": 0
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": -1,
+              "blue": -1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 1,
+              "blue": 0
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": -1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 2,
+          "player": "blue",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "king",
+            "row": 8,
+            "col": 6,
+            "staticScore": 17.06428818143904,
+            "searchScore": -96.53571181856097
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": -1,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 1,
+              "blue": 0
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": -1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 1,
+              "blue": 1
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 3,
+          "player": "red",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 6,
+            "col": 6,
+            "staticScore": 163,
+            "searchScore": 97.8
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 1,
+              "blue": 1
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 2,
+              "blue": 1
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 4,
+          "player": "blue",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 5,
+            "col": 6,
+            "staticScore": 155.8826188170351,
+            "searchScore": 44.52261881703511
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 2,
+              "blue": 1
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 2,
+              "blue": 2
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 5,
+          "player": "red",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 5,
+            "col": 5,
+            "staticScore": 153.5,
+            "searchScore": 124.62
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 2,
+              "blue": 2
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 3,
+              "blue": 2
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 6,
+          "player": "blue",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 7,
+            "col": 4,
+            "staticScore": 152.05638233392966,
+            "searchScore": -13.463617666070348
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 3,
+              "blue": 2
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 3,
+              "blue": 3
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 7,
+          "player": "red",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 4,
+            "col": 6,
+            "staticScore": 229,
+            "searchScore": 237.56
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 3,
+              "blue": 3
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 4,
+              "blue": 3
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 8,
+          "player": "blue",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 5,
+            "col": 7,
+            "staticScore": 79.78645445934963,
+            "searchScore": -36.773545540650375
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 4,
+              "blue": 3
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 4,
+              "blue": 4
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 9,
+          "player": "red",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 8,
+            "col": 4,
+            "staticScore": 167,
+            "searchScore": -34.76000000000002
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 4,
+              "blue": 4
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 5,
+              "blue": 4
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 10,
+          "player": "blue",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 4,
+            "col": 5,
+            "staticScore": 420.631598372641,
+            "searchScore": 160.631598372641
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 5,
+              "blue": 4
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 5,
+              "blue": 5
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 11,
+          "player": "red",
+          "tier": "advanced",
+          "move": {
+            "unitType": "wizard",
+            "row": 6,
+            "col": 5,
+            "staticScore": 173,
+            "searchScore": 46.839999999999975
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 6,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 5,
+              "blue": 5
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 6,
+              "blue": 5
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 12,
+          "player": "blue",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "wizard",
+            "row": 5,
+            "col": 3,
+            "staticScore": 333.3241574937245,
+            "searchScore": 77.3241574937245
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 6,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 6,
+              "blue": 5
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 6,
+              "blue": 6
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 13,
+          "player": "red",
+          "tier": "advanced",
+          "move": {
+            "unitType": "diplomat",
+            "row": 7,
+            "col": 6,
+            "staticScore": 323.5,
+            "searchScore": -336.5
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 3,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 6,
+              "blue": 6
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 7,
+              "blue": 6
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 14,
+          "player": "blue",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "general",
+            "row": 6,
+            "col": 4,
+            "staticScore": 1510.857389529515,
+            "searchScore": 487.337389529515
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 3,
+            "ownLibertiesAfter": 3,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 7,
+              "blue": 6
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 7,
+              "blue": 7
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 15,
+          "player": "red",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 8,
+            "col": 5,
+            "staticScore": 1277,
+            "searchScore": 849.32
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 3,
+            "enemyLibertiesAfter": 2,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 7,
+              "blue": 7
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 8,
+              "blue": 7
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 16,
+          "player": "blue",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 4,
+            "col": 4,
+            "staticScore": 2685.0786552041536,
+            "searchScore": 72.0386552041532
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 2,
+            "ownLibertiesAfter": 2,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 3,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 8,
+              "blue": 7
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 8,
+              "blue": 8
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 3,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 17,
+          "player": "red",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 8,
+            "col": 7,
+            "staticScore": 2975,
+            "searchScore": 2235.4799999999996
+          },
+          "tags": [
+            "king_atari"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 3,
+            "ownLibertiesAfter": 3,
+            "enemyLibertiesBefore": 2,
+            "enemyLibertiesAfter": 1,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 8,
+              "blue": 8
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 3,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 9,
+              "blue": 8
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 3,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 18,
+          "player": "blue",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "diplomat",
+            "row": 7,
+            "col": 5,
+            "staticScore": 2650.115472061676,
+            "searchScore": 1126.435472061676
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 1,
+            "ownLibertiesAfter": 1,
+            "enemyLibertiesBefore": 3,
+            "enemyLibertiesAfter": 2,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 9,
+              "blue": 8
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 3,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 9,
+              "blue": 9
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 19,
+          "player": "red",
+          "tier": "advanced",
+          "move": {
+            "unitType": "general",
+            "row": 6,
+            "col": 3,
+            "staticScore": 1289,
+            "searchScore": 790.52
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 2,
+            "ownLibertiesAfter": 2,
+            "enemyLibertiesBefore": 1,
+            "enemyLibertiesAfter": 1,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 9,
+              "blue": 9
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 10,
+              "blue": 9
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 20,
+          "player": "blue",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 8,
+            "col": 3,
+            "staticScore": 6071.3598096382575,
+            "searchScore": 5606.479809638257
+          },
+          "tags": [
+            "king_rescue",
+            "capture"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 1,
+            "ownLibertiesAfter": 6,
+            "enemyLibertiesBefore": 2,
+            "enemyLibertiesAfter": 2,
+            "captureGain": 2,
+            "enemyPieceLoss": 2
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 10,
+              "blue": 9
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 8,
+              "blue": 12
+            },
+            "captures": {
+              "red": 0,
+              "blue": 2
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 6
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 21,
+          "player": "red",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 7,
+            "col": 3,
+            "staticScore": 1862.5,
+            "searchScore": 436.0999999999999
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 2,
+            "ownLibertiesAfter": 2,
+            "enemyLibertiesBefore": 6,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 8,
+              "blue": 12
+            },
+            "captures": {
+              "red": 0,
+              "blue": 2
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 6
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 9,
+              "blue": 12
+            },
+            "captures": {
+              "red": 0,
+              "blue": 2
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 22,
+          "player": "blue",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 7,
+            "col": 7,
+            "staticScore": 1295.5195899066516,
+            "searchScore": 1227.2795899066516
+          },
+          "tags": [
+            "king_atari"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 2,
+            "enemyLibertiesAfter": 1,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 9,
+              "blue": 12
+            },
+            "captures": {
+              "red": 0,
+              "blue": 2
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 9,
+              "blue": 13
+            },
+            "captures": {
+              "red": 0,
+              "blue": 2
+            },
+            "kingLiberties": {
+              "red": 1,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 23,
+          "player": "red",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 3,
+            "col": 5,
+            "staticScore": 1197.5,
+            "searchScore": -453.46000000000004
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 1,
+            "ownLibertiesAfter": 1,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 9,
+              "blue": 13
+            },
+            "captures": {
+              "red": 0,
+              "blue": 2
+            },
+            "kingLiberties": {
+              "red": 1,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 10,
+              "blue": 13
+            },
+            "captures": {
+              "red": 0,
+              "blue": 2
+            },
+            "kingLiberties": {
+              "red": 1,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 24,
+          "player": "blue",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 6,
+            "col": 7,
+            "staticScore": 1249.6758847090648,
+            "searchScore": null
+          },
+          "tags": [
+            "special_reaction"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 1,
+            "enemyLibertiesAfter": 0,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 10,
+              "blue": 13
+            },
+            "captures": {
+              "red": 0,
+              "blue": 2
+            },
+            "kingLiberties": {
+              "red": 1,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 10,
+              "blue": 14
+            },
+            "captures": {
+              "red": 0,
+              "blue": 2
+            },
+            "kingLiberties": {
+              "red": 0,
+              "blue": 5
+            },
+            "pendingSpecial": {
+              "row": 7,
+              "col": 6,
+              "owner": "red",
+              "type": "diplomat",
+              "captor": "blue"
+            },
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "reaction",
+          "afterDeployment": 24,
+          "decision": {
+            "type": "activate_special",
+            "owner": "red",
+            "unitType": "diplomat",
+            "row": 7,
+            "col": 6
+          },
+          "resolvedMove": {
+            "player": "blue",
+            "unitType": "soldier",
+            "row": 6,
+            "col": 7
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 10,
+              "blue": 14
+            },
+            "captures": {
+              "red": 0,
+              "blue": 2
+            },
+            "kingLiberties": {
+              "red": 0,
+              "blue": 5
+            },
+            "pendingSpecial": {
+              "row": 7,
+              "col": 6,
+              "owner": "red",
+              "type": "diplomat",
+              "captor": "blue"
+            },
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 11,
+              "blue": 13
+            },
+            "captures": {
+              "red": 1,
+              "blue": 2
+            },
+            "kingLiberties": {
+              "red": 1,
+              "blue": -1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": "red"
+          }
+        }
+      ]
+    },
+    {
+      "gameNumber": 13,
+      "redTier": "intermediate",
+      "blueTier": "grandmaster",
+      "startingPlayer": "red",
+      "winner": "red",
+      "deployments": 25,
+      "finishType": "king_capture",
+      "reason": "White King was captured at 7,4.",
+      "finalPieces": {
+        "red": 16,
+        "blue": 2
+      },
+      "events": [
+        {
+          "kind": "deploy",
+          "deployment": 1,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "king",
+            "row": 4,
+            "col": 4,
+            "staticScore": 28.27411044272594,
+            "searchScore": -29.165889557274056
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": -1,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": -1,
+            "enemyLibertiesAfter": -1,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 0,
+              "blue": 0
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": -1,
+              "blue": -1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 1,
+              "blue": 0
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": -1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 2,
+          "player": "blue",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "king",
+            "row": 7,
+            "col": 4,
+            "staticScore": 100.75555555555556,
+            "searchScore": -63.27644444444442
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": -1,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 1,
+              "blue": 0
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": -1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 1,
+              "blue": 1
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 3,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 5,
+            "col": 4,
+            "staticScore": 247.3852490370162,
+            "searchScore": 43.2252490370162
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 6,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 1,
+              "blue": 1
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 2,
+              "blue": 1
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 4,
+          "player": "blue",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 6,
+            "col": 4,
+            "staticScore": 496.1,
+            "searchScore": 382.88968888888894
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 6,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 2,
+              "blue": 1
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 2,
+              "blue": 2
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 5,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 7,
+            "col": 6,
+            "staticScore": 138.158785460121,
+            "searchScore": 17.838785460121002
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 2,
+              "blue": 2
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 3,
+              "blue": 2
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 6,
+          "player": "blue",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 8,
+            "col": 4,
+            "staticScore": 339.0444444444445,
+            "searchScore": 226.28924444444453
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 7,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 3,
+              "blue": 2
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 3,
+              "blue": 3
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 7
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 7,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 7,
+            "col": 2,
+            "staticScore": 138.25781760150568,
+            "searchScore": 17.93781760150567
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 7,
+            "enemyLibertiesAfter": 7,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 3,
+              "blue": 3
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 7
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 4,
+              "blue": 3
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 7
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 8,
+          "player": "blue",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 7,
+            "col": 3,
+            "staticScore": 333.24444444444447,
+            "searchScore": 536.5036843537415
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 7,
+            "ownLibertiesAfter": 6,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 4,
+              "blue": 3
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 7
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 4,
+              "blue": 4
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 6
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 9,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 6,
+            "col": 2,
+            "staticScore": 75.67999547731597,
+            "searchScore": -241.36000452268405
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 6,
+            "enemyLibertiesAfter": 6,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 4,
+              "blue": 4
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 6
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 5,
+              "blue": 4
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 6
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 10,
+          "player": "blue",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 7,
+            "col": 5,
+            "staticScore": 326.24444444444447,
+            "searchScore": -150.052088888889
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 6,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 5,
+              "blue": 4
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 6
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 5,
+              "blue": 5
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 11,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "general",
+            "row": 6,
+            "col": 5,
+            "staticScore": 696.8479890280403,
+            "searchScore": 188.2079890280403
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 5,
+              "blue": 5
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 6,
+              "blue": 5
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 12,
+          "player": "blue",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "general",
+            "row": 5,
+            "col": 5,
+            "staticScore": 1142.8266666666666,
+            "searchScore": 106.76942222222215
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 6,
+              "blue": 5
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 6,
+              "blue": 6
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 13,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "wizard",
+            "row": 8,
+            "col": 5,
+            "staticScore": 1454.023593458906,
+            "searchScore": 477.3835934589059
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 3,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 6,
+              "blue": 6
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 7,
+              "blue": 6
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 14,
+          "player": "blue",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "diplomat",
+            "row": 6,
+            "col": 6,
+            "staticScore": 1858.7488888888888,
+            "searchScore": 1458.9844444444448
+          },
+          "tags": [
+            "special_reaction",
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 3,
+            "ownLibertiesAfter": 3,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 7,
+              "blue": 6
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 7,
+              "blue": 7
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 3
+            },
+            "pendingSpecial": {
+              "row": 6,
+              "col": 5,
+              "owner": "red",
+              "type": "general",
+              "captor": "blue"
+            },
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "reaction",
+          "afterDeployment": 14,
+          "decision": {
+            "type": "activate_special",
+            "owner": "red",
+            "unitType": "general",
+            "row": 6,
+            "col": 5
+          },
+          "resolvedMove": {
+            "player": "blue",
+            "unitType": "diplomat",
+            "row": 6,
+            "col": 6
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 7,
+              "blue": 7
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 3
+            },
+            "pendingSpecial": {
+              "row": 6,
+              "col": 5,
+              "owner": "red",
+              "type": "general",
+              "captor": "blue"
+            },
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 7,
+              "blue": 3
+            },
+            "captures": {
+              "red": 4,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 15,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "diplomat",
+            "row": 8,
+            "col": 3,
+            "staticScore": 1451.847307937313,
+            "searchScore": 880.0073079373129
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 6,
+            "ownLibertiesAfter": 6,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 7,
+              "blue": 3
+            },
+            "captures": {
+              "red": 4,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 8,
+              "blue": 3
+            },
+            "captures": {
+              "red": 4,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 16,
+          "player": "blue",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 8,
+            "col": 2,
+            "staticScore": 2259.4355555555558,
+            "searchScore": 1656.2496
+          },
+          "tags": [
+            "special_reaction"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 6,
+            "enemyLibertiesAfter": 6,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 8,
+              "blue": 3
+            },
+            "captures": {
+              "red": 4,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 8,
+              "blue": 4
+            },
+            "captures": {
+              "red": 4,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 4
+            },
+            "pendingSpecial": {
+              "row": 8,
+              "col": 3,
+              "owner": "red",
+              "type": "diplomat",
+              "captor": "blue"
+            },
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "reaction",
+          "afterDeployment": 16,
+          "decision": {
+            "type": "activate_special",
+            "owner": "red",
+            "unitType": "diplomat",
+            "row": 8,
+            "col": 3
+          },
+          "resolvedMove": {
+            "player": "blue",
+            "unitType": "soldier",
+            "row": 8,
+            "col": 2
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 8,
+              "blue": 4
+            },
+            "captures": {
+              "red": 4,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 4
+            },
+            "pendingSpecial": {
+              "row": 8,
+              "col": 3,
+              "owner": "red",
+              "type": "diplomat",
+              "captor": "blue"
+            },
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 11,
+              "blue": 1
+            },
+            "captures": {
+              "red": 7,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 17,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 7,
+            "col": 5,
+            "staticScore": 1150.930999355763,
+            "searchScore": 817.410999355763
+          },
+          "tags": [
+            "king_atari"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 6,
+            "ownLibertiesAfter": 6,
+            "enemyLibertiesBefore": 2,
+            "enemyLibertiesAfter": 1,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 11,
+              "blue": 1
+            },
+            "captures": {
+              "red": 7,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 12,
+              "blue": 1
+            },
+            "captures": {
+              "red": 7,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 18,
+          "player": "blue",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "wizard",
+            "row": 6,
+            "col": 4,
+            "staticScore": 548.2888888888889,
+            "searchScore": -4002.233777777778
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 1,
+            "ownLibertiesAfter": 1,
+            "enemyLibertiesBefore": 6,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 12,
+              "blue": 1
+            },
+            "captures": {
+              "red": 7,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 12,
+              "blue": 2
+            },
+            "captures": {
+              "red": 7,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 19,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 6,
+            "col": 3,
+            "staticScore": 1199.5380881566787,
+            "searchScore": null
+          },
+          "tags": [
+            "special_reaction"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 1,
+            "enemyLibertiesAfter": 0,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 12,
+              "blue": 2
+            },
+            "captures": {
+              "red": 7,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 13,
+              "blue": 2
+            },
+            "captures": {
+              "red": 7,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 0
+            },
+            "pendingSpecial": {
+              "row": 6,
+              "col": 4,
+              "owner": "blue",
+              "type": "wizard",
+              "captor": "red"
+            },
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "reaction",
+          "afterDeployment": 19,
+          "decision": {
+            "type": "activate_special",
+            "owner": "blue",
+            "unitType": "wizard",
+            "row": 6,
+            "col": 4
+          },
+          "resolvedMove": {
+            "player": "red",
+            "unitType": "soldier",
+            "row": 6,
+            "col": 3
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 13,
+              "blue": 2
+            },
+            "captures": {
+              "red": 7,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 0
+            },
+            "pendingSpecial": {
+              "row": 6,
+              "col": 4,
+              "owner": "blue",
+              "type": "wizard",
+              "captor": "red"
+            },
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 10,
+              "blue": 2
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": {
+              "row": 6,
+              "col": 4,
+              "owner": "blue",
+              "reaction": true
+            },
+            "winner": null
+          }
+        },
+        {
+          "kind": "reaction",
+          "afterDeployment": 19,
+          "decision": {
+            "type": "wizard_decision",
+            "owner": "blue",
+            "row": 6,
+            "col": 4
+          },
+          "resolvedMove": {
+            "player": "blue",
+            "unitType": "wizard",
+            "action": "teleport",
+            "row": 7,
+            "col": 1,
+            "fromRow": 6,
+            "fromCol": 4
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 10,
+              "blue": 2
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": {
+              "row": 6,
+              "col": 4,
+              "owner": "blue",
+              "reaction": true
+            },
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 10,
+              "blue": 2
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 20,
+          "player": "blue",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 6,
+            "col": 4,
+            "staticScore": 5481.188888888889,
+            "searchScore": 5947.204888888889
+          },
+          "tags": [
+            "king_rescue"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 1,
+            "ownLibertiesAfter": 3,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 10,
+              "blue": 2
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 10,
+              "blue": 3
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 21,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 6,
+            "col": 5,
+            "staticScore": 157.0220595338149,
+            "searchScore": -668.4979404661851
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 3,
+            "enemyLibertiesAfter": 2,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 10,
+              "blue": 3
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 11,
+              "blue": 3
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 22,
+          "player": "blue",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 8,
+            "col": 6,
+            "staticScore": 2449.937777777778,
+            "searchScore": -0.45368888888867787
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 2,
+            "ownLibertiesAfter": 2,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 11,
+              "blue": 3
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 11,
+              "blue": 4
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 23,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 5,
+            "col": 4,
+            "staticScore": 491.8742450336693,
+            "searchScore": 208.75424503366912
+          },
+          "tags": [
+            "king_atari"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 2,
+            "enemyLibertiesAfter": 1,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 11,
+              "blue": 4
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 12,
+              "blue": 4
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 24,
+          "player": "blue",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 6,
+            "col": 3,
+            "staticScore": 2642.3399999999997,
+            "searchScore": -80357.66
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 1,
+            "ownLibertiesAfter": 1,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 12,
+              "blue": 4
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 12,
+              "blue": 5
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 25,
+          "player": "red",
+          "tier": "intermediate",
+          "move": {
+            "unitType": "soldier",
+            "row": 5,
+            "col": 3,
+            "staticScore": 1162.1000845865346,
+            "searchScore": null
+          },
+          "tags": [
+            "king_capture",
+            "capture"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 9,
+            "enemyLibertiesBefore": 1,
+            "enemyLibertiesAfter": -1,
+            "captureGain": 1,
+            "enemyPieceLoss": 3
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 12,
+              "blue": 5
+            },
+            "captures": {
+              "red": 7,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 16,
+              "blue": 2
+            },
+            "captures": {
+              "red": 8,
+              "blue": 3
+            },
+            "kingLiberties": {
+              "red": 9,
+              "blue": -1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": "red"
+          }
+        }
+      ]
+    },
+    {
+      "gameNumber": 18,
+      "redTier": "grandmaster",
+      "blueTier": "advanced",
+      "startingPlayer": "red",
+      "winner": "red",
+      "deployments": 26,
+      "finishType": "king_capture",
+      "reason": "White King was captured by Wizard capture reaction.",
+      "finalPieces": {
+        "red": 9,
+        "blue": 6
+      },
+      "events": [
+        {
+          "kind": "deploy",
+          "deployment": 1,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "king",
+            "row": 5,
+            "col": 4,
+            "staticScore": 37.2,
+            "searchScore": 196.8675555555555
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": -1,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": -1,
+            "enemyLibertiesAfter": -1,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 0,
+              "blue": 0
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": -1,
+              "blue": -1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 1,
+              "blue": 0
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": -1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 2,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "king",
+            "row": 8,
+            "col": 4,
+            "staticScore": 80,
+            "searchScore": -5.680000000000007
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": -1,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 1,
+              "blue": 0
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": -1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 1,
+              "blue": 1
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 3,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 6,
+            "col": 4,
+            "staticScore": 497.9,
+            "searchScore": 268.9666666666667
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 6,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 1,
+              "blue": 1
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 2,
+              "blue": 1
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 4,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 7,
+            "col": 4,
+            "staticScore": 296.5,
+            "searchScore": 256.58
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 6,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 2,
+              "blue": 1
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 2,
+              "blue": 2
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 5,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 4,
+            "col": 4,
+            "staticScore": 347.22222222222223,
+            "searchScore": 324.24444444444447
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 7,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 2,
+              "blue": 2
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 3,
+              "blue": 2
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 7,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 6,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 3,
+            "col": 4,
+            "staticScore": 180.5,
+            "searchScore": 139.14
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 7,
+            "enemyLibertiesAfter": 6,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 3,
+              "blue": 2
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 7,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 3,
+              "blue": 3
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 7,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 5,
+            "col": 3,
+            "staticScore": 341.44444444444446,
+            "searchScore": 318.3813333333334
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 6,
+            "ownLibertiesAfter": 6,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 3,
+              "blue": 3
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 4,
+              "blue": 3
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 8,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 5,
+            "col": 2,
+            "staticScore": 177.5,
+            "searchScore": 415.02
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 6,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 4,
+              "blue": 3
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 6,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 4,
+              "blue": 4
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 9,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 5,
+            "col": 5,
+            "staticScore": 343.6666666666667,
+            "searchScore": 359.6641777777776
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 5,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 4,
+              "blue": 4
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 5,
+              "blue": 4
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 10,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 4,
+            "col": 3,
+            "staticScore": 739,
+            "searchScore": 487.15999999999997
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 5,
+              "blue": 4
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 5,
+              "blue": 5
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 11,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "wizard",
+            "row": 8,
+            "col": 3,
+            "staticScore": 2081.291111111111,
+            "searchScore": 2260.293066666667
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 5,
+              "blue": 5
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 6,
+              "blue": 5
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 12,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 8,
+            "col": 5,
+            "staticScore": 145,
+            "searchScore": 322.35999999999996
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 6,
+              "blue": 5
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 6,
+              "blue": 6
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 13,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "general",
+            "row": 7,
+            "col": 5,
+            "staticScore": 1269.3022222222223,
+            "searchScore": 295.2616888888889
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 6,
+              "blue": 6
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 7,
+              "blue": 6
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 14,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "wizard",
+            "row": 6,
+            "col": 3,
+            "staticScore": 1652.5,
+            "searchScore": 1255.62
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 3,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 7,
+              "blue": 6
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 7,
+              "blue": 7
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 3,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 15,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "diplomat",
+            "row": 7,
+            "col": 3,
+            "staticScore": 2715.971111111111,
+            "searchScore": 1534.8891555555551
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 3,
+            "ownLibertiesAfter": 3,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 3,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 7,
+              "blue": 7
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 3,
+              "blue": 4
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 8,
+              "blue": 7
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 3,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 16,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "general",
+            "row": 6,
+            "col": 5,
+            "staticScore": 1621,
+            "searchScore": 1691.8799999999999
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 3,
+            "ownLibertiesAfter": 3,
+            "enemyLibertiesBefore": 3,
+            "enemyLibertiesAfter": 2,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 8,
+              "blue": 7
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 3,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 8,
+              "blue": 8
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 17,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 6,
+            "col": 2,
+            "staticScore": 1827.7088888888889,
+            "searchScore": 1213.5549841269838
+          },
+          "tags": [
+            "special_reaction"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 2,
+            "ownLibertiesAfter": 2,
+            "enemyLibertiesBefore": 3,
+            "enemyLibertiesAfter": 3,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 8,
+              "blue": 8
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 9,
+              "blue": 8
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 3
+            },
+            "pendingSpecial": {
+              "row": 6,
+              "col": 3,
+              "owner": "blue",
+              "type": "wizard",
+              "captor": "red"
+            },
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "reaction",
+          "afterDeployment": 17,
+          "decision": {
+            "type": "activate_special",
+            "owner": "blue",
+            "unitType": "wizard",
+            "row": 6,
+            "col": 3
+          },
+          "resolvedMove": {
+            "player": "red",
+            "unitType": "soldier",
+            "row": 6,
+            "col": 2
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 9,
+              "blue": 8
+            },
+            "captures": {
+              "red": 0,
+              "blue": 0
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 3
+            },
+            "pendingSpecial": {
+              "row": 6,
+              "col": 3,
+              "owner": "blue",
+              "type": "wizard",
+              "captor": "red"
+            },
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 5,
+              "blue": 8
+            },
+            "captures": {
+              "red": 0,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": {
+              "row": 6,
+              "col": 3,
+              "owner": "blue",
+              "reaction": true
+            },
+            "winner": null
+          }
+        },
+        {
+          "kind": "reaction",
+          "afterDeployment": 17,
+          "decision": {
+            "type": "wizard_decision",
+            "owner": "blue",
+            "row": 6,
+            "col": 3
+          },
+          "resolvedMove": {
+            "player": "blue",
+            "unitType": "wizard",
+            "action": "teleport",
+            "row": 4,
+            "col": 5,
+            "fromRow": 6,
+            "fromCol": 3
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 5,
+              "blue": 8
+            },
+            "captures": {
+              "red": 0,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": {
+              "row": 6,
+              "col": 3,
+              "owner": "blue",
+              "reaction": true
+            },
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 5,
+              "blue": 8
+            },
+            "captures": {
+              "red": 0,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 3,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 18,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 6,
+            "col": 4,
+            "staticScore": 1345,
+            "searchScore": 2123.08
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 6,
+            "enemyLibertiesBefore": 3,
+            "enemyLibertiesAfter": 2,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 5,
+              "blue": 8
+            },
+            "captures": {
+              "red": 0,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 3,
+              "blue": 5
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 5,
+              "blue": 9
+            },
+            "captures": {
+              "red": 0,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 6
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 19,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 5,
+            "col": 6,
+            "staticScore": 161.70000000000002,
+            "searchScore": -1602.9524444444446
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 2,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 6,
+            "enemyLibertiesAfter": 6,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 5,
+              "blue": 9
+            },
+            "captures": {
+              "red": 0,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 2,
+              "blue": 6
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 6,
+              "blue": 9
+            },
+            "captures": {
+              "red": 0,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 6
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 20,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 7,
+            "col": 6,
+            "staticScore": 1001.5,
+            "searchScore": 1418.8600000000001
+          },
+          "tags": [
+            "special_reaction"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 6,
+            "ownLibertiesAfter": 6,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 6,
+              "blue": 9
+            },
+            "captures": {
+              "red": 0,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 6
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 6,
+              "blue": 10
+            },
+            "captures": {
+              "red": 0,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 6
+            },
+            "pendingSpecial": {
+              "row": 7,
+              "col": 5,
+              "owner": "red",
+              "type": "general",
+              "captor": "blue"
+            },
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "reaction",
+          "afterDeployment": 20,
+          "decision": {
+            "type": "activate_special",
+            "owner": "red",
+            "unitType": "general",
+            "row": 7,
+            "col": 5
+          },
+          "resolvedMove": {
+            "player": "blue",
+            "unitType": "soldier",
+            "row": 7,
+            "col": 6
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 6,
+              "blue": 10
+            },
+            "captures": {
+              "red": 0,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 6
+            },
+            "pendingSpecial": {
+              "row": 7,
+              "col": 5,
+              "owner": "red",
+              "type": "general",
+              "captor": "blue"
+            },
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 6,
+              "blue": 6
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 21,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 7,
+            "col": 4,
+            "staticScore": 2280.2555555555555,
+            "searchScore": 1869.0431111111104
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 5,
+            "ownLibertiesAfter": 5,
+            "enemyLibertiesBefore": 3,
+            "enemyLibertiesAfter": 2,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 6,
+              "blue": 6
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 3
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 7,
+              "blue": 6
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 22,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 5,
+            "col": 3,
+            "staticScore": 3009.5,
+            "searchScore": 699.2599999999998
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 2,
+            "ownLibertiesAfter": 2,
+            "enemyLibertiesBefore": 5,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 7,
+              "blue": 6
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 5,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 7,
+              "blue": 7
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 23,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 8,
+            "col": 5,
+            "staticScore": 5145.066666666667,
+            "searchScore": 7897.162666666666
+          },
+          "tags": [
+            "king_atari"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 2,
+            "enemyLibertiesAfter": 1,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 7,
+              "blue": 7
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 2
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 8,
+              "blue": 7
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 24,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "diplomat",
+            "row": 7,
+            "col": 3,
+            "staticScore": 1536.5,
+            "searchScore": -267.4200000000001
+          },
+          "tags": [
+            "special_deploy"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 1,
+            "ownLibertiesAfter": 1,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 8,
+              "blue": 7
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 8,
+              "blue": 8
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 25,
+          "player": "red",
+          "tier": "grandmaster",
+          "move": {
+            "unitType": "soldier",
+            "row": 6,
+            "col": 3,
+            "staticScore": 3370.4888888888886,
+            "searchScore": 5451.0853333333325
+          },
+          "tags": [],
+          "metrics": {
+            "ownLibertiesBefore": 4,
+            "ownLibertiesAfter": 4,
+            "enemyLibertiesBefore": 1,
+            "enemyLibertiesAfter": 1,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 8,
+              "blue": 8
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "blue",
+            "pieces": {
+              "red": 9,
+              "blue": 8
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "deploy",
+          "deployment": 26,
+          "player": "blue",
+          "tier": "advanced",
+          "move": {
+            "unitType": "soldier",
+            "row": 8,
+            "col": 2,
+            "staticScore": 6044,
+            "searchScore": 6016.72
+          },
+          "tags": [
+            "special_reaction"
+          ],
+          "metrics": {
+            "ownLibertiesBefore": 1,
+            "ownLibertiesAfter": 1,
+            "enemyLibertiesBefore": 4,
+            "enemyLibertiesAfter": 4,
+            "captureGain": 0,
+            "enemyPieceLoss": 0
+          },
+          "before": {
+            "turn": "blue",
+            "pieces": {
+              "red": 9,
+              "blue": 8
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 1
+            },
+            "pendingSpecial": null,
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 9,
+              "blue": 9
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 1
+            },
+            "pendingSpecial": {
+              "row": 8,
+              "col": 3,
+              "owner": "red",
+              "type": "wizard",
+              "captor": "blue"
+            },
+            "teleporting": null,
+            "winner": null
+          }
+        },
+        {
+          "kind": "reaction",
+          "afterDeployment": 26,
+          "decision": {
+            "type": "activate_special",
+            "owner": "red",
+            "unitType": "wizard",
+            "row": 8,
+            "col": 3
+          },
+          "resolvedMove": {
+            "player": "blue",
+            "unitType": "soldier",
+            "row": 8,
+            "col": 2
+          },
+          "before": {
+            "turn": "red",
+            "pieces": {
+              "red": 9,
+              "blue": 9
+            },
+            "captures": {
+              "red": 4,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": 1
+            },
+            "pendingSpecial": {
+              "row": 8,
+              "col": 3,
+              "owner": "red",
+              "type": "wizard",
+              "captor": "blue"
+            },
+            "teleporting": null,
+            "winner": null
+          },
+          "after": {
+            "turn": "red",
+            "pieces": {
+              "red": 9,
+              "blue": 6
+            },
+            "captures": {
+              "red": 7,
+              "blue": 4
+            },
+            "kingLiberties": {
+              "red": 4,
+              "blue": -1
+            },
+            "pendingSpecial": null,
+            "teleporting": {
+              "row": 8,
+              "col": 3,
+              "owner": "red",
+              "reaction": true
+            },
+            "winner": "red"
+          }
+        }
+      ]
+    }
+  ]
+}

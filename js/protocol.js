@@ -95,12 +95,6 @@ function isPendingSpecial(value) {
     && (value.captor === undefined || PLAYERS.has(value.captor));
 }
 
-function isTauntChance(value) {
-  return value === null
-    || (isCoordinate(value)
-      && PLAYERS.has(value.targetOwner));
-}
-
 function isTauntEvent(value) {
   return value === null
     || (isCoordinate(value)
@@ -117,7 +111,7 @@ export function validateGameState(value) {
   if (value.resumeTurn !== null && !PLAYERS.has(value.resumeTurn)) return false;
   if (!isOptionalCoordinate(value.selected)) return false;
   if (!isPendingAbility(value.teleporting) || !isPendingSpecial(value.pendingSpecial) || !isPendingAbility(value.pendingWizardTeleport) || !isPendingAbility(value.pendingKingSwap)) return false;
-  if (!isPlayerMap(value.tauntChances, isTauntChance) || !isTauntEvent(value.tauntEvent) || !isNonNegativeInteger(value.tauntSerial)) return false;
+  if (!isTauntEvent(value.tauntEvent) || !isNonNegativeInteger(value.tauntSerial)) return false;
   if (!isNonNegativeInteger(value.tauntUntil)) return false;
   if (value.winner !== null && !WINNERS.has(value.winner)) return false;
   if (typeof value.resultReason !== "string" || value.resultReason.length > 1000) return false;

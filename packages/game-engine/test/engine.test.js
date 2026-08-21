@@ -26,6 +26,22 @@ function special(owner, type, id) {
   };
 }
 
+function mirrorColorRows(state) {
+  const opposite = (owner) => owner === "red" ? "blue" : "red";
+  const mirrored = structuredClone(state);
+  mirrored.board = state.board
+    .slice()
+    .reverse()
+    .map((row) => row.map((piece) => piece && { ...structuredClone(piece), owner: opposite(piece.owner) }));
+  mirrored.turn = opposite(state.turn);
+  mirrored.stock = { red: structuredClone(state.stock.blue), blue: structuredClone(state.stock.red) };
+  mirrored.firstDeployDone = { red: state.firstDeployDone.blue, blue: state.firstDeployDone.red };
+  mirrored.deploymentCount = { red: state.deploymentCount.blue, blue: state.deploymentCount.red };
+  mirrored.stats.captures = { red: state.stats.captures.blue, blue: state.stats.captures.red };
+  mirrored.stats.specialsUsed = { red: state.stats.specialsUsed.blue, blue: state.stats.specialsUsed.red };
+  return mirrored;
+}
+
 function createOpponentSurroundState(type) {
   const state = createGameState();
   state.firstDeployDone = { red: true, blue: true };
@@ -60,6 +76,33 @@ test("requires the King as each player's first deployment", () => {
   assert.equal(state.deploymentCount.red, 1);
   assert.deepEqual(state.lastMove, { player: "red", unitType: "king", row: 0, col: 0 });
   assert.equal(state.turn, "blue");
+});
+
+test("simultaneous capturable specials are resolved in color-swapped vertical symmetry", () => {
+  const state = createGameState();
+  state.turn = "red";
+  state.firstDeployDone = { red: true, blue: true };
+  state.deploymentCount = { red: 6, blue: 6 };
+  state.board[0][8] = special("red", "king", "red-king");
+  state.board[0][8].revealed = true;
+  state.board[8][0] = special("blue", "king", "blue-king");
+  state.board[8][0].revealed = true;
+
+  state.board[1][1] = special("blue", "general", "top-general");
+  state.board[7][7] = special("blue", "wizard", "bottom-wizard");
+  for (const [row, col] of [[0, 1], [2, 1], [1, 0], [1, 2], [6, 7], [8, 7], [7, 6], [7, 8]]) {
+    state.board[row][col] = soldier("red", `red-${row}-${col}`);
+  }
+
+  const mirrored = mirrorColorRows(state);
+  assert.equal(applyAction(state, "red", { type: "deploy", unitType: "soldier", row: 4, col: 4 }), true);
+  assert.equal(applyAction(mirrored, "blue", { type: "deploy", unitType: "soldier", row: 4, col: 4 }), true);
+
+  assert.deepEqual(
+    { owner: mirrored.pendingSpecial.owner, type: mirrored.pendingSpecial.type, row: mirrored.pendingSpecial.row, col: mirrored.pendingSpecial.col },
+    { owner: "red", type: state.pendingSpecial.type, row: 8 - state.pendingSpecial.row, col: state.pendingSpecial.col },
+  );
+  assert.equal(state.pendingSpecial.type, "general");
 });
 
 test("generates deterministic piece IDs from state-owned sequencing", () => {
@@ -216,32 +259,31 @@ test("ends the match when a King is captured once", () => {
   assert.equal(state.pendingKingSwap, null);
 });
 
-test("grants one taunt when a King starts against its own wall", () => {
+test("automatically emits one taunt when a King starts against its own wall", () => {
   const state = createGameState();
   assert.equal(applyAction(state, "red", { type: "deploy", unitType: "king", row: 0, col: 4 }), true);
-  assert.deepEqual(state.tauntChances.blue, {
-    targetOwner: "red",
-    row: 0,
-    col: 4,
-  });
-  assert.equal(applyAction(state, "blue", { type: "taunt" }), false);
-  assert.equal(applyAction(state, "blue", { type: "deploy", unitType: "king", row: 8, col: 4 }), true);
-  assert.equal(applyAction(state, "blue", { type: "taunt" }), true);
-  assert.equal(state.tauntChances.blue, null);
   assert.deepEqual(state.tauntEvent, {
     id: 1,
     speakerOwner: "blue",
     targetOwner: "red",
+    row: 0,
+    col: 4,
+  });
+  assert.equal(applyAction(state, "blue", { type: "deploy", unitType: "king", row: 8, col: 4 }), true);
+  assert.deepEqual(state.tauntEvent, {
+    id: 2,
+    speakerOwner: "red",
+    targetOwner: "blue",
     row: 8,
     col: 4,
   });
-  assert.equal(applyAction(state, "blue", { type: "taunt" }), false);
+  assert.equal(applyAction(state, "red", { type: "taunt" }), false);
 });
 
 test("does not grant a taunt for a King away from its own wall", () => {
   const state = createGameState();
   assert.equal(applyAction(state, "red", { type: "deploy", unitType: "king", row: 4, col: 4 }), true);
-  assert.equal(state.tauntChances.blue, null);
+  assert.equal(state.tauntEvent, null);
 });
 
 test("neutral side-wall row gives liberty to Black", () => {
@@ -495,33 +537,13 @@ test("ends by territory with 0 bonus when a player has only suicide moves remain
   assert.equal(state.winner, "red");
 });
 
-test("validates all challenge puzzles across 8 ranks", async () => {
+test("keeps only the authored tutorial challenge", async () => {
   const { PUZZLES, RANK_ORDER } = await import("../../../js/puzzles.js");
-  assert.equal(PUZZLES.length, 29, "There must be 29 challenge puzzles (1 tutorial + 7 ranks * 4 puzzles)");
-  assert.equal(RANK_ORDER.length, 8, "There must be 8 ranks");
-
-  for (const rankKey of RANK_ORDER) {
-    const rankPuzzles = PUZZLES.filter((p) => p.rank === rankKey);
-    const expectedCount = rankKey === "thirdRateMaster" ? 1 : 4;
-    assert.equal(rankPuzzles.length, expectedCount, `Rank ${rankKey} must have ${expectedCount} puzzles`);
-  }
-
-  for (const puzzle of PUZZLES) {
-    assert.ok(puzzle.id, "Puzzle must have an ID");
-    assert.ok(puzzle.title?.en && puzzle.title?.ko, `Puzzle ${puzzle.id} must have bilingual titles`);
-    assert.ok(puzzle.description?.en && puzzle.description?.ko, `Puzzle ${puzzle.id} must have bilingual descriptions`);
-    if (puzzle.type !== "tutorial") {
-      assert.ok(puzzle.maxMoves >= 1, `Puzzle ${puzzle.id} must define maxMoves`);
-      assert.ok(puzzle.player === "red" || puzzle.player === "blue", `Puzzle ${puzzle.id} must have valid player`);
-      assert.ok(puzzle.objective?.type, `Puzzle ${puzzle.id} must have an objective`);
-      for (const piece of puzzle.pieces || []) {
-        const [owner, type, row, col] = piece;
-        assert.ok(["red", "blue"].includes(owner), `Invalid owner in puzzle ${puzzle.id}`);
-        assert.ok(["soldier", "king", "general", "diplomat", "wizard"].includes(type), `Invalid unit in puzzle ${puzzle.id}`);
-        assert.ok(row >= 0 && row < 9 && col >= 0 && col < 9, `Piece out of bounds in puzzle ${puzzle.id}`);
-      }
-    }
-  }
+  assert.deepEqual(RANK_ORDER, ["thirdRateMaster"]);
+  assert.equal(PUZZLES.length, 1);
+  assert.equal(PUZZLES[0].id, "basic-tutorial-01");
+  assert.equal(PUZZLES[0].type, "tutorial");
+  assert.ok(PUZZLES[0].title.en && PUZZLES[0].title.ko);
 });
 
 test("player resignation immediately awards victory to the opponent", () => {
@@ -535,4 +557,3 @@ test("player resignation immediately awards victory to the opponent", () => {
   assert.equal(result.events[0].reason, "resignation");
   assert.equal(result.events[0].winner, "blue");
 });
-

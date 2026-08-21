@@ -16,7 +16,6 @@ import {
   canDeploy as engineCanDeploy,
   countPieces as engineCountPieces,
   findKingPosition as engineFindKingPosition,
-  touchesOwnWall,
 } from "./packages/game-engine/src/index.js";
 import {
   chooseAiTeleportDestination,
@@ -70,25 +69,18 @@ import {
   setSavedLanguage,
 } from "./js/settings.js";
 import {
-  TUTORIAL_SPECIAL_ACTIVATE_DELAY_MS,
-  TUTORIAL_SPECIAL_SURROUND_DELAY_MS,
-  TUTORIAL_STEPS,
   challengeProgress,
   firstUnresolvedRankIndex,
-  isPuzzleComplete,
-  isPuzzleUnlocked,
   isValidPuzzlePiece,
   localizedPuzzleText,
-  markPuzzleComplete,
+  markPuzzleComplete as persistPuzzleComplete,
   normalizePuzzleStock,
 } from "./js/puzzle-controller.js";
 import {
-  hideRematchToast as uiHideRematchToast,
   renderOpenRoomsList,
   resetRpsButtons as uiResetRpsButtons,
   showNetworkRoomControls as uiShowNetworkRoomControls,
   showNetworkRpsPicker as uiShowNetworkRpsPicker,
-  showRematchToast as uiShowRematchToast,
 } from "./js/online-ui.js";
 
 const LANGUAGE = getSavedLanguage("ko");
@@ -129,7 +121,7 @@ let pveTurnDeadline = null;
 let rematchOfferedBy = null;
 let pveHumanPlayer = PVE_HUMAN;
 let pveAiPlayer = PVE_AI;
-let pveDifficulty = "thirdRateMaster";
+let pveDifficulty = "novice";
 let selectedPveRank = null;
 let tutorialStep = -1;
 let tutorialAwaitingContinue = false;
@@ -142,7 +134,6 @@ let activePuzzle = null;
 let puzzleMoves = 0;
 let puzzleInitialCaptures = null;
 let puzzleCompleted = false;
-let challengeProgress = loadChallengeProgress();
 let openRooms = [];
 let selectedOpenRoomCode = "";
 let wizardMovePromptDismissed = false;
@@ -231,7 +222,6 @@ const modeInfo = document.querySelector("#modeInfo");
 const connectionInfo = document.querySelector("#connectionInfo");
 const connectionInfoText = document.querySelector("#connectionInfoText");
 const rankInfo = document.querySelector("#rankInfo");
-const tauntBtn = document.querySelector("#tauntBtn");
 const redCount = document.querySelector("#redCount");
 const blueCount = document.querySelector("#blueCount");
 const confirmTeleportBtn = document.querySelector("#confirmTeleportBtn");
@@ -322,10 +312,7 @@ function primaryModesUnlocked() {
 }
 
 function markPuzzleComplete(index) {
-  const puzzleId = PUZZLES[index]?.id;
-  if (!puzzleId || challengeProgress.completedPuzzleIds.includes(puzzleId)) return;
-  challengeProgress.completedPuzzleIds.push(puzzleId);
-  saveChallengeProgress();
+  persistPuzzleComplete(index);
   renderProgressionUi();
 }
 
@@ -1219,16 +1206,6 @@ function commitSharedLocalAction(player, action) {
 }
 
 function presentSharedLocalEvents(events) {
-  const tauntAvailable = events.find((event) => event.type === "taunt_available");
-  if (tauntAvailable) {
-    registerKingWallTaunt(
-      tauntAvailable.targetOwner,
-      tauntAvailable.row,
-      tauntAvailable.col,
-      { autoUse: true },
-    );
-  }
-
   for (const event of events) {
     if (event.type === "piece_deployed") {
       playPlacementSound();
@@ -1236,6 +1213,8 @@ function presentSharedLocalEvents(events) {
         ? text("hiddenUnit")
         : UNIT_LABELS[event.unitType];
       addLog(`${sideName(event.player)} deployed ${unitName} at ${coord(event.row, event.col)}.`);
+    } else if (event.type === "taunt_used") {
+      showTauntBubble(event);
     } else if (event.type === "group_captured" && event.pieces.length) {
       addLog(`${sideName(event.captor)} captured ${event.pieces.length} ${sideName(event.defender)} space(s).`);
     } else if (event.type === "special_revealed") {
@@ -1320,24 +1299,6 @@ confirmPassNoticeBtn?.addEventListener("click", () => {
   dismissPassNotification();
 });
 
-function registerKingWallTaunt(owner, row, col, { autoUse = false } = {}) {
-  if (!touchesOwnWall(owner, row, col)) return;
-  const tauntingPlayer = opponent(owner);
-  state.tauntChances[tauntingPlayer] = {
-    targetOwner: owner,
-    row,
-    col,
-  };
-  addLog(`${sideName(owner)} placed the King against its own fortress wall.`);
-  if (autoUse) {
-    window.setTimeout(() => {
-      if (state.tauntChances[tauntingPlayer]?.row === row && state.tauntChances[tauntingPlayer]?.col === col) {
-        useTaunt(tauntingPlayer, { allowUnplacedSpeaker: true });
-      }
-    }, 150);
-  }
-}
-
 function showTauntBubble(event) {
   if (!event || event.id === lastTauntEventId) return;
   lastTauntEventId = event.id;
@@ -1356,42 +1317,6 @@ function showTauntBubble(event) {
     render();
     scheduleAiTurn();
   }, durationMs);
-}
-
-function findKingPosition(owner) {
-  for (let row = 0; row < SIZE; row += 1) {
-    for (let col = 0; col < SIZE; col += 1) {
-      const piece = state.board[row][col];
-      if (piece?.owner === owner && piece.type === "king") return { row, col };
-    }
-  }
-  return null;
-}
-
-function canPlayerUseTaunt(player) {
-  return Boolean(player && state.tauntChances[player] && findKingPosition(player));
-}
-
-function useTaunt(player, { allowUnplacedSpeaker = false } = {}) {
-  const chance = state.tauntChances[player];
-  const speaker = findKingPosition(player);
-  const targetPiece = chance ? state.board[chance.row]?.[chance.col] : null;
-  if (!chance || state.winner || targetPiece?.owner !== chance.targetOwner || targetPiece.type !== "king") {
-    if (chance) state.tauntChances[player] = null;
-    return false;
-  }
-  if (!speaker && !allowUnplacedSpeaker) return false;
-  state.tauntChances[player] = null;
-  state.tauntSerial += 1;
-  state.tauntEvent = {
-    id: state.tauntSerial,
-    speakerOwner: player,
-    targetOwner: chance.targetOwner,
-    row: speaker?.row ?? chance.row,
-    col: speaker?.col ?? chance.col,
-  };
-  showTauntBubble(state.tauntEvent);
-  return true;
 }
 
 function activatePendingSpecial(player) {
@@ -1514,14 +1439,6 @@ function runAiTurn() {
   }
 }
 
-function countPieces(owner) {
-  let total = 0;
-  forEachPiece((piece) => {
-    if (piece.owner === owner) total += 1;
-  });
-  return total;
-}
-
 function forEachPiece(callback) {
   for (let row = 0; row < SIZE; row += 1) {
     for (let col = 0; col < SIZE; col += 1) {
@@ -1564,7 +1481,6 @@ function render() {
     deployDock,
     confirmTeleportBtn,
     cancelTeleportBtn,
-    tauntBtn,
     undoBtn,
     resignBtn,
     resultModal,
@@ -1582,7 +1498,6 @@ function render() {
     pveAiPlayer,
     viewerSide,
     wizardMovePromptDismissed,
-    canUseTaunt: canPlayerUseTaunt(state.mode === "pvp" ? networkSession.player : pveHumanPlayer),
     visibleTaunt,
     undoCount: undoStack.length,
     unitLabels: UNIT_LABELS,
@@ -1848,13 +1763,6 @@ cancelTeleportBtn.addEventListener("click", () => {
     return;
   }
 });
-tauntBtn.addEventListener("click", () => {
-  if (state.mode === "pvp") {
-    sendNetworkAction({ type: "taunt" });
-  } else {
-    useTaunt(pveHumanPlayer);
-  }
-});
 activateSpecialBtn.addEventListener("click", () => {
   if (!state.pendingSpecial) return;
   if (state.mode === "pvp") {
@@ -1869,19 +1777,14 @@ confirmSuicideBtn.addEventListener("click", () => {
   if (!confirmation) return;
   closeSuicideConfirmation({ restoreFocus: false });
   if (confirmation.source === "online") {
-    sendNetworkAction({ type: "pass" });
+    sendNetworkAction({ ...confirmation.action, confirmSuicide: true });
     return;
   }
-  saveUndoCheckpoint();
-  const player = confirmation.player;
-  const nextPlayer = player === "red" ? "blue" : "red";
-  state.lastMove = { player, action: "pass" };
-  state.turn = nextPlayer;
-  addLog(text("autoPass", { side: sideName(player) }) || `${sideName(player)} passed the turn.`);
-  render();
-  if (state.mode === "pve" && state.turn === pveAiPlayer && !state.winner) {
-    scheduleAiMove();
-  }
+  deploy(confirmation.row, confirmation.col, {
+    player: confirmation.player,
+    unitType: confirmation.unitType,
+    confirmedSuicide: true,
+  });
 });
 suicideConfirmModal.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
@@ -2040,27 +1943,12 @@ function startPve(side) {
   if (side === "blue") scheduleAiTurn();
 }
 
-function resetRpsButtons() {
-  rpsButtons.forEach((btn) => {
-    btn.disabled = false;
-    btn.classList.remove("selected");
-  });
-}
-
 function showNetworkRoomControls() {
   uiShowNetworkRoomControls({ publicRoomList, networkRoomControls, networkRpsPicker });
 }
 
 function showNetworkRpsPicker() {
   uiShowNetworkRpsPicker({ publicRoomList, networkRoomControls, networkRpsPicker, rpsButtons });
-}
-
-function showRematchToast() {
-  uiShowRematchToast(rematchToast);
-}
-
-function hideRematchToast() {
-  uiHideRematchToast(rematchToast);
 }
 
 function resetRpsButtons() {

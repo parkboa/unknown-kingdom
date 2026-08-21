@@ -1,5 +1,15 @@
 # Unknown Kingdom: Shadow Realm — Design Notes
 
+## Current Product Decisions — 2026-08-20
+
+- AI Match exposes five tiers only: Novice, Intermediate, Advanced, Expert, and Grandmaster. Old eight-rank values are compatibility inputs, not separate AI configurations.
+- Challenge currently contains only the authored tutorial. The previous 28 placeholder puzzles and their rank-count contract were removed; future puzzles will be designed from scratch.
+- A King placed against its own fortress wall triggers the opponent's taunt automatically. There is no manual taunt action; the presentation and online deployment lock last three seconds.
+- Online play is human-versus-human only. The test-only online bot room and server bot scheduler were removed.
+- A selected suicide move opens an in-game confirmation before state mutation. Confirming performs the move; if no non-suicide deployment exists, the match ends by territory instead.
+
+These decisions supersede older eight-rank, multi-puzzle, manual-taunt, online-bot, and suicide-flow notes below.
+
 ## Visual Direction
 
 - Keep the current top-view prototype until the rules and interactions are stable.

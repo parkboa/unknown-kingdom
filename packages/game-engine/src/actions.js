@@ -1,7 +1,6 @@
 import { PLAYERS, SIZE, UNIT_TYPES, inBounds, opponent } from "./constants.js";
 import {
   canDeploy,
-  findKingPosition,
   hasLegalDeployment,
   incrementDeploymentCount,
   touchesOwnWall,
@@ -53,21 +52,17 @@ function performAction(state, player, action, events, options) {
     state.stock[player][action.unitType] -= 1;
     state.firstDeployDone[player] = true;
     incrementDeploymentCount(state, player);
-    let tauntAvailable = null;
+    let automaticTaunt = null;
     if (action.unitType === "king" && touchesOwnWall(player, action.row, action.col)) {
-      const tauntingPlayer = opponent(player);
-      state.tauntChances[tauntingPlayer] = {
+      state.tauntSerial += 1;
+      state.tauntEvent = {
+        id: state.tauntSerial,
+        speakerOwner: opponent(player),
         targetOwner: player,
         row: action.row,
         col: action.col,
       };
-      tauntAvailable = {
-        type: "taunt_available",
-        player: tauntingPlayer,
-        targetOwner: player,
-        row: action.row,
-        col: action.col,
-      };
+      automaticTaunt = state.tauntEvent;
     }
     emitEvent(state, events, {
       type: "piece_deployed",
@@ -78,7 +73,7 @@ function performAction(state, player, action, events, options) {
       col: action.col,
       revealed: piece.revealed,
     });
-    if (tauntAvailable) emitEvent(state, events, tauntAvailable);
+    if (automaticTaunt) emitEvent(state, events, { type: "taunt_used", ...automaticTaunt });
     resolveCaptures(state, player, events, queueReaction);
     if (
       options.advanceTurn !== false
@@ -93,22 +88,6 @@ function performAction(state, player, action, events, options) {
   }
   if (action.type === "activate_special") {
     return activatePendingSpecial(state, player, events, options);
-  }
-  if (action.type === "taunt") {
-    const chance = state.tauntChances[player];
-    const speaker = findKingPosition(state, player);
-    if (!chance || !speaker) return false;
-    state.tauntChances[player] = null;
-    state.tauntSerial += 1;
-    state.tauntEvent = {
-      id: state.tauntSerial,
-      speakerOwner: player,
-      targetOwner: chance.targetOwner,
-      row: speaker.row,
-      col: speaker.col,
-    };
-    emitEvent(state, events, { type: "taunt_used", ...state.tauntEvent });
-    return true;
   }
   if (action.type === "wizard_teleport") {
     const pending = state.teleporting;
@@ -196,8 +175,6 @@ export function applyAction(state, player, action) {
 export function getLegalActions(state, player) {
   if (!PLAYERS.includes(player) || state.winner) return [];
   const actions = [];
-
-  if (state.tauntChances[player] && findKingPosition(state, player)) actions.push({ type: "taunt" });
 
   if (state.pendingSpecial) {
     if (state.pendingSpecial.owner === player) actions.push({ type: "activate_special" });

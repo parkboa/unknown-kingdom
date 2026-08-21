@@ -10,5 +10,3 @@ export {
   opponent,
   stateForPlayer,
 } from "@daeguk/game-engine";
-
-export { chooseBotAction } from "@daeguk/game-engine/bot";

@@ -1,0 +1,84 @@
+{
+  "seeds": [20260821, 20260822, 20260823],
+  "totalGames": 60,
+  "standings": [
+    {
+      "tier": "novice",
+      "games": 24,
+      "wins": 16,
+      "draws": 0,
+      "losses": 8,
+      "winRate": 66.7,
+      "blackWinRate": 50,
+      "whiteWinRate": 83.3,
+      "kingCaptureWins": 7,
+      "territoryWins": 9,
+      "averageDeployments": 56.6,
+      "seedWinRates": [50, 75, 75]
+    },
+    {
+      "tier": "intermediate",
+      "games": 24,
+      "wins": 16,
+      "draws": 0,
+      "losses": 8,
+      "winRate": 66.7,
+      "blackWinRate": 58.3,
+      "whiteWinRate": 75,
+      "kingCaptureWins": 9,
+      "territoryWins": 7,
+      "averageDeployments": 45.5,
+      "seedWinRates": [75, 62.5, 62.5]
+    },
+    {
+      "tier": "advanced",
+      "games": 24,
+      "wins": 13,
+      "draws": 0,
+      "losses": 11,
+      "winRate": 54.2,
+      "blackWinRate": 33.3,
+      "whiteWinRate": 75,
+      "kingCaptureWins": 13,
+      "territoryWins": 0,
+      "averageDeployments": 29.8,
+      "seedWinRates": [62.5, 50, 50]
+    },
+    {
+      "tier": "expert",
+      "games": 24,
+      "wins": 9,
+      "draws": 0,
+      "losses": 15,
+      "winRate": 37.5,
+      "blackWinRate": 25,
+      "whiteWinRate": 50,
+      "kingCaptureWins": 9,
+      "territoryWins": 0,
+      "averageDeployments": 46.7,
+      "seedWinRates": [37.5, 37.5, 37.5]
+    },
+    {
+      "tier": "grandmaster",
+      "games": 24,
+      "wins": 6,
+      "draws": 0,
+      "losses": 18,
+      "winRate": 25,
+      "blackWinRate": 25,
+      "whiteWinRate": 25,
+      "kingCaptureWins": 6,
+      "territoryWins": 0,
+      "averageDeployments": 49.9,
+      "seedWinRates": [25, 25, 25]
+    }
+  ],
+  "outcomeSummary": {
+    "redWins": 23,
+    "blueWins": 37,
+    "redWinRate": 38.3,
+    "blueWinRate": 61.7,
+    "draws": 0
+  },
+  "cappedGames": 0
+}

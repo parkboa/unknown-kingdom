@@ -41,7 +41,6 @@ export function createGameState(mode = "pvp", options = {}) {
     resumeTurn: null,
     pendingWizardTeleport: null,
     pendingKingSwap: null,
-    tauntChances: { red: null, blue: null },
     tauntEvent: null,
     tauntSerial: 0,
     tauntUntil: 0,
@@ -64,4 +63,3 @@ export function createGameState(mode = "pvp", options = {}) {
   };
   return Object.assign(base, options);
 }
-

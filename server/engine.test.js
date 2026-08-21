@@ -3,7 +3,6 @@ import test from "node:test";
 
 import {
   applyAction,
-  chooseBotAction,
   createGameState,
   declareWinner,
   dispatchAction,
@@ -14,7 +13,7 @@ import {
   stateForPlayer,
 } from "./engine.js";
 import * as sharedEngine from "@daeguk/game-engine";
-import { chooseBotAction as sharedChooseBotAction } from "@daeguk/game-engine/bot";
+import { declineRematch, startAutomaticTauntLock } from "./room-actions.js";
 
 test("server adapter exposes the shared engine package API", () => {
   assert.equal(applyAction, sharedEngine.applyAction);
@@ -26,7 +25,6 @@ test("server adapter exposes the shared engine package API", () => {
   assert.equal(hasLegalDeployment, sharedEngine.hasLegalDeployment);
   assert.equal(isSuicideDeployment, sharedEngine.isSuicideDeployment);
   assert.equal(stateForPlayer, sharedEngine.stateForPlayer);
-  assert.equal(chooseBotAction, sharedChooseBotAction);
 });
 
 test("server adapter executes an authoritative shared-engine action", () => {
@@ -44,18 +42,30 @@ test("server adapter executes an authoritative shared-engine action", () => {
   assert.equal(result.events.some(({ type }) => type === "piece_deployed"), true);
 });
 
-test("rematch state logic: decline_rematch clears pending rematch offers", () => {
+test("declining a rematch clears the offer and notifies both players", () => {
+  const black = { id: "black" };
+  const white = { id: "white" };
   const room = {
     code: "TEST1",
-    players: { red: {}, blue: {} },
+    players: { red: black, blue: white },
     rematch: new Set(["red"]),
   };
-  assert.equal(room.rematch.has("red"), true);
+  const deliveries = [];
 
-  // When decline_rematch is processed:
-  room.rematch.clear();
+  declineRematch(room, "blue", (socket, message) => deliveries.push({ socket, message }));
+
   assert.equal(room.rematch.size, 0);
-  assert.equal(room.rematch.has("red"), false);
+  assert.deepEqual(deliveries, [
+    { socket: black, message: { type: "rematch_declined", byPlayer: "blue" } },
+    { socket: white, message: { type: "rematch_declined", byPlayer: "blue" } },
+  ]);
 });
 
+test("an automatic King-wall taunt locks deployment for exactly three seconds", () => {
+  const room = { state: createGameState() };
+  const action = { type: "deploy", unitType: "king", row: 0, col: 4 };
+  assert.equal(applyAction(room.state, "red", action), true);
 
+  assert.equal(startAutomaticTauntLock(room, "red", action, 10_000, 3_000), true);
+  assert.equal(room.state.tauntUntil, 13_000);
+});

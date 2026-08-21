@@ -1,5 +1,30 @@
 # Daeguk Prototype — Development Log
 
+## Selective Hidden-Risk Search — 2026-08-20
+
+- Split hidden-information handling from the normal lookahead: every root candidate now receives one public-state search, while only the difficulty-specific top shortlist checks locally capturable hidden stones as General, Wizard, or Diplomat worlds.
+- Kept hidden-risk work bounded to the top 3 Intermediate/Advanced, 4 Expert, and 6 Grandmaster candidates. Expert and Grandmaster re-search only the worst world at depth 2 with at most eight replies; Grandmaster vetoes any candidate whose plausible hidden reaction immediately kills its King.
+- Restored alpha pruning after a public-state score of `100000`. False certainty is now corrected by the bounded hidden-risk pass instead of disabling pruning for every remaining root candidate.
+- Added a regression position where surrounding a publicly soldier-like stone appears to capture the enemy King but actually activates a hidden Diplomat and kills the moving side's King. Searching tiers no longer report the move as a guaranteed win, and Grandmaster refuses it.
+- The color-swapped vertical symmetry suite remains exact at `9/9`, and all `61/61` engine/server tests pass.
+- Repeated the 20-game `20260822` league. Average game time fell from `54.717s` with full depth-3 hidden-world replication to `27.725s` with selective risk search (`49.3%` faster). The Advanced–Intermediate trace changed from a 24-move hidden-Diplomat trap to a 90-move game, confirming that the defense survived the optimization.
+- This single seed still does not establish tier order: Novice and Intermediate scored `62.5%`, Advanced and Expert `50%`, and Grandmaster `25%`. Red/Black won `45%` and Blue/White `55%`; multi-seed balance work remains separate from this performance fix.
+- Detailed output: `artifacts/ai-matchup-traces-20260822-selective-risk.json`.
+- During a manual browser match as Black, a White stone appeared to change ownership without the expected Diplomat activation prompt or presentation. The previous browser match does not persist its action/event history, so the exact position could not be reconstructed. Treat this as an unresolved ownership-render/state observation rather than attributing it to the Diplomat; capture the board coordinates and surrounding move if it recurs.
+- Follow-up instrumentation: persist at least the previous match's authoritative actions, special-reaction events, and affected coordinates so intermittent state or rendering changes can be replayed instead of diagnosed from memory.
+
+## Test Contract Cleanup — 2026-08-20
+
+- Migrated the browser AI contract to five tiers: Novice, Intermediate, Advanced, Expert, and Grandmaster. Removed the eight legacy configurations while retaining a compatibility mapping for old rank values.
+- Strengthened AI tests to verify authoritative legal actions, exact King capture, and measurable King-liberty improvement instead of merely checking that a move exists or completes under a wall-clock threshold.
+- Removed the 28 unauthored placeholder puzzles. Challenge now contains only the authored seven-step tutorial; new puzzles will be designed from scratch later.
+- Made King-wall taunts automatic in the shared engine, removed the manual taunt action/button, and added a server test proving the authoritative deployment lock lasts exactly three seconds.
+- Removed the online bot-room endpoint, server scheduler, package bot policy, simulator, and four bot tests.
+- Replaced the ineffective rematch `Set.clear()` test with the production `declineRematch` handler test, including delivery of `rematch_declined` to both players.
+- Confirmed the suicide warning flow in the browser. Selecting a suicide move opens the game-native modal without mutating the board; cancel leaves the turn untouched; confirm now performs the selected move instead of incorrectly passing. If only suicide moves remain, the engine still ends the match by territory without offering a voluntary suicide.
+- Fixed duplicate declarations left by the 2026-08-19 modular refactor that prevented `app.js` from parsing but were invisible to the engine/server test command.
+- Verification: `56/56` automated tests pass, `app.js` and server modules pass syntax checks, and the suicide-warning browser demo reports no console errors.
+
 ## Daily Summary (2026-08-19)
 
 ### 📌 Summary of Completed Work (2026-08-19)

@@ -70,6 +70,9 @@ function resolveCapturedGroup(state, group, captor, events, queueSpecialActivati
 
 export function resolveCaptures(state, preferredCaptor, events, queueSpecialActivation) {
   const seen = new Set();
+  const rowOrder = preferredCaptor === "blue"
+    ? Array.from({ length: SIZE }, (_, index) => SIZE - 1 - index)
+    : Array.from({ length: SIZE }, (_, index) => index);
   let changed = true;
   while (changed && !state.winner) {
     const signature = boardSignature(state);
@@ -77,7 +80,7 @@ export function resolveCaptures(state, preferredCaptor, events, queueSpecialActi
     seen.add(signature);
     changed = false;
     const checked = new Set();
-    for (let row = 0; row < SIZE; row += 1) {
+    for (const row of rowOrder) {
       for (let col = 0; col < SIZE; col += 1) {
         const piece = state.board[row][col];
         if (!piece) continue;

@@ -55,7 +55,7 @@ test("deployment events are ordered and hide an unrevealed special from the oppo
   assert.equal("revealed" in eventsForPlayer(result.events, "blue")[0], false);
 });
 
-test("surrounding and activating a General emits reaction events and legacy logs", () => {
+test("surrounding and activating a General emits ordered reaction events", () => {
   const state = surroundState("general");
 
   const surrounded = dispatchAction(state, "blue", {
@@ -70,7 +70,6 @@ test("surrounding and activating a General emits reaction events and legacy logs
     "turn_changed",
   ]);
   assert.equal(surrounded.events[1].unitType, "general");
-  assert.match(state.log.at(-1), /general was surrounded/);
 
   const activated = dispatchAction(state, "red", { type: "activate_special" });
   assert.equal(activated.accepted, true);
@@ -128,13 +127,11 @@ test("capture, victory, and taunt events carry data without presentation text", 
   const wallKing = dispatchAction(tauntState, "red", { type: "deploy", unitType: "king", row: 0, col: 4 });
   assert.deepEqual(wallKing.events.map(({ type }) => type), [
     "piece_deployed",
-    "taunt_available",
+    "taunt_used",
     "turn_changed",
   ]);
-  dispatchAction(tauntState, "blue", { type: "deploy", unitType: "king", row: 8, col: 4 });
-  const taunted = dispatchAction(tauntState, "blue", { type: "taunt" });
-  assert.equal(taunted.events[0].type, "taunt_used");
-  assert.equal(taunted.events[0].speakerOwner, "blue");
+  assert.equal(wallKing.events[1].speakerOwner, "blue");
+  assert.equal(wallKing.events[1].targetOwner, "red");
 });
 
 test("removed hidden special identities are only visible to their owner", () => {

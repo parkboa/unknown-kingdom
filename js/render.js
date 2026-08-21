@@ -197,7 +197,6 @@ function renderPanel(context) {
   }
   if (context.confirmTeleportBtn) context.confirmTeleportBtn.hidden = !context.state.teleporting || context.wizardMovePromptDismissed;
   context.cancelTeleportBtn.hidden = !context.state.teleporting;
-  context.tauntBtn.hidden = !context.canUseTaunt;
 
   const showMatchResult = Boolean(
     context.state.winner

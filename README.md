@@ -94,7 +94,7 @@ PvE, Puzzle/Challenge, tutorial, and the online server all use `packages/game-en
 - After a King is placed, the surrounding 8 cells become that King’s sanctuary until that player has completed five deployments total.
 - The opponent cannot deploy inside the sanctuary during that period.
 - The sanctuary is shown as a subtle 3x3 aura with crown marks around the King.
-- Placing a King directly against its own fortress wall grants the opponent one taunt chance.
+- Placing a King directly against its own fortress wall automatically triggers the opponent's three-second taunt.
 
 ### Fortress Walls
 
@@ -150,11 +150,8 @@ Special abilities:
 
 - The player can choose Black or White.
 - The chosen player side is displayed at the bottom of the board.
-- AI difficulties:
-  - **Beginner**: for Third-rate to First-rate Masters.
-  - **Intermediate**: for Peak, Transcendent, and Harmony Masters.
-  - **Advanced**: for Profound and Life-and-Death Masters.
-  - **Expert**: more aggressive King pressure and stronger tactical scoring.
+- AI difficulties: **Novice**, **Intermediate**, **Advanced**, **Expert**, and **Grandmaster**.
+- Legacy eight-rank values are migrated to the closest current tier when loaded.
 - AI uses weighted unit choice, capture pressure, King pressure, own-King safety, and difficulty-based randomness.
 
 ## Puzzle And Rank
@@ -165,15 +162,7 @@ Special abilities:
 - Only the first rank is initially available. Clearing a rank unlocks the next implemented rank.
 - Clearing the first rank permanently unlocks PvE and Online PvP in that browser.
 - Implemented completion is stored locally under `daeguk-challenge-progress-v1`.
-- Later puzzles can be tied to ranks:
-  - Third-rate Master
-  - Second-rate Master
-  - First-rate Master
-  - Peak Master
-  - Transcendent Master
-  - Harmony Master
-  - Profound Master
-  - Life-and-Death Master
+- Only the authored tutorial is currently included. New puzzles will be designed from scratch later.
 
 ## Settings
 
@@ -208,8 +197,6 @@ The selected server URL is stored in the browser for later matches.
 { "type": "action", "roomCode": "ABC123", "action": { "type": "pass" } }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "rematch" } }
 ```
-
-Use `{ "type": "create_bot_room" }` only for server-side testing of a bot room. The public online PvP UI should prioritize human room creation and joining.
 
 ### Server Messages
 

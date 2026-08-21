@@ -34,7 +34,6 @@ export function createInitialState(mode, pveHumanPlayer = PVE_HUMAN) {
     resumeTurn: null,
     pendingWizardTeleport: null,
     pendingKingSwap: null,
-    tauntChances: { red: null, blue: null },
     tauntEvent: null,
     tauntSerial: 0,
     tauntUntil: 0,
@@ -42,8 +41,8 @@ export function createInitialState(mode, pveHumanPlayer = PVE_HUMAN) {
     resultReason: "",
     mode,
     aiProfile,
-    aiDifficulty: "thirdRateMaster",
-    aiRank: "thirdRateMaster",
+    aiDifficulty: "novice",
+    aiRank: "novice",
     aiThinking: false,
     stock: {
       red: { soldier: 77, king: 1, general: 1, diplomat: 1, wizard: 1 },

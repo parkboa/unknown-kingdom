@@ -4,11 +4,9 @@ This package is the canonical rules source shared by the browser prototype, AI a
 
 ## Current Stage
 
-The package provides a modular deterministic rules engine, structured domain events, and a separate temporary bot policy. The online server imports these modules through a thin compatibility adapter. Browser PvE, Challenge, and tutorial now use shared-engine transitions for deployment, capture, special reactions, Wizard decisions, turn continuation, explicit no-move passing, and match completion.
+The package provides a modular deterministic rules engine and structured domain events. The online server imports the engine through a thin compatibility adapter. Browser PvE, Challenge, and tutorial use shared-engine transitions for deployment, capture, special reactions, Wizard decisions, turn continuation, explicit no-move passing, and match completion.
 
 Engine-created pieces use the state-owned `nextPieceId` sequence. Given equivalent starting states and the same actions, rules transitions now produce equivalent complete states. Simulation on cloned state does not consume IDs from the authoritative state.
-
-The bot remains intentionally stochastic, but all randomness and evaluation policy now live in `src/bot.js` rather than the authoritative rules module.
 
 ## Public API
 
@@ -19,10 +17,6 @@ The bot remains intentionally stochastic, but all randomness and evaluation poli
 - `getLegalActions(state, player)`
 - `isSuicideDeployment(state, player, type, row, col)`
 - `stateForPlayer(state, player)`
-
-The temporary bot API is exported separately through `@daeguk/game-engine/bot`:
-
-- `chooseBotAction(state, player)`
 
 `applyAction` remains a compatibility wrapper around `dispatchAction` and returns only the acceptance boolean. Existing `state.log` strings also remain temporarily for the current UI; new consumers should use events and localize them outside the engine.
 
@@ -42,7 +36,6 @@ An accepted action returns its events in deterministic occurrence order. Rejecte
 - `turn_passed`
 - `turn_changed`
 - `match_ended`
-- `taunt_available`
 - `taunt_used`
 
 Events contain domain data rather than localized messages or UI commands. Before sending events to a client, call `eventsForPlayer`; it masks unrevealed enemy special types with `soldier`, matching `stateForPlayer`.
@@ -59,7 +52,6 @@ Events contain domain data rather than localized messages or UI commands. Before
 - `actions.js`: action dispatch, legal-action enumeration, and suicide simulation
 - `visibility.js`: player-specific hidden-information state views
 - `index.js`: stable public facade only
-- `bot.js`: separate stochastic bot policy
 
 `capture.js` accepts the special-reaction queue function as an injected callback. This keeps generic capture resolution below reaction handling and avoids a circular module dependency.
 
@@ -78,7 +70,7 @@ It must not depend on DOM APIs, `window`, browser storage, audio, timers, WebSoc
 ## Next Migration Steps
 
 1. Add browser-orchestration coverage for Challenge objectives and tutorial progression.
-2. Replace the temporary heuristic browser AI simulation with exact shared-engine transitions.
+2. Continue calibrating the five browser AI tiers with exact shared-engine transitions.
 
 ## Packaging
 

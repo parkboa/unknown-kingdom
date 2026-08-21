@@ -1,0 +1,98 @@
+{
+  "config": {
+    "gamesPerColor": 1,
+    "maxDeployments": 180,
+    "seed": 20260822,
+    "totalGames": 20,
+    "startingPlayer": "red",
+    "commonScoreProfile": null,
+    "scoreAblations": [],
+    "puzzleCollection": null
+  },
+  "standings": [
+    {
+      "tier": "novice",
+      "games": 8,
+      "wins": 6,
+      "draws": 0,
+      "losses": 2,
+      "scoreRate": 75,
+      "blackWinRate": 50,
+      "whiteWinRate": 100,
+      "starterWinRate": 50,
+      "secondPlayerWinRate": 100,
+      "kingCaptureWins": 3,
+      "territoryWins": 3,
+      "averageDeployments": 55.8
+    },
+    {
+      "tier": "intermediate",
+      "games": 8,
+      "wins": 5,
+      "draws": 0,
+      "losses": 3,
+      "scoreRate": 62.5,
+      "blackWinRate": 50,
+      "whiteWinRate": 75,
+      "starterWinRate": 50,
+      "secondPlayerWinRate": 75,
+      "kingCaptureWins": 3,
+      "territoryWins": 2,
+      "averageDeployments": 44
+    },
+    {
+      "tier": "advanced",
+      "games": 8,
+      "wins": 4,
+      "draws": 0,
+      "losses": 4,
+      "scoreRate": 50,
+      "blackWinRate": 25,
+      "whiteWinRate": 75,
+      "starterWinRate": 25,
+      "secondPlayerWinRate": 75,
+      "kingCaptureWins": 4,
+      "territoryWins": 0,
+      "averageDeployments": 30.8
+    },
+    {
+      "tier": "expert",
+      "games": 8,
+      "wins": 3,
+      "draws": 0,
+      "losses": 5,
+      "scoreRate": 37.5,
+      "blackWinRate": 25,
+      "whiteWinRate": 50,
+      "starterWinRate": 25,
+      "secondPlayerWinRate": 50,
+      "kingCaptureWins": 3,
+      "territoryWins": 0,
+      "averageDeployments": 46.5
+    },
+    {
+      "tier": "grandmaster",
+      "games": 8,
+      "wins": 2,
+      "draws": 0,
+      "losses": 6,
+      "scoreRate": 25,
+      "blackWinRate": 25,
+      "whiteWinRate": 25,
+      "starterWinRate": 25,
+      "secondPlayerWinRate": 25,
+      "kingCaptureWins": 2,
+      "territoryWins": 0,
+      "averageDeployments": 49.8
+    }
+  ],
+  "cappedGames": 0,
+  "outcomeSummary": {
+    "redWins": 7,
+    "blueWins": 13,
+    "starterWins": 7,
+    "secondPlayerWins": 13,
+    "draws": 0
+  },
+  "averageGameMs": 19079
+}
