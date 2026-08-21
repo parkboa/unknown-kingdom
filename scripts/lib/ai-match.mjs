@@ -41,6 +41,13 @@ function chooseDeployMove(state, player, tier, settings) {
       treeEvaluationLimit: settings.isMctsTreeEvaluationLimit || 24,
       rolloutEvaluationLimit: settings.isMctsRolloutEvaluationLimit || 12,
       rolloutDepth: settings.isMctsRolloutDepth || 10,
+      riskWeight: settings.isMctsRiskWeight || 0,
+      riskQuantile: settings.isMctsRiskQuantile || 0.25,
+      riskCandidateLimit: settings.isMctsRiskCandidateLimit || 0,
+      riskWorldLimit: settings.isMctsRiskWorldLimit || 6,
+      riskRolloutDepth: settings.isMctsRiskRolloutDepth || 4,
+      specialDeploymentProbability: settings.isMctsSpecialDeploymentProbability ?? 0.35,
+      specialTypeWeights: settings.isMctsSpecialTypeWeights || null,
       random: Math.random,
     });
     if (result?.action.type !== "deploy") return null;
@@ -50,6 +57,11 @@ function chooseDeployMove(state, player, tier, settings) {
       col: result.action.col,
       mctsVisits: result.visits,
       mctsValue: result.meanValue,
+      mctsDiagnostics: {
+        iterations: result.iterations,
+        nodeCount: result.nodeCount,
+        root: result.root,
+      },
     };
   }
   return findAiDeployMove(playerView, {
@@ -97,6 +109,7 @@ export function playDeterministicAiMatch({
   journalPath = null,
   redSettings = null,
   blueSettings = null,
+  onDecision = null,
 }) {
   const state = createGameState("pve", { aiRank: redTier });
   state.turn = startingPlayer;
@@ -140,6 +153,15 @@ export function playDeterministicAiMatch({
       }
 
       const action = { type: "deploy", unitType: move.type, row: move.row, col: move.col };
+      if (onDecision) {
+        onDecision({
+          deployments,
+          player,
+          tier: tiers[player],
+          action: structuredClone(action),
+          diagnostics: move.mctsDiagnostics ? structuredClone(move.mctsDiagnostics) : null,
+        });
+      }
       if (!dispatch(player, action).accepted) {
         throw new Error(`${tiers[player]} returned an illegal move ${move.type}@${move.row},${move.col}`);
       }

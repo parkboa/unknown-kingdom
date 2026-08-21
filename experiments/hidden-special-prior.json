@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "status": "provisional_small_sample",
+  "sourceDirectory": "experiments/is-mcts-loss-replays",
+  "sourceGames": 3,
+  "eligibleDeployments": 75,
+  "observedSpecialDeployments": 16,
+  "observedTypeCounts": {
+    "general": 6,
+    "wizard": 6,
+    "diplomat": 4
+  },
+  "smoothing": {
+    "deployment": "Beta(1,1)",
+    "type": "add-one"
+  },
+  "prior": {
+    "specialDeploymentProbability": 0.22077922077922077,
+    "specialTypeWeights": {
+      "general": 0.3684210526315789,
+      "wizard": 0.3684210526315789,
+      "diplomat": 0.2631578947368421
+    }
+  }
+}

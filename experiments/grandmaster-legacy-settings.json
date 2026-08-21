@@ -1,0 +1,19 @@
+{
+  "searchDepth": 3,
+  "localSearchDepth": 0,
+  "localFourPlyCandidateLimit": 0,
+  "rootCandidateLimit": 42,
+  "replyCandidateLimit": 22,
+  "continuationCandidateLimit": 14,
+  "ply4CandidateLimit": 0,
+  "strategicContext": false,
+  "recentBeliefStrategy": false,
+  "recentIntentWeight": 0,
+  "wallTacticsWeight": 0,
+  "kingTacticalPriority": 0,
+  "kingMineStrategy": false,
+  "midgameCandidatePolicy": false,
+  "midgameTacticalCandidateLimit": 0,
+  "midgameSpecialAttackLimit": 0,
+  "kingAssaultSafetyCandidateLimit": 0
+}

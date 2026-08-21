@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-21T22:43:23.635Z",
+  "aiTier": "grandmaster",
+  "scenarioCount": 5,
+  "passedCount": 5,
+  "passed": true,
+  "scenarios": [
+    {
+      "name": "king-adjacent hidden identities are all treated as 100% mine risk",
+      "passed": true,
+      "durationMs": 24.606875000000002,
+      "cases": [
+        {
+          "hiddenType": "general",
+          "action": {
+            "type": "deploy",
+            "unitType": "soldier",
+            "row": 5,
+            "col": 4
+          }
+        },
+        {
+          "hiddenType": "wizard",
+          "action": {
+            "type": "deploy",
+            "unitType": "soldier",
+            "row": 5,
+            "col": 4
+          }
+        },
+        {
+          "hiddenType": "diplomat",
+          "action": {
+            "type": "deploy",
+            "unitType": "soldier",
+            "row": 5,
+            "col": 4
+          }
+        }
+      ]
+    },
+    {
+      "name": "mine escape and enemy connection route are preserved",
+      "passed": true,
+      "durationMs": 8.223624999999998,
+      "selectedAction": {
+        "type": "deploy",
+        "unitType": "soldier",
+        "row": 5,
+        "col": 4
+      },
+      "mineDefusal": {
+        "value": 0,
+        "mineCount": 1,
+        "blocksLiberty": false,
+        "blocksEnemyConnection": false,
+        "wouldDetonate": false
+      }
+    },
+    {
+      "name": "King group advances toward its own fortress wall",
+      "passed": true,
+      "durationMs": 3.7212920000000054,
+      "selectedAction": {
+        "type": "deploy",
+        "unitType": "soldier",
+        "row": 5,
+        "col": 4
+      },
+      "kingWallConnection": {
+        "value": 180,
+        "beforeDistance": 4,
+        "afterDistance": 3,
+        "connectsNow": false
+      }
+    },
+    {
+      "name": "spent specials disable mine belief and restore ordinary capture",
+      "passed": true,
+      "durationMs": 198.943375,
+      "selectedAction": {
+        "type": "deploy",
+        "unitType": "soldier",
+        "row": 4,
+        "col": 6
+      },
+      "capturedOwner": "blue"
+    },
+    {
+      "name": "King emergency rescue overrides unrelated play without detonating adjacent mines",
+      "passed": true,
+      "durationMs": 352.13608400000004,
+      "selectedAction": {
+        "type": "deploy",
+        "unitType": "soldier",
+        "row": 4,
+        "col": 5
+      },
+      "beforeLiberties": 1,
+      "afterLiberties": 3
+    }
+  ]
+}

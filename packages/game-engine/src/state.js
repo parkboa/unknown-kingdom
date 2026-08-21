@@ -59,6 +59,11 @@ export function createGameState(mode = "pvp", options = {}) {
       captures: { red: 0, blue: 0 },
       specialsUsed: { red: 0, blue: 0 },
     },
+    informationHistory: {
+      schemaVersion: 1,
+      red: [],
+      blue: [],
+    },
     log: ["New online match started. Black deploys first."],
   };
   return Object.assign(base, options);

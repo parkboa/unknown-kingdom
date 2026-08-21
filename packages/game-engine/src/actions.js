@@ -6,7 +6,7 @@ import {
   touchesOwnWall,
 } from "./board.js";
 import { isSuicideDeployment, resolveCaptures } from "./capture.js";
-import { emitEvent } from "./events.js";
+import { emitEvent, recordInformationTransition } from "./events.js";
 import {
   activatePendingSpecial,
   queueSpecialActivation,
@@ -20,6 +20,9 @@ export { isSuicideDeployment };
 export function dispatchAction(state, player, action, options = {}) {
   const events = [];
   const accepted = performAction(state, player, action, events, options);
+  if (accepted && options.recordInformationHistory !== false) {
+    recordInformationTransition(state, player, action, events);
+  }
   return { accepted, events };
 }
 

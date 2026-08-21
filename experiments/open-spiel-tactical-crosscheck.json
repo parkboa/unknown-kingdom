@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-21T18:05:11.304Z",
+  "openSpiel": {
+    "schemaVersion": 1,
+    "openSpielVersion": "2.0.2",
+    "informationStateKeys": [
+      "p0|observed:enemy-stone|own-actions:",
+      "p0|observed:enemy-stone|own-actions:",
+      "p0|observed:enemy-stone|own-actions:"
+    ],
+    "sameInformationState": true,
+    "legalActionSets": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "variableActionSets": true,
+    "availability": {
+      "0": 600,
+      "1": 600,
+      "2": 437
+    },
+    "childValues": {
+      "0": {
+        "visits": 31,
+        "meanValue": -0.0967741935483871
+      },
+      "1": {
+        "visits": 545,
+        "meanValue": 0.4000000000000037
+      },
+      "2": {
+        "visits": 23,
+        "meanValue": -0.20000000000000007
+      }
+    },
+    "policy": [
+      [
+        0,
+        0
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "selectedAction": 1,
+    "selectedActionName": "safe"
+  },
+  "engineScenarios": [
+    {
+      "name": "general",
+      "sourceJournal": "experiments/is-mcts-loss-replays/pair-002-candidate-blue.jsonl",
+      "losingAction": {
+        "type": "deploy",
+        "unitType": "soldier",
+        "row": 6,
+        "col": 1
+      },
+      "selectedAction": {
+        "type": "deploy",
+        "unitType": "diplomat",
+        "row": 5,
+        "col": 5
+      },
+      "dangerousEdge": {
+        "action": {
+          "type": "deploy",
+          "unitType": "soldier",
+          "row": 6,
+          "col": 1
+        },
+        "visits": 2,
+        "availability": 20,
+        "meanValue": 0.1477833757167001,
+        "riskSamples": 6,
+        "cvar": -1,
+        "selectionScore": -0.713054156070825
+      },
+      "avoidedHistoricalLoss": true
+    },
+    {
+      "name": "wizard",
+      "sourceJournal": "experiments/is-mcts-loss-replays/pair-008-candidate-red.jsonl",
+      "losingAction": {
+        "type": "deploy",
+        "unitType": "soldier",
+        "row": 3,
+        "col": 6
+      },
+      "selectedAction": {
+        "type": "deploy",
+        "unitType": "soldier",
+        "row": 5,
+        "col": 6
+      },
+      "dangerousEdge": {
+        "action": {
+          "type": "deploy",
+          "unitType": "soldier",
+          "row": 3,
+          "col": 6
+        },
+        "visits": 3,
+        "availability": 19,
+        "meanValue": 0.1742661629041061,
+        "riskSamples": 6,
+        "cvar": -1,
+        "selectionScore": -0.7064334592739735
+      },
+      "avoidedHistoricalLoss": true
+    }
+  ],
+  "crossCheck": {
+    "informationStateContract": true,
+    "variableActionSetContract": true,
+    "openSpielSelectedSafeAction": true,
+    "engineAvoidedBothHistoricalLosses": true,
+    "passed": true
+  }
+}

@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "analyses": [
+    {
+      "gameId": "pair-002-candidate-blue",
+      "player": "blue",
+      "dangerousAction": {
+        "type": "deploy",
+        "unitType": "soldier",
+        "row": 6,
+        "col": 1
+      },
+      "actualHiddenSpecial": {
+        "type": "general",
+        "row": 6,
+        "col": 2
+      },
+      "opponentDeployments": 10,
+      "hiddenOpponentStones": 9,
+      "sampling": {
+        "samples": 10000,
+        "targetTypes": {
+          "soldier": 8293,
+          "diplomat": 599,
+          "wizard": 533,
+          "general": 575
+        },
+        "targetAnySpecialRate": 0.1707,
+        "targetActualSpecialRate": 0.0575,
+        "terminalLossAfterActivationRate": 0.1707
+      },
+      "search": {
+        "trials": 12,
+        "rootCandidateCount": 12,
+        "selectedCount": 3,
+        "rootObservations": [
+          {
+            "trial": 0,
+            "selected": "deploy:soldier:6:1",
+            "dangerousEdge": {
+              "visits": 6,
+              "meanValue": 0.9828578427231452
+            }
+          },
+          {
+            "trial": 1,
+            "selected": "deploy:diplomat:6:1",
+            "dangerousEdge": {
+              "visits": 5,
+              "meanValue": 0.8690477616837707
+            }
+          },
+          {
+            "trial": 2,
+            "selected": "deploy:diplomat:8:1",
+            "dangerousEdge": {
+              "visits": 5,
+              "meanValue": 0.9538667271295773
+            }
+          },
+          {
+            "trial": 3,
+            "selected": "deploy:soldier:6:1",
+            "dangerousEdge": {
+              "visits": 5,
+              "meanValue": 0.9882747253783446
+            }
+          },
+          {
+            "trial": 4,
+            "selected": "deploy:diplomat:6:1",
+            "dangerousEdge": {
+              "visits": 5,
+              "meanValue": 0.9709306756734504
+            }
+          },
+          {
+            "trial": 5,
+            "selected": "deploy:soldier:6:1",
+            "dangerousEdge": {
+              "visits": 5,
+              "meanValue": 0.9735013650352522
+            }
+          },
+          {
+            "trial": 6,
+            "selected": "deploy:diplomat:6:1",
+            "dangerousEdge": {
+              "visits": 3,
+              "meanValue": 0.5990193248603453
+            }
+          },
+          {
+            "trial": 7,
+            "selected": "deploy:diplomat:4:3",
+            "dangerousEdge": {
+              "visits": 4,
+              "meanValue": 0.6820713827907485
+            }
+          },
+          {
+            "trial": 8,
+            "selected": "deploy:soldier:4:3",
+            "dangerousEdge": {
+              "visits": 5,
+              "meanValue": 0.9505702820030779
+            }
+          },
+          {
+            "trial": 9,
+            "selected": "deploy:soldier:8:1",
+            "dangerousEdge": {
+              "visits": 5,
+              "meanValue": 0.9611248980411368
+            }
+          },
+          {
+            "trial": 10,
+            "selected": "deploy:diplomat:6:1",
+            "dangerousEdge": {
+              "visits": 5,
+              "meanValue": 0.8989776447380914
+            }
+          },
+          {
+            "trial": 11,
+            "selected": "deploy:diplomat:6:1",
+            "dangerousEdge": {
+              "visits": 5,
+              "meanValue": 0.9780274639810365
+            }
+          }
+        ]
+      }
+    },
+    {
+      "gameId": "pair-008-candidate-red",
+      "player": "red",
+      "dangerousAction": {
+        "type": "deploy",
+        "unitType": "soldier",
+        "row": 3,
+        "col": 6
+      },
+      "actualHiddenSpecial": {
+        "type": "wizard",
+        "row": 3,
+        "col": 5
+      },
+      "opponentDeployments": 12,
+      "hiddenOpponentStones": 11,
+      "sampling": {
+        "samples": 10000,
+        "targetTypes": {
+          "wizard": 463,
+          "soldier": 8635,
+          "diplomat": 449,
+          "general": 453
+        },
+        "targetAnySpecialRate": 0.1365,
+        "targetActualSpecialRate": 0.0463,
+        "terminalLossAfterActivationRate": 0.1365
+      },
+      "search": {
+        "trials": 12,
+        "rootCandidateCount": 12,
+        "selectedCount": 1,
+        "rootObservations": [
+          {
+            "trial": 0,
+            "selected": "deploy:soldier:3:6",
+            "dangerousEdge": {
+              "visits": 15,
+              "meanValue": 0.5915623281792513
+            }
+          },
+          {
+            "trial": 1,
+            "selected": "deploy:soldier:3:2",
+            "dangerousEdge": {
+              "visits": 7,
+              "meanValue": 0.7009585057168104
+            }
+          },
+          {
+            "trial": 2,
+            "selected": "deploy:soldier:3:2",
+            "dangerousEdge": {
+              "visits": 4,
+              "meanValue": -0.00651753003475275
+            }
+          },
+          {
+            "trial": 3,
+            "selected": "deploy:soldier:5:2",
+            "dangerousEdge": {
+              "visits": 7,
+              "meanValue": 0.7053594407093013
+            }
+          },
+          {
+            "trial": 4,
+            "selected": "deploy:soldier:5:6",
+            "dangerousEdge": {
+              "visits": 3,
+              "meanValue": -0.336857310346834
+            }
+          },
+          {
+            "trial": 5,
+            "selected": "deploy:soldier:5:6",
+            "dangerousEdge": {
+              "visits": 1,
+              "meanValue": -1
+            }
+          },
+          {
+            "trial": 6,
+            "selected": "deploy:soldier:1:7",
+            "dangerousEdge": {
+              "visits": 3,
+              "meanValue": -0.3384993963661696
+            }
+          },
+          {
+            "trial": 7,
+            "selected": "deploy:soldier:4:1",
+            "dangerousEdge": {
+              "visits": 8,
+              "meanValue": 0.7408747077103512
+            }
+          },
+          {
+            "trial": 8,
+            "selected": "deploy:soldier:1:2",
+            "dangerousEdge": {
+              "visits": 6,
+              "meanValue": 0.32528030506239797
+            }
+          },
+          {
+            "trial": 9,
+            "selected": "deploy:soldier:4:1",
+            "dangerousEdge": {
+              "visits": 5,
+              "meanValue": 0.5903363660748775
+            }
+          },
+          {
+            "trial": 10,
+            "selected": "deploy:soldier:1:2",
+            "dangerousEdge": {
+              "visits": 7,
+              "meanValue": 0.7033378434492951
+            }
+          },
+          {
+            "trial": 11,
+            "selected": "deploy:soldier:5:6",
+            "dangerousEdge": {
+              "visits": 6,
+              "meanValue": 0.3274704713232659
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

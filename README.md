@@ -152,7 +152,7 @@ Special abilities:
 - The chosen player side is displayed at the bottom of the board.
 - AI difficulties: **Novice**, **Intermediate**, **Advanced**, **Expert**, and **Grandmaster**.
 - Legacy eight-rank values are migrated to the closest current tier when loaded.
-- AI uses weighted unit choice, capture pressure, King pressure, own-King safety, and difficulty-based randomness.
+- AI uses weighted unit choice, capture pressure, King pressure, own-King safety, and difficulty-based randomness. Expert and Grandmaster also read recent observed moves, increase territory emphasis after 20 deployments per side, test recent hidden-special danger at an 80% tactical belief, and use directional fortress-wall liberties. Grandmaster extends the ranked local line to four plies and treats a hidden enemy stone touching its King as a 100% special-risk "mine" until all enemy specials are observed as spent, preserving that stone's escape route while connecting the King group toward its own wall.
 
 ## Puzzle And Rank
 

@@ -7,6 +7,12 @@ export function stateForPlayer(state, player) {
   if (view.stock && Object.hasOwn(view.stock, opponent)) {
     view.stock[opponent] = null;
   }
+  if (view.informationHistory) {
+    view.informationHistory = {
+      schemaVersion: view.informationHistory.schemaVersion,
+      [player]: structuredClone(view.informationHistory[player] || []),
+    };
+  }
   if (view.pendingSpecial && view.pendingSpecial.owner !== player) {
     view.pendingSpecial = {
       row: view.pendingSpecial.row,

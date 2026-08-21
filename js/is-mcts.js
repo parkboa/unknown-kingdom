@@ -1,71 +1,14 @@
 import {
   dispatchAction,
   getLegalActions,
-  stateDigest,
+  informationStateKey,
+  resampleFromInformationState,
   stateForPlayer,
 } from "../packages/game-engine/src/index.js";
 import { evaluateState } from "./state-evaluation.js";
 
-const SPECIAL_TYPES = ["general", "wizard", "diplomat"];
-
-function shuffle(values, random) {
-  const result = [...values];
-  for (let index = result.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(random() * (index + 1));
-    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
-  }
-  return result;
-}
-
 function opponent(player) {
   return player === "red" ? "blue" : "red";
-}
-
-export function sampleInformationSetWorld(publicState, perspective, random = Math.random) {
-  const world = structuredClone(publicState);
-  const hiddenPlayer = opponent(perspective);
-  const hiddenStones = [];
-  const deployedSpecials = new Set();
-
-  for (let row = 0; row < world.board.length; row += 1) {
-    for (let col = 0; col < world.board[row].length; col += 1) {
-      const piece = world.board[row][col];
-      if (!piece || piece.owner !== hiddenPlayer) continue;
-      const knownType = piece.originalType || piece.type;
-      if (piece.revealed && SPECIAL_TYPES.includes(knownType)) deployedSpecials.add(knownType);
-      else if (!piece.revealed && piece.type !== "king") hiddenStones.push({ row, col });
-    }
-  }
-
-  const deployments = world.deploymentCount?.[hiddenPlayer] || 0;
-  const remainingSpecials = SPECIAL_TYPES.filter((type) => !deployedSpecials.has(type));
-  const unlockedSpecialSlots = deployments > 5 ? deployments - 5 : 0;
-  const maxSampled = Math.min(hiddenStones.length, remainingSpecials.length, unlockedSpecialSlots);
-  const sampledCount = maxSampled > 0 ? Math.floor(random() * (maxSampled + 1)) : 0;
-  const sampledTypes = shuffle(remainingSpecials, random).slice(0, sampledCount);
-  const sampledStones = shuffle(hiddenStones, random).slice(0, sampledCount);
-
-  sampledStones.forEach(({ row, col }, index) => {
-    const type = sampledTypes[index];
-    world.board[row][col].type = type;
-    world.board[row][col].originalType = type;
-    deployedSpecials.add(type);
-  });
-
-  const kingUsed = world.firstDeployDone?.[hiddenPlayer] ? 1 : 0;
-  const assumedSoldiersUsed = Math.max(0, deployments - kingUsed - deployedSpecials.size);
-  world.stock[hiddenPlayer] = {
-    soldier: Math.max(0, 77 - assumedSoldiersUsed),
-    king: kingUsed ? 0 : 1,
-    general: deployedSpecials.has("general") ? 0 : 1,
-    diplomat: deployedSpecials.has("diplomat") ? 0 : 1,
-    wizard: deployedSpecials.has("wizard") ? 0 : 1,
-  };
-  return world;
-}
-
-export function informationStateKey(state, player) {
-  return `${player}|${stateDigest(stateForPlayer(state, player))}`;
 }
 
 function decisionPlayer(state) {
@@ -78,9 +21,9 @@ function actionKey(action) {
   return action.type;
 }
 
-function applyClonedAction(state, player, action) {
+function applyClonedAction(state, player, action, recordInformationHistory = true) {
   const next = structuredClone(state);
-  const result = dispatchAction(next, player, action);
+  const result = dispatchAction(next, player, action, { recordInformationHistory });
   return result.accepted ? next : null;
 }
 
@@ -112,12 +55,40 @@ function prefilterActions(state, player, actions, evaluationLimit, random) {
     .map(({ action }) => action);
 }
 
-function rankedActions(state, player, settings, limit, evaluationLimit, random) {
+function candidatePositionKey(state, player, limit, evaluationLimit) {
+  const board = state.board.map((row) => row.map((piece) => piece
+    ? `${piece.owner[0]}:${piece.type}:${piece.originalType}:${piece.revealed ? 1 : 0}:${piece.abilityUsed ? 1 : 0}:${piece.kingEscapeUsed ? 1 : 0}`
+    : ".").join(",")).join(";");
+  return [
+    player,
+    limit,
+    evaluationLimit,
+    state.turn,
+    JSON.stringify(state.stock),
+    JSON.stringify(state.firstDeployDone),
+    JSON.stringify(state.deploymentCount),
+    JSON.stringify(state.stats),
+    JSON.stringify(state.pendingSpecial),
+    JSON.stringify(state.teleporting),
+    JSON.stringify(state.pendingKingSwap),
+    JSON.stringify(state.pendingWizardTeleport),
+    JSON.stringify(state.resumeTurn),
+    state.winner,
+    board,
+  ].join("|");
+}
+
+function rankedActions(state, player, settings, limit, evaluationLimit, random, cache = null) {
+  const cacheKey = cache ? candidatePositionKey(state, player, limit, evaluationLimit) : null;
+  if (cacheKey && cache.has(cacheKey)) return cache.get(cacheKey);
   const actions = getLegalActions(state, player);
-  if (actions.length <= 1) return actions;
+  if (actions.length <= 1) {
+    if (cacheKey) cache.set(cacheKey, actions);
+    return actions;
+  }
   const candidates = prefilterActions(state, player, actions, evaluationLimit, random);
   const ranked = candidates.map((action) => {
-    const next = applyClonedAction(state, player, action);
+    const next = applyClonedAction(state, player, action, false);
     return {
       action,
       value: next ? evaluateState(next, player, settings) : -Infinity,
@@ -125,7 +96,9 @@ function rankedActions(state, player, settings, limit, evaluationLimit, random) 
     };
   });
   ranked.sort((a, b) => b.value - a.value || b.jitter - a.jitter);
-  return ranked.slice(0, Math.max(1, limit)).map(({ action }) => action);
+  const result = ranked.slice(0, Math.max(1, limit)).map(({ action }) => action);
+  if (cacheKey) cache.set(cacheKey, result);
+  return result;
 }
 
 function rollout(state, rootPlayer, settings, options, random) {
@@ -139,11 +112,12 @@ function rollout(state, rootPlayer, settings, options, random) {
       options.rolloutCandidateLimit,
       options.rolloutEvaluationLimit,
       random,
+      options.actionCache,
     );
     if (!actions.length) break;
     const explore = random() < options.rolloutExploration;
     const action = explore ? actions[Math.floor(random() * actions.length)] : actions[0];
-    const next = applyClonedAction(current, player, action);
+    const next = applyClonedAction(current, player, action, false);
     if (!next) break;
     current = next;
   }
@@ -154,29 +128,156 @@ function rollout(state, rootPlayer, settings, options, random) {
   return Math.tanh(evaluateState(current, rootPlayer, settings) / options.valueScale);
 }
 
-function createNode(state, player, settings, options, random, root) {
-  const limit = root ? options.rootCandidateLimit : options.treeCandidateLimit;
-  const evaluationLimit = root ? options.rootEvaluationLimit : options.treeEvaluationLimit;
-  const actions = rankedActions(state, player, settings, limit, evaluationLimit, random);
+function createNode() {
   return {
     visits: 0,
-    actions: new Map(actions.map((action) => [actionKey(action), {
-      action,
-      visits: 0,
-      valueSum: 0,
-    }])),
+    actions: new Map(),
   };
 }
 
-function selectEdge(node, maximizing, exploration) {
-  const unvisited = [...node.actions.values()].find((edge) => edge.visits === 0);
+function lowerTailMean(values, quantile) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const count = Math.max(1, Math.ceil(sorted.length * quantile));
+  return sorted.slice(0, count).reduce((sum, value) => sum + value, 0) / count;
+}
+
+function hiddenOpponentGroupStones(state, player, action) {
+  if (action.type !== "deploy") return [];
+  const enemy = opponent(player);
+  const queue = [];
+  const seen = new Set();
+  const hidden = [];
+  for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+    const row = action.row + dr;
+    const col = action.col + dc;
+    if (state.board[row]?.[col]?.owner === enemy) queue.push([row, col]);
+  }
+  while (queue.length) {
+    const [row, col] = queue.shift();
+    const key = `${row}:${col}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const piece = state.board[row]?.[col];
+    if (!piece || piece.owner !== enemy) continue;
+    if (!piece.revealed && piece.type === "soldier") hidden.push({ row, col });
+    for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      const nextRow = row + dr;
+      const nextCol = col + dc;
+      if (state.board[nextRow]?.[nextCol]?.owner === enemy) queue.push([nextRow, nextCol]);
+    }
+  }
+  if (!hidden.length) return [];
+  const probe = structuredClone(state);
+  const probeResult = dispatchAction(probe, player, action, {
+    advanceTurn: false,
+    recordInformationHistory: false,
+  });
+  if (!probeResult.accepted) return [];
+  const remainingIds = new Set(probe.board.flat().filter(Boolean).map(({ id }) => id));
+  if (!hidden.some(({ row, col }) => !remainingIds.has(state.board[row][col].id))) return [];
+  let king = null;
+  for (let row = 0; row < state.board.length && !king; row += 1) {
+    const col = state.board[row].findIndex((piece) => piece?.owner === player && piece.type === "king");
+    if (col >= 0) king = { row, col };
+  }
+  return hidden.sort((a, b) => {
+    const dangerA = king ? Math.abs(a.row - king.row) + Math.abs(a.col - king.col) : 0;
+    const dangerB = king ? Math.abs(b.row - king.row) + Math.abs(b.col - king.col) : 0;
+    return dangerA - dangerB || a.row - b.row || a.col - b.col;
+  });
+}
+
+function hiddenOpponentThreatStones(state, player) {
+  let king = null;
+  for (let row = 0; row < state.board.length && !king; row += 1) {
+    const col = state.board[row].findIndex((piece) => piece?.owner === player && piece.type === "king");
+    if (col >= 0) king = { row, col };
+  }
+  if (!king) return [];
+  const enemy = opponent(player);
+  const threats = [];
+  for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+    const row = king.row + dr;
+    const col = king.col + dc;
+    const piece = state.board[row]?.[col];
+    if (piece?.owner === enemy && !piece.revealed && piece.type === "soldier") {
+      threats.push({ row, col });
+    }
+  }
+  return threats;
+}
+
+function evaluateRootRisks(root, publicState, aiPlayer, settings, options, random, resampleWorld, rootKey) {
+  if (options.riskWeight <= 0 || options.riskCandidateLimit <= 0) return false;
+  const candidates = [...root.actions.values()]
+    .sort((a, b) => b.visits - a.visits)
+    .slice(0, options.riskCandidateLimit);
+  const specialTypes = ["general", "wizard", "diplomat"];
+  for (const edge of candidates) {
+    const tacticalStones = [
+      ...hiddenOpponentGroupStones(publicState, aiPlayer, edge.action),
+      ...hiddenOpponentThreatStones(publicState, aiPlayer),
+    ].filter(({ row, col }, index, stones) =>
+      stones.findIndex((stone) => stone.row === row && stone.col === col) === index);
+    const assignments = tacticalStones
+      .flatMap(({ row, col }) => specialTypes.map((type) => ({ row, col, type })))
+      .slice(0, options.riskWorldLimit);
+    edge.riskValues = [];
+    for (const forcedAssignment of assignments) {
+      let world;
+      try {
+        world = resampleWorld(publicState, aiPlayer, random, {
+          forcedAssignment,
+          specialDeploymentProbability: options.specialDeploymentProbability,
+          specialTypeWeights: options.specialTypeWeights,
+        });
+      } catch (error) {
+        if (/Forced hidden-special assignment is inconsistent/.test(error.message)) continue;
+        throw error;
+      }
+      if (informationStateKey(world, aiPlayer) !== rootKey) {
+        throw new Error("IS-MCTS risk resampler returned a world outside the root information state");
+      }
+      const next = applyClonedAction(world, aiPlayer, edge.action, false);
+      if (!next) continue;
+      edge.riskValues.push(rollout(next, aiPlayer, settings, {
+        ...options,
+        rolloutDepth: options.riskRolloutDepth,
+      }, random));
+    }
+  }
+  return candidates.some((edge) => edge.riskValues?.length);
+}
+
+function synchronizeAvailableActions(node, state, player, settings, options, random, root) {
+  const limit = root ? options.rootCandidateLimit : options.treeCandidateLimit;
+  const evaluationLimit = root ? options.rootEvaluationLimit : options.treeEvaluationLimit;
+  const actions = rankedActions(state, player, settings, limit, evaluationLimit, random, options.actionCache);
+  const availableKeys = new Set();
+  for (const action of actions) {
+    const key = actionKey(action);
+    availableKeys.add(key);
+    let edge = node.actions.get(key);
+    if (!edge) {
+      edge = { action: structuredClone(action), visits: 0, availability: 0, valueSum: 0 };
+      node.actions.set(key, edge);
+    }
+    edge.availability += 1;
+  }
+  return availableKeys;
+}
+
+function selectEdge(node, availableKeys, maximizing, exploration) {
+  const availableEdges = [...availableKeys].map((key) => node.actions.get(key));
+  const unvisited = availableEdges.find((edge) => edge.visits === 0);
   if (unvisited) return unvisited;
   let best = null;
   let bestScore = -Infinity;
-  for (const edge of node.actions.values()) {
+  for (const edge of availableEdges) {
     const mean = edge.valueSum / edge.visits;
     const exploitation = maximizing ? mean : -mean;
-    const score = exploitation + exploration * Math.sqrt(Math.log(node.visits + 1) / edge.visits);
+    const score = exploitation + exploration * Math.sqrt(Math.log(edge.availability + 1) / edge.visits);
     if (score > bestScore) {
       best = edge;
       bestScore = score;
@@ -200,10 +301,16 @@ export function findIsMctsAction(state, {
   rolloutExploration = 0.15,
   exploration = Math.SQRT2,
   valueScale = 4000,
+  riskWeight = 0,
+  riskQuantile = 0.25,
+  riskCandidateLimit = 0,
+  riskWorldLimit = 6,
+  riskRolloutDepth = 4,
+  specialDeploymentProbability = 0.35,
+  specialTypeWeights = null,
+  resampleWorld = resampleFromInformationState,
 } = {}) {
-  const publicState = state.stock?.[opponent(aiPlayer)] === null
-    ? structuredClone(state)
-    : stateForPlayer(state, aiPlayer);
+  const publicState = stateForPlayer(state, aiPlayer);
   const options = {
     rootCandidateLimit,
     treeCandidateLimit,
@@ -215,12 +322,26 @@ export function findIsMctsAction(state, {
     rolloutExploration,
     exploration,
     valueScale,
+    riskWeight: Math.max(0, Math.min(1, riskWeight)),
+    riskQuantile: Math.max(Number.EPSILON, Math.min(1, riskQuantile)),
+    riskCandidateLimit: Math.max(0, Math.floor(riskCandidateLimit)),
+    riskWorldLimit: Math.max(0, Math.floor(riskWorldLimit)),
+    riskRolloutDepth: Math.max(1, Math.floor(riskRolloutDepth)),
+    specialDeploymentProbability,
+    specialTypeWeights,
+    actionCache: new Map(),
   };
   const tree = new Map();
-  const rootKey = informationStateKey(sampleInformationSetWorld(publicState, aiPlayer, random), aiPlayer);
+  const rootKey = informationStateKey(publicState, aiPlayer);
 
   for (let iteration = 0; iteration < iterations; iteration += 1) {
-    let world = sampleInformationSetWorld(publicState, aiPlayer, random);
+    let world = resampleWorld(publicState, aiPlayer, random, {
+      specialDeploymentProbability,
+      specialTypeWeights,
+    });
+    if (informationStateKey(world, aiPlayer) !== rootKey) {
+      throw new Error("IS-MCTS resampler returned a world outside the root information state");
+    }
     const path = [];
 
     for (let depth = 0; depth < rolloutDepth && !world.winner; depth += 1) {
@@ -228,14 +349,23 @@ export function findIsMctsAction(state, {
       const key = informationStateKey(world, player);
       let node = tree.get(key);
       if (!node) {
-        node = createNode(world, player, settings, options, random, key === rootKey);
+        node = createNode();
         tree.set(key, node);
       }
-      if (!node.actions.size) break;
-      const edge = selectEdge(node, player === aiPlayer, exploration);
-      path.push({ node, edge });
+      const availableKeys = synchronizeAvailableActions(
+        node,
+        world,
+        player,
+        settings,
+        options,
+        random,
+        key === rootKey,
+      );
+      if (!availableKeys.size) break;
+      const edge = selectEdge(node, availableKeys, player === aiPlayer, exploration);
       const next = applyClonedAction(world, player, edge.action);
       if (!next) break;
+      path.push({ node, edge });
       world = next;
       if (edge.visits === 0) break;
     }
@@ -250,10 +380,32 @@ export function findIsMctsAction(state, {
 
   const root = tree.get(rootKey);
   if (!root?.actions.size) return null;
-  const ranked = [...root.actions.values()].sort((a, b) =>
-    b.visits - a.visits
-    || (b.visits ? b.valueSum / b.visits : -Infinity) - (a.visits ? a.valueSum / a.visits : -Infinity)
-    || actionKey(a.action).localeCompare(actionKey(b.action)));
+  const rootRiskEvaluated = evaluateRootRisks(
+    root,
+    publicState,
+    aiPlayer,
+    settings,
+    options,
+    random,
+    resampleWorld,
+    rootKey,
+  );
+  const legalRootKeys = new Set(getLegalActions(publicState, aiPlayer).map((action) => actionKey(action)));
+  const ranked = [...root.actions.values()].filter((edge) =>
+    legalRootKeys.has(actionKey(edge.action))
+    && (!rootRiskEvaluated || (edge.riskValues?.length || 0) > 0));
+  for (const edge of ranked) {
+    const mean = edge.visits ? edge.valueSum / edge.visits : -Infinity;
+    edge.cvar = lowerTailMean(edge.riskValues || [], options.riskQuantile);
+    edge.selectionScore = edge.cvar === null
+      ? mean
+      : mean * (1 - options.riskWeight) + edge.cvar * options.riskWeight;
+  }
+  ranked.sort((a, b) => options.riskWeight > 0
+    ? b.selectionScore - a.selectionScore || b.visits - a.visits || actionKey(a.action).localeCompare(actionKey(b.action))
+    : b.visits - a.visits
+      || b.selectionScore - a.selectionScore
+      || actionKey(a.action).localeCompare(actionKey(b.action)));
   const selected = ranked[0];
   return {
     action: structuredClone(selected.action),
@@ -264,7 +416,11 @@ export function findIsMctsAction(state, {
     root: ranked.map((edge) => ({
       action: structuredClone(edge.action),
       visits: edge.visits,
+      availability: edge.availability,
       meanValue: edge.visits ? edge.valueSum / edge.visits : 0,
+      riskSamples: edge.riskValues?.length || 0,
+      cvar: edge.cvar,
+      selectionScore: edge.selectionScore,
     })),
   };
 }

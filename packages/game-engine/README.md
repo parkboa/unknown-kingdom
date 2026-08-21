@@ -17,6 +17,9 @@ Engine-created pieces use the state-owned `nextPieceId` sequence. Given equivale
 - `getLegalActions(state, player)`
 - `isSuicideDeployment(state, player, type, row, col)`
 - `stateForPlayer(state, player)`
+- `informationStateForPlayer(state, player)`
+- `informationStateKey(state, player)`
+- `resampleFromInformationState(state, player, random)`
 - `createGameJournal(initialState, metadata)`
 - `dispatchRecordedAction(state, journal, player, action)`
 - `replayGameJournal(journal)`
@@ -48,6 +51,26 @@ Events contain domain data rather than localized messages or UI commands. Before
 
 `stateForPlayer` keeps the viewer's stock, replaces the opponent's stock with `null`, and masks hidden special identities on both board pieces and `lastMove`. The returned view is suitable for clients and information-set AI, but it is not an authoritative state for applying both players' actions.
 
+## Information-Set Contract
+
+`stateForPlayer` is the executable player view used as the base for simulations. New games record each player's own accepted actions and filtered observations in a versioned `informationHistory`; the opponent's private history is removed from player views. `informationStateForPlayer` combines that perfect-recall history with the current observation while removing presentation-only fields such as selection, AI settings, localized logs, and taunt timers. It is intended for information-set comparison and hashing, not action dispatch. `informationStateKey` combines the acting player with the digest of that projection. Legacy journals without `informationHistory` remain replayable and use their original observation-only contract.
+
+`resampleFromInformationState` fills the hidden opponent identities and stock into an executable sampled world. The default sampler constrains the number of possible specials by deployment opportunities, already observed specials, remaining types, and hidden stones. Its special-deployment probability is configurable, and a rule-consistent forced assignment is available for tactical probes. Every sampled world must retain the source information-state key, so an invalid sampler fails at the engine boundary instead of silently contaminating the search tree.
+
+`npm run ai:estimate-hidden-prior` estimates deployment probability and per-type weights from replay journals with Beta/add-one smoothing. The current `experiments/hidden-special-prior.json` is explicitly provisional because it contains only three source games; it must not be treated as a calibrated population model until representative journals replace the loss-only sample.
+
+The experimental IS-MCTS synchronizes each node's action edges with the legal candidate set from every determinization. Each edge tracks how often it was available; selection only considers actions legal in the current sampled world, and unavailable actions receive neither visits nor value. The root result is filtered against the actions legal in the actual root view. Optional root tactical probes force General, Wizard, and Diplomat hypotheses in adjacent hidden groups and combine mean value with lower-tail CVaR. Position-keyed candidate caching avoids repeating expensive rankings across equivalent determinizations.
+
+The historical General and Wizard losses are executable suitability tests in `test/is-mcts-suitability.test.js`. For an independent OpenSpiel 2.0.2 cross-check, install `requirements-open-spiel.txt` in a virtual environment and run:
+
+```sh
+python3 -m venv .venv-open-spiel
+.venv-open-spiel/bin/python -m pip install -r requirements-open-spiel.txt
+OPEN_SPIEL_PYTHON=.venv-open-spiel/bin/python npm run ai:open-spiel-crosscheck
+```
+
+The command runs a one-decision imperfect-information tactical model with shared information states and inconsistent legal-action sets, then compares its safe decision with both historical engine scenarios. It writes `experiments/open-spiel-tactical-crosscheck.json`.
+
 ## Deterministic Journals
 
 `dispatchRecordedAction` stores every attempted action with its ordered domain events and the full-state digest before and after the transition. `replayGameJournal` starts from the embedded initial state and reports the first acceptance, event, or state-digest divergence. Journals contain the authoritative state and must not be sent to an opponent; use player-filtered state and events at the network boundary.
@@ -59,6 +82,14 @@ JSONL journals use one `game_start` record, one `action` record per attempted ac
 ## AI Evaluation Experiments
 
 `js/state-evaluation.js` is the shared zero-sum state evaluator used by lookahead and search experiments. It scores terminal results, material, captures, King liberties, connectivity, influence, center control, and color-symmetric home position from either player's perspective.
+
+The production Expert and Grandmaster heuristic tiers add phase-aware local strategy through `js/strategic-analysis.js`. A phase is opening through 20 completed deployments per side, middle through 40, and endgame thereafter. Both tiers inspect the last four observed opponent deployments. In a relevant local danger hypothesis, the most recent hidden stone is treated as a special with total probability `0.8`, divided across only the General, Wizard, and Diplomat identities still consistent with observations. Immediate King loss remains an absolute veto; otherwise a simultaneous King-versus-strategy conflict is blended with King tactics at `0.9` priority.
+
+Middle- and endgame candidate ordering also classifies an enemy group's liberties by their shortest open route toward the enemy fortress, the AI fortress, or neither. It rewards blocking the enemy-fortress route and, when possible, closing other liberties while preserving the route toward the AI fortress. Expert searches three plies. Grandmaster searches a bounded fourth ply only for the top ranked candidates connected to a recent move, a King, or a wall tactic rather than extending every board action.
+
+Grandmaster treats every unrevealed enemy stone orthogonally adjacent to its King as a `1.0` tactical special hypothesis while any observed-consistent enemy special type remains. It penalizes filling that group's liberties or blocking its shortest open connection to another enemy group: keeping the sacrifice alive prevents its capture reaction from firing. In parallel it rewards moves that reduce the number of empty placements needed to connect the allied King group to its own fortress wall. Once filtered observations show that General, Wizard, and Diplomat have all been revealed or activated, the King-adjacent mine assumption is disabled. These expensive route checks run for root move ordering only; exact engine transitions and the bounded three/four-ply line verify the consequences.
+
+Run `npm run ai:validate-tactics` for the deterministic Grandmaster suitability suite. It checks all three hidden identities through one table-driven scene, preserves the mine's liberty and route to another enemy group, advances the King group toward its own wall, restores ordinary capture after all specials are spent, and rescues a King in atari without detonating an adjacent mine. The command writes `experiments/grandmaster-tactical-validation.json` and exits unsuccessfully if any scene fails.
 
 `js/is-mcts.js` is an experimental information-set MCTS implementation. Every iteration resamples a possible hidden-special world, keys tree nodes by the acting player and their visible information state, and uses the shared evaluator for action ordering and rollout values. `experiments/is-mcts-candidate.json` can be passed to the promotion gate with `--candidate-settings`; it is an experiment profile, not a production difficulty preset.
 
@@ -75,6 +106,7 @@ JSONL journals use one `game_start` record, one `action` record per attempted ac
 - `reactions.js`: General, Diplomat, Wizard, and `resumeTurn` reaction flow
 - `actions.js`: action dispatch, legal-action enumeration, and suicide simulation
 - `visibility.js`: player-specific hidden-information state views
+- `information.js`: information-state projections, keys, and hidden-world resampling
 - `replay.js`: canonical state digests plus action journal recording and verification
 - `index.js`: stable public facade only
 

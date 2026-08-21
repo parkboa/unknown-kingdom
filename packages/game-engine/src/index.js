@@ -9,6 +9,11 @@ export { eventsForPlayer } from "./events.js";
 export { createGameState } from "./state.js";
 export { stateForPlayer } from "./visibility.js";
 export {
+  informationStateForPlayer,
+  informationStateKey,
+  resampleFromInformationState,
+} from "./information.js";
+export {
   createGameJournal,
   dispatchRecordedAction,
   gameJournalActionRecord,

@@ -1,4 +1,5 @@
 import { collectGroup, kingLibertyCount, SIZE } from "../packages/game-engine/src/index.js";
+import { phaseStrategicMultiplier } from "./strategic-analysis.js";
 
 export const TERMINAL_STATE_VALUE = 100000;
 
@@ -85,7 +86,15 @@ export function evaluateStateDetailed(state, perspective, settings = {}) {
   const weighted = Object.fromEntries(
     Object.keys(features).map((key) => [key, features[key] * weights[key]]),
   );
-  const value = Object.values(weighted).reduce((sum, component) => sum + component, 0);
+  const priority = Math.max(0, Math.min(1, Number(settings.kingTacticalPriority || 0)));
+  const strategicMultiplier = settings.strategicContext ? phaseStrategicMultiplier(state) : 1;
+  const kingValue = weighted.kingLiberties;
+  const strategicValue = Object.entries(weighted)
+    .filter(([key]) => key !== "kingLiberties")
+    .reduce((sum, [, component]) => sum + component * strategicMultiplier, 0);
+  const value = priority > 0 && kingValue !== 0
+    ? kingValue * priority + strategicValue * (1 - priority)
+    : kingValue + strategicValue;
   return { value, terminal: false, features, weighted };
 }
 

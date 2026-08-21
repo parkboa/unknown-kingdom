@@ -13,6 +13,7 @@ import {
   stateDigest,
 } from "../src/index.js";
 import { createJsonlGameRecorder } from "../../../scripts/lib/game-journal-jsonl.mjs";
+import { createPveJournalRecorder } from "../../../js/pve-journal.js";
 
 test("records and deterministically replays actions and domain events", () => {
   const state = createGameState();
@@ -48,6 +49,20 @@ test("round-trips a complete action, event, and digest journal through JSONL", (
   assert.deepEqual(parsed.journal, journal);
   assert.deepEqual(parsed.outcome, outcome);
   assert.equal(parsed.replay.finalDigest, stateDigest(state));
+
+  const browserState = createGameState("pve");
+  const browserRecorder = createPveJournalRecorder(browserState, { source: "browser-pve" });
+  browserRecorder.record("red", { type: "deploy", unitType: "king", row: 0, col: 4 });
+  const checkpoint = browserRecorder.actionCount();
+  browserRecorder.record("blue", { type: "deploy", unitType: "king", row: 8, col: 4 });
+  assert.equal(browserRecorder.actionCount(), 2);
+  browserRecorder.restore(checkpoint);
+  assert.equal(browserRecorder.actionCount(), 1);
+  browserRecorder.record("blue", { type: "deploy", unitType: "king", row: 8, col: 3 });
+  const browserParsed = parseGameJournalJsonl(browserRecorder.jsonl());
+  assert.equal(browserParsed.journal.metadata.source, "browser-pve");
+  assert.equal(browserParsed.replay.ok, true);
+  assert.equal(browserParsed.replay.actionCount, 2);
 });
 
 test("streams a complete replayable JSONL journal to a real file", (t) => {

@@ -8,5 +8,16 @@
   "isMctsRootEvaluationLimit": 32,
   "isMctsTreeEvaluationLimit": 16,
   "isMctsRolloutEvaluationLimit": 8,
-  "isMctsRolloutDepth": 8
+  "isMctsRolloutDepth": 8,
+  "isMctsRiskWeight": 0.75,
+  "isMctsRiskQuantile": 0.25,
+  "isMctsRiskCandidateLimit": 8,
+  "isMctsRiskWorldLimit": 6,
+  "isMctsRiskRolloutDepth": 4,
+  "isMctsSpecialDeploymentProbability": 0.22077922077922077,
+  "isMctsSpecialTypeWeights": {
+    "general": 0.3684210526315789,
+    "wizard": 0.3684210526315789,
+    "diplomat": 0.2631578947368421
+  }
 }

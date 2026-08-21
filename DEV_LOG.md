@@ -757,3 +757,68 @@ First priority: fix and test special-reaction turn continuation in both browser 
 Then fix the stale online disconnect indicator and begin extracting one pure shared rules engine before strengthening Life-and-Death AI.
 Preserve the stabilized mobile layout and do not package the final native apps yet; keep new code ready for a later Capacitor iOS/Android shell.
 ```
+
+## End-of-Day Handoff — 2026-08-21
+
+Today's work completed the deterministic hidden-information foundation, evaluated IS-MCTS without promoting it, strengthened the production five-tier heuristic AI, and added browser PvE journals for diagnosing real matches.
+
+### Engine, Information State, and Replay
+
+- The shared engine now keeps deterministic state-owned piece sequencing and player-private perfect-recall histories of accepted actions and filtered observations.
+- `informationStateForPlayer` and `informationStateKey` remove presentation-only fields, preserve the viewer's own history, and never expose the opponent's private history or hidden special identities.
+- Information-state resampling preserves the root information state, returns executable engine worlds, supports forced tactical hypotheses, and accepts configurable hidden-special deployment/type priors.
+- IS-MCTS tracks action availability across determinizations with different legal-action sets and rejects worlds outside the root information set.
+- Action/event/state-digest journals round-trip through JSONL, identify the first replay divergence, reject tampering, and have a real-file streaming test.
+- Browser PvE now records the same action/event/hash journal, keeps undo synchronized with the journal, persists the latest record, and exposes developer-only downloads in Settings and the result card.
+- PvE resignations now pass through the authoritative engine action path. Missing browser timer imports for `hasLegalDeployment` and `declareWinner` were fixed.
+
+### IS-MCTS Evaluation and OpenSpiel Cross-Check
+
+- The candidate uses risk-aware IS-MCTS with lower-tail/CVaR scoring and weighted hidden-special resampling.
+- Three recorded losses replay deterministically with matching final digests. The two tactical losses were General and Wizard reaction traps; risk-aware suitability tests now reject both historical losing moves and a next-turn Wizard trap.
+- The hidden-special prior remains provisional: 3 source games, 75 eligible deployments, 16 observed specials, estimated deployment probability `0.220779`, and smoothed type weights General `0.368421`, Wizard `0.368421`, Diplomat `0.263158`.
+- The full promotion run rejected the IS-MCTS candidate after 20 games: score `22.5%`, Wilson upper bound `44.27%`, below the required `55%`. Production therefore remains on the promoted heuristic engine for all five difficulty tiers.
+- A small OpenSpiel 2.0.2 tactical model previously confirmed matching information-state, resampling, variable-action-set, and safe-action behavior. The checked-in cross-check artifact passed and both engine scenarios avoided their historical losses.
+- Final-day rerun note: `npm run ai:open-spiel-crosscheck` could not run in the current shell because `pyspiel` is not installed in the default Python environment. No network installation was performed during closeout.
+
+### Production AI Strategy
+
+- Shared zero-sum state evaluation covers terminal results, material, captures, King liberties, connectivity, influence, center control, and home position.
+- High-tier phase contracts use 20 completed rounds for opening, 40 for middle game, and territory-heavy endgame evaluation afterward.
+- Recent hidden enemy placements use the agreed `80%` special hypothesis. An unrevealed enemy stone orthogonally adjacent to the King is treated as `100%` special risk until all three enemy specials are observed as spent.
+- King tactics retain `90%` priority when they conflict with territory or wall plans.
+- Grandmaster preserves a King-adjacent "mine's" liberty and connection route instead of detonating it, while connecting its own King group toward its fortress wall.
+- Wall tactics block enemy liberties that lead toward the enemy wall and funnel enemy groups toward the AI wall when an alternative route exists.
+- Specials emphasize King assault during the first 15 deployments; after 20 deployments the strategy transitions to territory even if a special remains. Ordinary groups take a forced sole liberty, while groups containing a special are excluded from that forced escape rule.
+- The middle/endgame policy favors capture when multiple liberties remain, connects detached groups to wall-connected groups, and closes central entry gaps toward its own territory.
+- The deterministic Grandmaster tactical suite covers five scenarios and currently passes all five.
+
+### Five Difficulty Tiers and Promotion Notes
+
+- The production ranks are Novice, Intermediate, Advanced, Expert, and Grandmaster; legacy eight-rank saves migrate into these five tiers.
+- All five tiers generate authoritative legal moves and remain on the heuristic engine.
+- The new Grandmaster strategic configuration was compared with the legacy configuration in one color-swapped pair. The result was `1–1`; the gate correctly rejected it as inconclusive (`max_games_without_confidence`). This smoke comparison is not sufficient evidence of a strength improvement.
+
+### Browser Diagnostics and Developer Mode
+
+- Local developer mode shows PvE JSONL download controls and disables the 30-second PvE timer. Use `?dev=0` when production-like local timer behavior is required.
+- The latest PvE journal survives the result screen and can be downloaded after reload through the persisted fallback.
+- A reported White-to-Black change was traced through the real 39-action journal. Action index `38` placed Black at D1, removed the final liberty of the White E1/F1/G1/F2 group, emitted `group_captured`, and correctly occupied those four cells with Black stones. No special reveal, activation, or Diplomat conversion occurred.
+- `?demo=capture-38` reconstructs the exact pre-capture board locally. AI scheduling is disabled only for this demo so D1 can be played and undone interactively.
+
+### Final Verification
+
+- `npm test`: 98 shared-engine tests passed and 4 server tests passed.
+- `npm run ai:validate-tactics`: 5/5 Grandmaster tactical scenarios passed.
+- `npm run ai:reproduce-losses`: 3/3 journals reproduced with matching digests.
+- `npm run ai:estimate-hidden-prior`: completed and regenerated the provisional prior.
+- `node --check app.js` and `git diff --check`: passed.
+- OpenSpiel rerun: blocked only by missing local `pyspiel`; the existing checked-in artifact records the earlier passing cross-check.
+
+### Remaining Work
+
+1. Collect a representative journal corpus before treating the hidden-special prior as calibrated.
+2. Improve IS-MCTS strength and runtime, then require a fresh paired promotion evaluation before enabling it in production.
+3. Increase Grandmaster comparison games; the one-pair smoke result is intentionally inconclusive.
+4. Record timer expiry as an authoritative journaled action/event so the persisted fallback also contains the terminal timeout outcome after reload.
+5. Keep JSONL controls and tactical demo routes out of production presentation while retaining them for local diagnosis.

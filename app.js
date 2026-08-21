@@ -15,7 +15,9 @@ import {
   activeKingZones as engineActiveKingZones,
   canDeploy as engineCanDeploy,
   countPieces as engineCountPieces,
+  declareWinner,
   findKingPosition as engineFindKingPosition,
+  hasLegalDeployment,
 } from "./packages/game-engine/src/index.js";
 import {
   chooseAiTeleportDestination,
@@ -52,6 +54,7 @@ import {
   dispatchSharedLocalAction,
   isSharedLocalSuicideDeployment,
 } from "./js/shared-engine-adapter.mjs?v=local-shared-1";
+import { createPveJournalRecorder } from "./js/pve-journal.js?v=browser-jsonl-1";
 import {
   initAudioGesture,
   isMusicEnabled,
@@ -94,6 +97,9 @@ const isLocalHost = location.hostname === "127.0.0.1"
   || /^192\.168\./.test(location.hostname)
   || /^10\./.test(location.hostname)
   || /^172\.(1[6-9]|2\d|3[01])\./.test(location.hostname);
+const requestedDeveloperMode = new URLSearchParams(location.search).get("dev");
+const DEVELOPER_MODE = requestedDeveloperMode === "1"
+  || (requestedDeveloperMode !== "0" && isLocalHost);
 const defaultNetworkServer = isLocalHost
   ? `ws://${location.hostname}:4175/ws`
   : "wss://unknown-kingdom-server.onrender.com/ws";
@@ -140,6 +146,8 @@ let wizardMovePromptDismissed = false;
 let rematchRequested = false;
 let pendingSuicideConfirmation = null;
 let suicideConfirmReturnFocus = null;
+let pveJournalRecorder = null;
+let pveJournalGameId = null;
 
 const AI_MOVE_DELAY_MS = 600;
 const AI_SPECIAL_REVEAL_DELAY_MS = 1500;
@@ -149,6 +157,8 @@ const TUTORIAL_SPECIAL_ACTIVATE_DELAY_MS = 1600;
 const TAUNT_DISPLAY_MS = 3000;
 const SPLASH_MIN_DURATION_MS = 2500;
 const SPLASH_SERVER_TIMEOUT_MS = 2000;
+const PVE_TURN_LIMIT_MS = 30000;
+const PVE_JOURNAL_STORAGE_KEY = "unknown-kingdom-latest-pve-jsonl";
 
 const TUTORIAL_STEPS = [
   { unitType: "king", owner: "blue", row: 7, col: 4, message: "tutorialKing", placedMessage: "tutorialKingPlaced" },
@@ -263,6 +273,7 @@ const resultModal = document.querySelector("#resultModal");
 const playAgainBtn = document.querySelector("#playAgainBtn");
 const resultRematchNotice = document.querySelector("#resultRematchNotice");
 const resultLobbyBtn = document.querySelector("#resultLobbyBtn");
+const resultDownloadJournalBtn = document.querySelector("#resultDownloadJournalBtn");
 const rematchToast = document.querySelector("#rematchToast");
 const rematchToastTitle = document.querySelector("#rematchToastTitle");
 const toastAcceptRematchBtn = document.querySelector("#toastAcceptRematchBtn");
@@ -283,11 +294,15 @@ const passNoticeText = document.querySelector("#passNoticeText");
 const confirmPassNoticeBtn = document.querySelector("#confirmPassNoticeBtn");
 const settingsModal = document.querySelector("#settingsModal");
 const settingsStatus = document.querySelector("#settingsStatus");
+const downloadJournalBtn = document.querySelector("#downloadJournalBtn");
 const closeSettingsBtn = document.querySelector("#closeSettingsBtn");
 const languageSelect = document.querySelector("#languageSelect");
 const musicToggle = document.querySelector("#musicToggle");
 const sfxToggle = document.querySelector("#sfxToggle");
 const specialHelpToggle = document.querySelector("#specialHelpToggle");
+
+downloadJournalBtn?.toggleAttribute("hidden", !DEVELOPER_MODE);
+resultDownloadJournalBtn?.toggleAttribute("hidden", !DEVELOPER_MODE);
 const tutorialPanel = document.querySelector("#tutorialPanel");
 const tutorialStepLabel = document.querySelector("#tutorialStepLabel");
 const tutorialMessage = document.querySelector("#tutorialMessage");
@@ -734,6 +749,44 @@ function applySuicideWarningDemo() {
   return true;
 }
 
+function applyCapture38Demo() {
+  if (location.hostname !== "127.0.0.1" && location.hostname !== "localhost") return false;
+  if (new URLSearchParams(location.search).get("demo") !== "capture-38") return false;
+
+  selectModeChoice("pve");
+  pveHumanPlayer = "red";
+  pveAiPlayer = "blue";
+  state = createInitialState("pve", pveHumanPlayer);
+  state.board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+  const pieces = [
+    ["blue", "soldier", 0, 4], ["blue", "soldier", 0, 5], ["blue", "soldier", 0, 6],
+    ["red", "soldier", 0, 7], ["blue", "soldier", 1, 3], ["red", "soldier", 1, 4],
+    ["blue", "soldier", 1, 5], ["red", "soldier", 1, 6], ["blue", "soldier", 1, 7],
+    ["red", "soldier", 2, 2], ["blue", "soldier", 2, 3], ["red", "soldier", 2, 4],
+    ["red", "soldier", 2, 5], ["red", "soldier", 2, 6], ["blue", "soldier", 2, 7],
+    ["blue", "soldier", 3, 3], ["red", "soldier", 3, 4], ["red", "soldier", 3, 5],
+    ["red", "soldier", 3, 6], ["blue", "soldier", 3, 7], ["blue", "general", 4, 3],
+    ["red", "king", 4, 4], ["blue", "wizard", 4, 5], ["red", "soldier", 5, 2],
+    ["red", "soldier", 5, 3], ["blue", "soldier", 5, 4], ["red", "soldier", 6, 2],
+    ["blue", "soldier", 6, 3], ["blue", "soldier", 6, 4], ["blue", "soldier", 6, 5],
+    ["red", "soldier", 7, 1], ["red", "soldier", 7, 2], ["blue", "soldier", 7, 3],
+    ["blue", "king", 7, 4], ["red", "soldier", 7, 5], ["red", "soldier", 7, 6],
+    ["blue", "soldier", 8, 3], ["red", "soldier", 8, 4],
+  ];
+  for (const [owner, type, row, col] of pieces) state.board[row][col] = createPiece(owner, type);
+  state.turn = "red";
+  state.firstDeployDone = { red: true, blue: true };
+  state.deploymentCount = { red: 19, blue: 19 };
+  state.stock.red = { soldier: 61, king: 0, general: 0, diplomat: 1, wizard: 1 };
+  state.stock.blue = { soldier: 61, king: 0, general: 0, diplomat: 1, wizard: 0 };
+  state.log = [LANGUAGE === "ko"
+    ? "39번째 액션 직전: D1은 E1·F1·G1·F2 백돌 무리의 유일한 활로입니다. D1에 흑 병사를 놓아보세요."
+    : "Before action 39: D1 is the only liberty of the White group at E1, F1, G1, and F2. Place a Black Soldier at D1."];
+  modeModal.hidden = true;
+  pveSideModal.hidden = true;
+  return true;
+}
+
 function applyMatchResultDemo() {
   if (location.hostname !== "127.0.0.1" && location.hostname !== "localhost") return false;
   const demoName = new URLSearchParams(location.search).get("demo");
@@ -762,7 +815,7 @@ function applyMatchResultDemo() {
 }
 
 function applyLocalDemo() {
-  return applyMatchResultDemo() || applyNoMoveDemo() || applyWizardTeleportDemo() || applySuicideWarningDemo();
+  return applyCapture38Demo() || applyMatchResultDemo() || applyNoMoveDemo() || applyWizardTeleportDemo() || applySuicideWarningDemo();
 }
 
 function currentUnitChoice() {
@@ -827,6 +880,7 @@ function saveUndoCheckpoint() {
     puzzleIndex,
     puzzleMoves,
     puzzleCompleted,
+    pveJournalActionCount: pveJournalRecorder?.actionCount() ?? null,
   });
   undoStack = undoStack.slice(-200);
 }
@@ -842,6 +896,10 @@ function undoLastMove() {
   }
 
   state = checkpoint.state;
+  if (state.mode === "pve" && pveJournalRecorder && checkpoint.pveJournalActionCount !== null) {
+    pveJournalRecorder.restore(checkpoint.pveJournalActionCount);
+    persistPveJournal();
+  }
   state.aiThinking = false;
   if (state.mode === "puzzle") {
     puzzleIndex = checkpoint.puzzleIndex ?? puzzleIndex;
@@ -1200,10 +1258,88 @@ function commitSharedLocalAction(player, action) {
   );
   if (result.status !== "accepted") return result.status;
 
+  if (state.mode === "pve" && pveJournalRecorder) {
+    const recorded = pveJournalRecorder.record(player, action, { advanceTurn: true });
+    if (!recorded.accepted) throw new Error(`PvE journal rejected accepted action ${action.type}`);
+  }
+
   state = result.state;
   presentSharedLocalEvents(result.visibleEvents);
+  if (state.mode === "pve") persistPveJournal();
   return "accepted";
 }
+
+function pveJournalOutcome() {
+  if (!state?.winner) return null;
+  return {
+    winner: state.winner,
+    reason: state.resultReason || null,
+    finalPieces: { red: countPieces("red"), blue: countPieces("blue") },
+  };
+}
+
+function currentPveJournalJsonl() {
+  const activeJournal = pveJournalRecorder?.jsonl(pveJournalOutcome()) || "";
+  if (activeJournal) return activeJournal;
+  try {
+    const persisted = localStorage.getItem(PVE_JOURNAL_STORAGE_KEY);
+    if (persisted) return persisted;
+  } catch {}
+  try {
+    return sessionStorage.getItem(PVE_JOURNAL_STORAGE_KEY) || "";
+  } catch {}
+  return "";
+}
+
+function persistPveJournal() {
+  if (!pveJournalRecorder) return;
+  const jsonl = currentPveJournalJsonl();
+  try {
+    localStorage.setItem(PVE_JOURNAL_STORAGE_KEY, jsonl);
+    sessionStorage.removeItem(PVE_JOURNAL_STORAGE_KEY);
+    return;
+  } catch (error) {
+    console.warn("Could not persist PvE journal in local storage", error);
+  }
+  try {
+    sessionStorage.setItem(PVE_JOURNAL_STORAGE_KEY, jsonl);
+  } catch (error) {
+    console.warn("Could not persist PvE journal in session storage", error);
+  }
+}
+
+function startPveJournal() {
+  if (state?.mode !== "pve") {
+    pveJournalRecorder = null;
+    pveJournalGameId = null;
+    return;
+  }
+  pveJournalGameId = `browser-pve-${Date.now()}`;
+  pveJournalRecorder = createPveJournalRecorder(state, {
+    gameId: pveJournalGameId,
+    source: "browser-pve",
+    aiRank: state.aiRank,
+    humanPlayer: pveHumanPlayer,
+    aiPlayer: pveAiPlayer,
+  });
+  persistPveJournal();
+}
+
+function downloadPveJournal() {
+  const jsonl = currentPveJournalJsonl();
+  if (!jsonl) return;
+  const blobUrl = URL.createObjectURL(new Blob([jsonl], { type: "application/x-ndjson;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = `${pveJournalGameId || "browser-pve"}.jsonl`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(blobUrl);
+  settingsStatus.textContent = text("pveJournalDownloaded");
+}
+
+window.getDaegukPveJournalJsonl = currentPveJournalJsonl;
 
 function presentSharedLocalEvents(events) {
   for (const event of events) {
@@ -1386,6 +1522,7 @@ function teleportWizard(row, col) {
 }
 
 function scheduleAiTurn() {
+  if (new URLSearchParams(location.search).get("demo") === "capture-38") return;
   if (visibleTaunt) return;
   if (state.mode === "pve" && state.pendingSpecial?.owner === pveAiPlayer && !state.aiThinking) {
     state.aiThinking = true;
@@ -1456,9 +1593,11 @@ function render() {
       ? pveHumanPlayer
       : PVE_HUMAN;
   fortressFrame.classList.toggle("view-red", viewerSide === "red");
-  if (state.mode === "pve" && !state.winner && isGameActive()) {
+  if (DEVELOPER_MODE) {
+    pveTurnDeadline = null;
+  } else if (state.mode === "pve" && !state.winner && isGameActive()) {
     if (state.turn === pveHumanPlayer && pveTurnDeadline === null) {
-      pveTurnDeadline = Date.now() + 30000;
+      pveTurnDeadline = Date.now() + PVE_TURN_LIMIT_MS;
     } else if (state.turn !== pveHumanPlayer) {
       pveTurnDeadline = null;
     }
@@ -1711,6 +1850,10 @@ if (confirmResignBtn) {
       sendNetworkAction({ type: "resign" });
       return;
     }
+    if (state.mode === "pve") {
+      applySharedPveAction(pveHumanPlayer, { type: "resign" });
+      return;
+    }
     const resigningSide = state.mode === "pve" ? pveHumanPlayer : state.turn;
     const winningSide = opponent(resigningSide);
     state.phase = "complete";
@@ -1826,6 +1969,7 @@ function resetGame() {
     return;
   }
   state = newState();
+  startPveJournal();
   render();
   scheduleAiTurn();
 }
@@ -1854,6 +1998,7 @@ function startNewGame() {
   state = createInitialState("pve", pveHumanPlayer);
   state.aiDifficulty = pveDifficulty;
   state.aiRank = selectedPveRank;
+  startPveJournal();
   pveSideModal.hidden = true;
   networkModal.hidden = true;
   resultModal.hidden = true;
@@ -1938,7 +2083,9 @@ function startPve(side) {
   resetGame();
   state.aiDifficulty = pveDifficulty;
   state.aiRank = selectedPveRank;
-  pveTurnDeadline = side === "red" ? Date.now() + 30000 : null;
+  pveTurnDeadline = !DEVELOPER_MODE && side === "red"
+    ? Date.now() + PVE_TURN_LIMIT_MS
+    : null;
   render();
   if (side === "blue") scheduleAiTurn();
 }
@@ -2172,6 +2319,7 @@ function joinNetworkRoom(roomCode) {
 newGameBtn.addEventListener("click", startNewGame);
 function openSettingsModal() {
   syncSettingsControls();
+  if (downloadJournalBtn) downloadJournalBtn.disabled = !currentPveJournalJsonl();
   settingsStatus.hidden = true;
   settingsModal.hidden = false;
 }
@@ -2196,6 +2344,11 @@ specialHelpToggle.addEventListener("change", () => {
   }
   settingsStatus.hidden = false;
 });
+downloadJournalBtn?.addEventListener("click", () => {
+  downloadPveJournal();
+  settingsStatus.hidden = false;
+});
+resultDownloadJournalBtn?.addEventListener("click", downloadPveJournal);
 closeSettingsBtn.addEventListener("click", () => {
   settingsModal.hidden = true;
 });
@@ -2325,7 +2478,7 @@ window.setInterval(() => {
       text,
       sideName,
     });
-  } else if (state.mode === "pve" && state.turn === pveHumanPlayer && pveTurnDeadline) {
+  } else if (!DEVELOPER_MODE && state.mode === "pve" && state.turn === pveHumanPlayer && pveTurnDeadline) {
     if (Date.now() >= pveTurnDeadline) {
       pveTurnDeadline = null;
       if (!hasLegalDeployment(state, pveHumanPlayer)) {

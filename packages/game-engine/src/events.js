@@ -37,3 +37,15 @@ export function eventsForPlayer(events, player) {
   });
 }
 
+export function recordInformationTransition(state, actor, action, events) {
+  const history = state.informationHistory;
+  if (!history || history.schemaVersion !== 1) return;
+  for (const player of PLAYERS) {
+    if (!Array.isArray(history[player])) continue;
+    history[player].push({
+      actor,
+      ownAction: actor === player ? structuredClone(action) : null,
+      events: eventsForPlayer(events, player),
+    });
+  }
+}

@@ -12,6 +12,11 @@
     "start": "npm start --workspace=server",
     "test": "npm test --workspace=packages/game-engine && npm test --workspace=server",
     "ai:promotion": "node scripts/ai-promotion-gate.mjs",
+    "ai:reproduce-losses": "node scripts/reproduce-is-mcts-losses.mjs",
+    "ai:open-spiel-crosscheck": "node scripts/crosscheck-open-spiel-tactics.mjs",
+    "ai:estimate-hidden-prior": "node scripts/estimate-hidden-special-prior.mjs",
+    "ai:validate-tactics": "node scripts/validate-grandmaster-tactics.mjs",
+    "ai:compare-grandmaster": "node scripts/ai-promotion-gate.mjs --candidate grandmaster --baseline grandmaster --baseline-settings experiments/grandmaster-legacy-settings.json --pairs 1 --min-pairs 1 --threshold 0.5 --max-deployments 60 --seed 20260821 --output experiments/grandmaster-comparison.json",
     "ai:is-mcts-benchmark": "node scripts/is-mcts-benchmark.mjs"
   },
   "engines": {

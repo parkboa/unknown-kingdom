@@ -1335,6 +1335,10 @@ body.iphone-preview .lobby-logo {
   justify-items: center;
 }
 
+[data-developer-only][hidden] {
+  display: none !important;
+}
+
 .settings-card {
   border: 1px solid rgb(216 165 50 / 34%);
   color: rgb(247 239 224 / 86%);

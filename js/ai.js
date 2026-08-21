@@ -9,9 +9,24 @@ import {
   opponent,
   orthogonalPositions,
   stateForPlayer,
-  wallOwnerForEdge,
 } from "../packages/game-engine/src/index.js";
 import { evaluateStateTransition } from "./state-evaluation.js";
+import {
+  KING_ADJACENT_SPECIAL_PROBABILITY,
+  KING_TACTIC_PRIORITY,
+  RECENT_SPECIAL_PROBABILITY,
+  buildMidgameTacticalPolicy,
+  classifyMidgameCandidate,
+  gamePhase,
+  kingAdjacentMinePositions,
+  kingMineDefusalValue,
+  kingWallConnectionValue,
+  observedRemainingSpecialTypes,
+  phaseStrategicMultiplier,
+  recentIntentValue,
+  recentOpponentDeployments,
+  wallTacticalValue,
+} from "./strategic-analysis.js";
 
 export const AI_TIER_ORDER = [
   "novice",
@@ -91,6 +106,12 @@ export const AI_RANK_SETTINGS = {
     riskCandidateLimit: 4,
     deepRiskCandidateLimit: 1,
     deepRiskWeight: 0.35,
+    strategicContext: true,
+    recentBeliefStrategy: true,
+    recentSpecialProbability: RECENT_SPECIAL_PROBABILITY,
+    recentIntentWeight: 4,
+    wallTacticsWeight: 1,
+    kingTacticalPriority: KING_TACTIC_PRIORITY,
     score: {
       center: 3.0,
       allies: 6.5,
@@ -115,17 +136,32 @@ export const AI_RANK_SETTINGS = {
     variance: 0,
     considerAllTypes: true,
     searchDepth: 3,
+    localSearchDepth: 4,
+    localFourPlyCandidateLimit: 6,
     tacticalExtension: true,
     instantKillCheck: true,
     ironcladKingDefense: true,
-    rootCandidateLimit: 42,
-    replyCandidateLimit: 22,
-    continuationCandidateLimit: 14,
+    rootCandidateLimit: 28,
+    replyCandidateLimit: 12,
+    continuationCandidateLimit: 8,
+    ply4CandidateLimit: 4,
     criticalBeliefWorldLimit: 6,
     hiddenKingRiskVeto: true,
     riskCandidateLimit: 6,
     deepRiskCandidateLimit: 2,
     deepRiskWeight: 0.5,
+    strategicContext: true,
+    recentBeliefStrategy: true,
+    recentSpecialProbability: RECENT_SPECIAL_PROBABILITY,
+    recentIntentWeight: 6,
+    wallTacticsWeight: 1.4,
+    kingTacticalPriority: KING_TACTIC_PRIORITY,
+    kingMineStrategy: true,
+    kingAdjacentSpecialProbability: KING_ADJACENT_SPECIAL_PROBABILITY,
+    midgameCandidatePolicy: true,
+    midgameTacticalCandidateLimit: 8,
+    midgameSpecialAttackLimit: 4,
+    kingAssaultSafetyCandidateLimit: 2,
     score: {
       center: 3.2,
       allies: 7.5,
@@ -381,7 +417,7 @@ function scoreDeployType(state, unitType, row, col, neighbors, aiPlayer, humanPl
   return 0;
 }
 
-function scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer) {
+function scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer, rootStrategic = false) {
   const centerScore = 8 - (Math.abs(row - 4) + Math.abs(col - 4));
   const adjacentAllies = adjacentCount(state, row, col, aiPlayer, neighbors);
   const adjacentEnemies = adjacentCount(state, row, col, humanPlayer, neighbors);
@@ -391,24 +427,46 @@ function scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer) {
   const liberties = libertiesAfterDeploy(state, row, col, aiPlayer, neighbors);
   const dangerPenalty = Math.max(0, 2 - liberties) * weights.defense;
 
-  let total = centerScore * weights.center
+  let strategicScore = centerScore * weights.center
     + adjacentAllies * weights.allies
     + adjacentEnemies * weights.enemies
     + homeBoardBias * weights.home
     + capturePotential * weights.capture
     + Math.max(0, adjacentEnemies - 1) * weights.threat
-    + kingPressureScore(state, row, col, humanPlayer) * weights.kingPressure
-    + ownKingSafetyScore(state, row, col, aiPlayer) * weights.kingSafety
     - dangerPenalty;
+  let kingScore = kingPressureScore(state, row, col, humanPlayer) * weights.kingPressure
+    + ownKingSafetyScore(state, row, col, aiPlayer) * weights.kingSafety;
 
   if (weights.influence) {
-    total += cellInfluenceScore(state, row, col, aiPlayer, humanPlayer) * weights.influence;
+    strategicScore += cellInfluenceScore(state, row, col, aiPlayer, humanPlayer) * weights.influence;
   }
   if (weights.groupTactics) {
-    total += evaluateGroupTactics(state, row, col, aiPlayer, humanPlayer, neighbors);
+    strategicScore += evaluateGroupTactics(state, row, col, aiPlayer, humanPlayer, neighbors);
   }
 
-  return total;
+  const settings = difficultySettings(state);
+  let wallTactics = null;
+  let recentIntent = 0;
+  if (settings.strategicContext) {
+    const phaseMultiplier = phaseStrategicMultiplier(state);
+    strategicScore *= phaseMultiplier;
+    recentIntent = recentIntentValue(state, row, col, aiPlayer);
+    strategicScore += recentIntent * (settings.recentIntentWeight || 0) * phaseMultiplier;
+    if (gamePhase(state) !== "opening") {
+      wallTactics = wallTacticalValue(state, row, col, aiPlayer, humanPlayer);
+      strategicScore += wallTactics.value * (settings.wallTacticsWeight || 0) * phaseMultiplier;
+    }
+    if (settings.kingMineStrategy && rootStrategic) {
+      kingScore += kingMineDefusalValue(state, row, col, aiPlayer, humanPlayer).value;
+      kingScore += kingWallConnectionValue(state, row, col, aiPlayer).value;
+    }
+    const priority = Math.max(0, Math.min(1, settings.kingTacticalPriority || 0));
+    if (kingScore !== 0 && priority > 0) {
+      return kingScore * priority + strategicScore * (1 - priority);
+    }
+  }
+
+  return strategicScore + kingScore;
 }
 
 function compareCandidates(a, b, perspectivePlayer) {
@@ -476,19 +534,21 @@ export function compareBeliefStonePositions(a, b, myKing, perspectivePlayer) {
   return distA - distB || relativeRowA - relativeRowB || a.col - b.col;
 }
 
-function unrevealedSpecialCounts(publicState, opponentPlayer) {
-  const counts = { general: 1, wizard: 1, diplomat: 1 };
-
-  for (const piece of publicState.board.flat()) {
-    if (!piece || piece.owner !== opponentPlayer || !piece.revealed) continue;
-    const knownType = piece.originalType || piece.type;
-    if (Object.hasOwn(counts, knownType)) counts[knownType] -= 1;
-  }
-  for (const type of Object.keys(counts)) counts[type] = Math.max(0, counts[type]);
-  return counts;
+function unrevealedSpecialCounts(publicState, perspectivePlayer, opponentPlayer) {
+  const remaining = new Set(observedRemainingSpecialTypes(publicState, perspectivePlayer, opponentPlayer));
+  return Object.fromEntries(
+    ["general", "wizard", "diplomat"].map((type) => [type, remaining.has(type) ? 1 : 0]),
+  );
 }
 
-function criticalHiddenStonesForDeploy(publicState, perspectivePlayer, opponentPlayer, candidate) {
+function criticalHiddenStonesForDeploy(
+  publicState,
+  perspectivePlayer,
+  opponentPlayer,
+  candidate,
+  includeKingMines = false,
+  includeRecentIntent = true,
+) {
   if (!candidate || publicState.board[candidate.row]?.[candidate.col]) return [];
   const probe = structuredClone(publicState);
   probe.board[candidate.row][candidate.col] = {
@@ -516,24 +576,68 @@ function criticalHiddenStonesForDeploy(publicState, perspectivePlayer, opponentP
       const stoneKey = `${groupRow}:${groupCol}`;
       if (!piece?.revealed && !seenStones.has(stoneKey)) {
         seenStones.add(stoneKey);
-        critical.push({ row: groupRow, col: groupCol });
+        critical.push({ row: groupRow, col: groupCol, reason: "capture" });
       }
     }
   }
+  if (includeKingMines) {
+    for (const position of kingAdjacentMinePositions(publicState, perspectivePlayer, opponentPlayer)) {
+      const stoneKey = `${position.row}:${position.col}`;
+      if (seenStones.has(stoneKey)) {
+        const existing = critical.find(({ row, col }) => row === position.row && col === position.col);
+        if (existing) existing.isKingMine = true;
+        continue;
+      }
+      seenStones.add(stoneKey);
+      critical.push({ ...position, reason: "king_adjacent_mine", isKingMine: true });
+    }
+  }
   const myKing = findKing(publicState, perspectivePlayer);
-  return critical.sort((a, b) => compareBeliefStonePositions(a, b, myKing, perspectivePlayer));
+  const recent = includeRecentIntent ? recentOpponentDeployments(publicState, perspectivePlayer, 4) : [];
+  for (const [index, position] of recent.entries()) {
+    const piece = publicState.board[position.row]?.[position.col];
+    if (!piece || piece.owner !== opponentPlayer || piece.revealed || piece.type === "king") continue;
+    const candidateDistance = Math.abs(candidate.row - position.row) + Math.abs(candidate.col - position.col);
+    const kingDistance = myKing
+      ? Math.abs(myKing.row - position.row) + Math.abs(myKing.col - position.col)
+      : Infinity;
+    if (candidateDistance > 4 && kingDistance > 3) continue;
+    const stoneKey = `${position.row}:${position.col}`;
+    if (seenStones.has(stoneKey)) {
+      const existing = critical.find(({ row, col }) => row === position.row && col === position.col);
+      if (existing) {
+        existing.isRecent = true;
+        existing.recency = index;
+      }
+      continue;
+    }
+    seenStones.add(stoneKey);
+    critical.push({
+      row: position.row,
+      col: position.col,
+      reason: "recent_intent",
+      isRecent: true,
+      recency: index,
+    });
+  }
+  return critical.sort((a, b) => Number(Boolean(b.isKingMine)) - Number(Boolean(a.isKingMine))
+    || Number(Boolean(b.isRecent)) - Number(Boolean(a.isRecent))
+    || (a.recency ?? Infinity) - (b.recency ?? Infinity)
+    || compareBeliefStonePositions(a, b, myKing, perspectivePlayer));
 }
 
-function createCriticalBeliefWorlds(publicState, perspectivePlayer, opponentPlayer, candidate) {
+function createCriticalBeliefWorlds(publicState, perspectivePlayer, opponentPlayer, candidate, settings) {
   const criticalStones = criticalHiddenStonesForDeploy(
     publicState,
     perspectivePlayer,
     opponentPlayer,
     candidate,
+    Boolean(settings.kingMineStrategy),
+    settings.recentBeliefStrategy !== false,
   );
   if (!criticalStones.length) return [];
 
-  const specialCounts = unrevealedSpecialCounts(publicState, opponentPlayer);
+  const specialCounts = unrevealedSpecialCounts(publicState, perspectivePlayer, opponentPlayer);
   const worlds = [];
   for (const position of criticalStones) {
     for (const type of ["general", "wizard", "diplomat"]) {
@@ -543,7 +647,15 @@ function createCriticalBeliefWorlds(publicState, perspectivePlayer, opponentPlay
       if (!piece) continue;
       piece.type = type;
       piece.originalType = type;
-      worlds.push(world);
+      worlds.push({
+        state: world,
+        row: position.row,
+        col: position.col,
+        type,
+        isRecent: Boolean(position.isRecent),
+        isKingMine: Boolean(position.isKingMine),
+        reason: position.reason,
+      });
     }
   }
   return worlds;
@@ -568,16 +680,40 @@ function evaluateCriticalBeliefRisk(
   const action = { type: "deploy", unitType: candidate.type, row: candidate.row, col: candidate.col };
   const publicAfter = simulateEngineTransition(publicState, aiPlayer, action, neighbors);
   const publicValue = immediateBeliefValue(publicState, publicAfter, aiPlayer, humanPlayer, settings);
-  const outcomes = criticalWorlds.map((world) => {
-    const after = simulateEngineTransition(world, aiPlayer, action, neighbors);
+  const outcomes = criticalWorlds.map((hypothesis) => {
+    const after = simulateEngineTransition(hypothesis.state, aiPlayer, action, neighbors);
     return {
-      world,
+      ...hypothesis,
       after,
-      value: immediateBeliefValue(world, after, aiPlayer, humanPlayer, settings),
+      value: immediateBeliefValue(hypothesis.state, after, aiPlayer, humanPlayer, settings),
     };
   });
-  const averageValue = (publicValue + outcomes.reduce((sum, outcome) => sum + outcome.value, 0))
-    / (outcomes.length + 1);
+  if (settings.recentBeliefStrategy === false) {
+    const averageValue = (publicValue + outcomes.reduce((sum, outcome) => sum + outcome.value, 0))
+      / (outcomes.length + 1);
+    const worstOutcome = outcomes.reduce(
+      (worst, outcome) => !worst || outcome.value < worst.value ? outcome : worst,
+      null,
+    );
+    return {
+      adjustment: averageValue - publicValue,
+      fatal: outcomes.some((outcome) => outcome.after?.winner === humanPlayer),
+      worstWorld: worstOutcome?.state || null,
+      specialProbability: outcomes.length / (outcomes.length + 1),
+      hypothesisCount: outcomes.length,
+      kingMineHypothesis: false,
+    };
+  }
+  const hasKingMineHypothesis = settings.kingMineStrategy && outcomes.some(({ isKingMine }) => isKingMine);
+  const hasRecentHypothesis = outcomes.some(({ isRecent }) => isRecent);
+  const specialProbability = hasKingMineHypothesis
+    ? Math.max(0, Math.min(1, settings.kingAdjacentSpecialProbability
+      ?? KING_ADJACENT_SPECIAL_PROBABILITY))
+    : hasRecentHypothesis
+      ? Math.max(0, Math.min(1, settings.recentSpecialProbability ?? RECENT_SPECIAL_PROBABILITY))
+      : 0.35;
+  const specialAverage = outcomes.reduce((sum, outcome) => sum + outcome.value, 0) / outcomes.length;
+  const averageValue = publicValue * (1 - specialProbability) + specialAverage * specialProbability;
   const worstOutcome = outcomes.reduce(
     (worst, outcome) => !worst || outcome.value < worst.value ? outcome : worst,
     null,
@@ -585,7 +721,10 @@ function evaluateCriticalBeliefRisk(
   return {
     adjustment: averageValue - publicValue,
     fatal: outcomes.some((outcome) => outcome.after?.winner === humanPlayer),
-    worstWorld: worstOutcome?.world || null,
+    worstWorld: worstOutcome?.state || null,
+    specialProbability,
+    hypothesisCount: outcomes.length,
+    kingMineHypothesis: hasKingMineHypothesis,
   };
 }
 
@@ -706,13 +845,83 @@ function generateSearchCandidates(state, player, enemy, neighbors) {
   return candidates;
 }
 
+function prioritizeMidgameCandidates(state, candidates, player, enemy, settings, limit) {
+  if (!settings.midgameCandidatePolicy || !candidates.length) return candidates.slice(0, limit);
+  const policy = buildMidgameTacticalPolicy(state, player, enemy);
+  if (!policy.active) return candidates.slice(0, limit);
+  const classified = candidates.map((candidate) => ({
+    candidate,
+    tactics: classifyMidgameCandidate(policy, candidate),
+  }));
+  const specialAttacks = classified.filter(({ tactics }) => tactics.specialAttack);
+  if (specialAttacks.length) {
+    const bestSpecialOrder = Math.max(...specialAttacks.map(({ tactics }) => tactics.specialOrder));
+    const attacks = specialAttacks
+      .filter(({ tactics }) => tactics.specialOrder === bestSpecialOrder
+        || (bestSpecialOrder === 3 && tactics.specialOrder === 2))
+      .sort((a, b) => b.tactics.specialOrder - a.tactics.specialOrder
+        || a.tactics.kingDistance - b.tactics.kingDistance
+        || compareCandidates(a.candidate, b.candidate, player))
+      .slice(0, Math.min(limit, settings.midgameSpecialAttackLimit || 4));
+    const safetyReserve = classified
+      .filter(({ tactics }) => !tactics.specialAttack)
+      .sort((a, b) => compareCandidates(a.candidate, b.candidate, player))
+      .slice(0, Math.max(0, Math.min(
+        limit - attacks.length,
+        settings.kingAssaultSafetyCandidateLimit || 0,
+      )));
+    return [...attacks, ...safetyReserve]
+      .map(({ candidate, tactics }) => ({ ...candidate, midgameTactics: tactics }));
+  }
+
+  const forced = classified.filter(({ tactics }) => tactics.forcedSoldierLiberty);
+  if (forced.length) {
+    return forced.map(({ candidate, tactics }) => ({ ...candidate, midgameTactics: tactics })).slice(0, limit);
+  }
+
+  const captures = classified.filter(({ tactics }) => tactics.capture);
+  if (captures.length) {
+    return captures
+      .sort((a, b) => compareCandidates(a.candidate, b.candidate, player))
+      .slice(0, limit)
+      .map(({ candidate, tactics }) => ({ ...candidate, midgameTactics: tactics }));
+  }
+
+  const positional = classified
+    .filter(({ tactics }) => tactics.homeSeal || tactics.wallBridge)
+    .sort((a, b) => Number(b.tactics.homeSeal) - Number(a.tactics.homeSeal)
+      || Number(b.tactics.wallBridge) - Number(a.tactics.wallBridge)
+      || compareCandidates(a.candidate, b.candidate, player));
+  if (positional.length) {
+    return positional
+      .slice(0, Math.min(limit, settings.midgameTacticalCandidateLimit || 8))
+      .map(({ candidate, tactics }) => ({ ...candidate, midgameTactics: tactics }));
+  }
+  return candidates.slice(0, Math.min(limit, settings.midgameTacticalCandidateLimit || 8));
+}
+
+function isLocalStrategicCandidate(state, candidate, player, enemy) {
+  const recent = recentOpponentDeployments(state, player, 4);
+  if (recent.some(({ row, col }) => Math.abs(candidate.row - row) + Math.abs(candidate.col - col) <= 4)) {
+    return true;
+  }
+  for (const owner of [player, enemy]) {
+    const king = findKing(state, owner);
+    if (king && Math.abs(candidate.row - king.row) + Math.abs(candidate.col - king.col) <= 3) return true;
+  }
+  return gamePhase(state) !== "opening"
+    && wallTacticalValue(state, candidate.row, candidate.col, player, enemy).value !== 0;
+}
+
 function selectSearchCandidates(state, player, enemy, neighbors, limit) {
   const candidates = generateSearchCandidates(state, player, enemy, neighbors);
   if (candidates.length <= limit) return candidates;
 
   const ownKingInCrisis = kingLibertyCount(state, player) === 1;
   const enemyKingInCrisis = kingLibertyCount(state, enemy) === 1;
-  if (!ownKingInCrisis && !enemyKingInCrisis) return candidates.slice(0, limit);
+  if (!ownKingInCrisis && !enemyKingInCrisis) {
+    return prioritizeMidgameCandidates(state, candidates, player, enemy, difficultySettings(state), limit);
+  }
 
   const winningMoves = [];
   const rescueMoves = [];
@@ -749,7 +958,15 @@ function selectSearchCandidates(state, player, enemy, neighbors, limit) {
 
   winningMoves.forEach(append);
   rescueMoves.forEach(append);
-  for (const candidate of candidates) {
+  const fallback = prioritizeMidgameCandidates(
+    state,
+    candidates,
+    player,
+    enemy,
+    difficultySettings(state),
+    limit,
+  );
+  for (const candidate of fallback) {
     if (selected.length >= limit && seen.size >= winningMoves.length + rescueMoves.length) break;
     append(candidate);
   }
@@ -916,7 +1133,7 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
           row,
           col,
           type,
-          score: scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer)
+          score: scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer, true)
             + scoreDeployType(state, type, row, col, neighbors, aiPlayer, humanPlayer)
             + (settings.variance > 0 ? Math.random() * positionVariance(state) : 0),
         });
@@ -932,7 +1149,7 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
     if (!criticalWorldCache.has(key)) {
       criticalWorldCache.set(
         key,
-        createCriticalBeliefWorlds(publicState, aiPlayer, humanPlayer, candidate),
+        createCriticalBeliefWorlds(publicState, aiPlayer, humanPlayer, candidate, settings),
       );
     }
     return criticalWorldCache.get(key);
@@ -946,8 +1163,8 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
       if (publicResult?.winner !== aiPlayer) continue;
 
       const criticalWorlds = criticalWorldsFor(cand);
-      const winsInEveryWorld = criticalWorlds.every((world) => {
-        const simulated = simulateEngineTransition(world, aiPlayer, quickAction, neighbors);
+      const winsInEveryWorld = criticalWorlds.every((hypothesis) => {
+        const simulated = simulateEngineTransition(hypothesis.state, aiPlayer, quickAction, neighbors);
         return simulated?.winner === aiPlayer;
       });
       if (winsInEveryWorld) {
@@ -973,14 +1190,28 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
   }
 
   const limit = settings.searchDepth > 1 ? (settings.rootCandidateLimit || 20) : candidates.length;
-  const searchedCandidates = candidates.slice(0, limit);
+  const searchedCandidates = ownKingLibs === 1
+    ? candidates.slice(0, limit)
+    : prioritizeMidgameCandidates(state, candidates, aiPlayer, humanPlayer, settings, limit);
   let bestScore = -Infinity;
 
-  for (const candidate of searchedCandidates) {
+  for (const [candidateIndex, candidate] of searchedCandidates.entries()) {
+    const useLocalFourthPly = settings.localSearchDepth >= 4
+      && candidateIndex < (settings.localFourPlyCandidateLimit || 0)
+      && isLocalStrategicCandidate(state, candidate, aiPlayer, humanPlayer);
+    const candidateSettings = useLocalFourthPly
+      ? {
+        ...settings,
+        searchDepth: 4,
+        replyCandidateLimit: Math.min(settings.replyCandidateLimit || 8, 10),
+        continuationCandidateLimit: Math.min(settings.continuationCandidateLimit || 6, 6),
+        ply4CandidateLimit: Math.min(settings.ply4CandidateLimit || 3, 3),
+      }
+      : settings;
     const deepScore = scoreWithLookahead(
       state,
       candidate,
-      settings,
+      candidateSettings,
       aiPlayer,
       humanPlayer,
       neighbors,
@@ -989,6 +1220,7 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
     );
     candidate.deepScore = deepScore;
     candidate.publicDeepScore = deepScore;
+    candidate.searchDepthUsed = candidateSettings.searchDepth;
     if (deepScore > bestScore) bestScore = deepScore;
   }
 
@@ -1011,6 +1243,9 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
     if (!risk) return;
     riskByCandidate.set(candidate, risk);
     candidate.riskAdjustment = risk.adjustment;
+    candidate.specialRiskProbability = risk.specialProbability;
+    candidate.specialHypothesisCount = risk.hypothesisCount;
+    candidate.kingMineHypothesis = risk.kingMineHypothesis;
     candidate.deepScore = risk.fatal && settings.hiddenKingRiskVeto
       ? -100000
       : candidate.deepScore + risk.adjustment;
@@ -1045,7 +1280,26 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
     candidate.deepScore = candidate.deepScore * (1 - weight) + worstDeepScore * weight;
   }
   selectionPool.sort((a, b) => compareCandidates(a, b, aiPlayer));
-  return selectionPool[0] || null;
+  const selected = selectionPool[0] || null;
+  if (selected && settings.strategicContext) {
+    selected.gamePhase = gamePhase(state);
+    selected.kingTacticalPriority = settings.kingTacticalPriority;
+    selected.recentSpecialProbability = settings.recentSpecialProbability;
+    selected.wallTactics = gamePhase(state) === "opening"
+      ? null
+      : wallTacticalValue(state, selected.row, selected.col, aiPlayer, humanPlayer);
+    if (settings.kingMineStrategy) {
+      selected.kingMineDefusal = kingMineDefusalValue(
+        state,
+        selected.row,
+        selected.col,
+        aiPlayer,
+        humanPlayer,
+      );
+      selected.kingWallConnection = kingWallConnectionValue(state, selected.row, selected.col, aiPlayer);
+    }
+  }
+  return selected;
 }
 
 export function chooseAiTeleportDestination(state, neighbors, aiPlayer, humanPlayer) {

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "sourceEvaluation": "experiments/is-mcts-promotion-result.json",
+  "replayCount": 3,
+  "allReproduced": true,
+  "replays": [
+    {
+      "gameId": "pair-002-candidate-blue",
+      "candidateColor": "blue",
+      "seed": 1034165063,
+      "winner": "red",
+      "capped": false,
+      "deployments": 20,
+      "reason": "White King was captured by General capture reaction.",
+      "finalPieces": {
+        "red": 10,
+        "blue": 8
+      },
+      "actionCount": 21,
+      "finalDigest": "fnv1a64:740b70580bf18e15",
+      "journalPath": "experiments/is-mcts-loss-replays/pair-002-candidate-blue.jsonl",
+      "reproduced": true
+    },
+    {
+      "gameId": "pair-008-candidate-red",
+      "candidateColor": "red",
+      "seed": 4075877789,
+      "winner": "blue",
+      "capped": false,
+      "deployments": 25,
+      "reason": "Black King was captured by Wizard capture reaction.",
+      "finalPieces": {
+        "red": 10,
+        "blue": 12
+      },
+      "actionCount": 26,
+      "finalDigest": "fnv1a64:c2ed0d4a06fd2f7d",
+      "journalPath": "experiments/is-mcts-loss-replays/pair-008-candidate-red.jsonl",
+      "reproduced": true
+    },
+    {
+      "gameId": "pair-001-candidate-red",
+      "candidateColor": "red",
+      "seed": 2674696590,
+      "winner": "blue",
+      "capped": true,
+      "deployments": 60,
+      "reason": "evaluation_cap_territory",
+      "finalPieces": {
+        "red": 25,
+        "blue": 31
+      },
+      "actionCount": 62,
+      "finalDigest": "fnv1a64:071c3ae149d03075",
+      "journalPath": "experiments/is-mcts-loss-replays/pair-001-candidate-red.jsonl",
+      "reproduced": true
+    }
+  ]
+}
