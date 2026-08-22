@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: unknown-kingdom-server
+    name: daeguk-server
     runtime: node
     plan: free
     buildCommand: npm ci
