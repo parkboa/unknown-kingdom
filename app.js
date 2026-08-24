@@ -5,7 +5,7 @@ import {
   SIZE,
   SPECIALS,
   createUnitLabels,
-} from "./js/config.js?v=pve-side-turn-1";
+} from "./js/config.js?v=release-20260824-1";
 import {
   inBounds,
   neighbors,
@@ -41,7 +41,7 @@ import {
   renderGame,
   teleportUiState,
   updateTurnTimerPill,
-} from "./js/render.js?v=progression-7";
+} from "./js/render.js?v=release-20260824-1";
 import {
   AI_RANK_LABELS,
   AI_RANK_ORDER,
@@ -63,7 +63,7 @@ import {
   playPlacementSound,
   setMusicEnabled,
   setSfxEnabled,
-} from "./js/audio.js";
+} from "./js/audio.js?v=release-20260824-1";
 import {
   disableChallengeGuidance,
   enableChallengeGuidance,
@@ -72,7 +72,7 @@ import {
   isPveTimerEnabled,
   setPveTimerEnabled,
   setSavedLanguage,
-} from "./js/settings.js";
+} from "./js/settings.js?v=release-20260824-1";
 import {
   challengeProgress,
   firstUnresolvedRankIndex,
