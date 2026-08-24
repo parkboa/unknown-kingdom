@@ -1,9 +1,9 @@
 import { SPECIALS } from "./config.js";
-import { isMusicEnabled, isSfxEnabled, setMusicEnabled, setSfxEnabled } from "./audio.js";
 
 const CHALLENGE_GUIDANCE_MIGRATION_KEY = "unknown-kingdom-help-preferences-v2";
 const CHALLENGE_GUIDANCE_SETTING_KEY = "unknown-kingdom-special-help-enabled";
 const LANGUAGE_SETTING_KEY = "unknown-kingdom-language";
+const PVE_TIMER_SETTING_KEY = "daeguk-pve-timer";
 
 if (!localStorage.getItem(CHALLENGE_GUIDANCE_MIGRATION_KEY)) {
   enableChallengeGuidance();
@@ -34,4 +34,12 @@ export function getSavedLanguage(fallback = "ko") {
 
 export function setSavedLanguage(lang) {
   localStorage.setItem(LANGUAGE_SETTING_KEY, lang);
+}
+
+export function isPveTimerEnabled() {
+  return localStorage.getItem(PVE_TIMER_SETTING_KEY) !== "disabled";
+}
+
+export function setPveTimerEnabled(enabled) {
+  localStorage.setItem(PVE_TIMER_SETTING_KEY, enabled ? "enabled" : "disabled");
 }

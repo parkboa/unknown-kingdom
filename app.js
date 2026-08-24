@@ -39,6 +39,7 @@ import {
 } from "./js/state.js?v=resume-turn-1";
 import {
   renderGame,
+  teleportUiState,
   updateTurnTimerPill,
 } from "./js/render.js?v=progression-7";
 import {
@@ -62,13 +63,14 @@ import {
   playPlacementSound,
   setMusicEnabled,
   setSfxEnabled,
-  syncBackgroundMusic,
 } from "./js/audio.js";
 import {
   disableChallengeGuidance,
   enableChallengeGuidance,
   getSavedLanguage,
   isChallengeGuidanceEnabled,
+  isPveTimerEnabled,
+  setPveTimerEnabled,
   setSavedLanguage,
 } from "./js/settings.js";
 import {
@@ -130,6 +132,8 @@ let pveHumanPlayer = PVE_HUMAN;
 let pveAiPlayer = PVE_AI;
 let pveDifficulty = "novice";
 let selectedPveRank = null;
+let pveTimerEnabled = isPveTimerEnabled();
+let activePveTimerEnabled = pveTimerEnabled;
 let tutorialStep = -1;
 let tutorialAwaitingContinue = false;
 let tutorialKingPosition = null;
@@ -260,6 +264,7 @@ const pveSideModal = document.querySelector("#pveSideModal");
 const cancelPveSideBtn = document.querySelector("#cancelPveSideBtn");
 const pveSideButtons = document.querySelectorAll("[data-pve-side]");
 const pveDifficultyButtons = document.querySelectorAll("[data-pve-difficulty]");
+const pveTimerButtons = document.querySelectorAll("[data-pve-timer]");
 const networkModal = document.querySelector("#networkModal");
 const networkLobbyStatus = document.querySelector("#networkLobbyStatus");
 const publicRoomList = document.querySelector("#publicRoomList");
@@ -628,6 +633,7 @@ function newState() {
   if (nextState.mode === "pve") {
     nextState.aiDifficulty = pveDifficulty;
     nextState.aiRank = selectedPveRank;
+    nextState.pveTimerEnabled = activePveTimerEnabled;
   }
   return nextState;
 }
@@ -674,6 +680,20 @@ function applyPveRank(rankKey) {
     state.aiDifficulty = pveDifficulty;
     state.aiRank = selectedPveRank;
   }
+}
+
+function renderPveTimerOptions() {
+  pveTimerButtons.forEach((button) => {
+    const selected = (button.dataset.pveTimer === "on") === pveTimerEnabled;
+    button.classList.toggle("selected", selected);
+    button.setAttribute("aria-pressed", selected ? "true" : "false");
+  });
+}
+
+function applyPveTimerSetting(enabled) {
+  pveTimerEnabled = Boolean(enabled);
+  setPveTimerEnabled(pveTimerEnabled);
+  renderPveTimerOptions();
 }
 
 function applyNoMoveDemo() {
@@ -989,6 +1009,7 @@ function setTutorialCaptureBoard() {
 }
 
 function resetTutorialBoard() {
+  state.lastMove = null;
   state.board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
   if (activePuzzle?.type !== "tutorial") {
     const king = tutorialKingPosition || { row: 7, col: 4 };
@@ -1027,6 +1048,7 @@ function advanceTutorial() {
   tutorialReactionPhase = null;
   tutorialStep += 1;
   state.selected = null;
+  state.lastMove = null;
   state.winner = null;
   state.resultReason = "";
   const expected = TUTORIAL_STEPS[tutorialStep];
@@ -1594,7 +1616,7 @@ function render() {
       ? pveHumanPlayer
       : PVE_HUMAN;
   fortressFrame.classList.toggle("view-red", viewerSide === "red");
-  if (DEVELOPER_MODE) {
+  if (DEVELOPER_MODE || (state.mode === "pve" && !activePveTimerEnabled)) {
     pveTurnDeadline = null;
   } else if (state.mode === "pve" && !state.winner && isGameActive()) {
     if (state.turn === pveHumanPlayer && pveTurnDeadline === null) {
@@ -1712,14 +1734,14 @@ function render() {
   const tutorialActive = state.mode === "tutorial";
   const puzzleActive = state.mode === "puzzle" && activePuzzle;
   const teleportActive = Boolean(state.teleporting);
+  const teleportUi = teleportUiState(state, viewerSide, wizardMovePromptDismissed);
   const challengeResultActive = Boolean(state.winner && (puzzleActive || (tutorialActive && activePuzzle?.type === "tutorial")));
   const challengeResultSolved = challengeResultActive && (tutorialActive
     ? state.winner === "blue"
     : state.winner === activePuzzle?.player);
-  tutorialPanel.hidden = (!tutorialActive && !puzzleActive && !teleportActive)
-    || (teleportActive && wizardMovePromptDismissed && !tutorialActive);
+  tutorialPanel.hidden = !tutorialActive && !puzzleActive && !teleportUi.showPrompt;
   gameStatusBar.classList.toggle("guide-active", !tutorialPanel.hidden);
-  tutorialPanel.classList.toggle("wizard-move-panel", teleportActive && !wizardMovePromptDismissed);
+  tutorialPanel.classList.toggle("wizard-move-panel", teleportUi.showPrompt);
   tutorialPanel.classList.toggle("challenge-result", challengeResultActive);
   tutorialPanel.classList.toggle("complete", challengeResultSolved);
   tutorialPanel.classList.toggle("incomplete", challengeResultActive && !challengeResultSolved);
@@ -1758,7 +1780,7 @@ function render() {
       setIconButtonLabel(nextTutorialBtn, "nextChallenge");
     }
     boardEl.classList.remove("tutorial-complete");
-  } else if (teleportActive) {
+  } else if (teleportUi.canControl) {
     tutorialStepLabel.hidden = true;
     tutorialStepLabel.textContent = "";
     tutorialMessage.textContent = text("tutorialWizardTeleport");
@@ -1775,7 +1797,7 @@ function render() {
     boardEl.classList.remove("tutorial-active");
     boardEl.classList.remove("tutorial-complete");
   }
-  if (tutorialActive && teleportActive) {
+  if (tutorialActive && teleportUi.canControl) {
     confirmTeleportBtn.hidden = wizardMovePromptDismissed;
     cancelTeleportBtn.hidden = wizardMovePromptDismissed;
   }
@@ -2055,6 +2077,7 @@ function selectGameMode(mode, closeModal = false) {
     networkModal.hidden = true;
     modeModal.hidden = true;
     renderPveRankOptions();
+    renderPveTimerOptions();
     pveSideModal.hidden = false;
     return;
   }
@@ -2078,13 +2101,15 @@ function selectGameMode(mode, closeModal = false) {
 function startPve(side) {
   pveHumanPlayer = side;
   pveAiPlayer = opponent(side);
+  activePveTimerEnabled = pveTimerEnabled;
   selectModeChoice("pve");
   pveSideModal.hidden = true;
   modeModal.hidden = true;
   resetGame();
   state.aiDifficulty = pveDifficulty;
   state.aiRank = selectedPveRank;
-  pveTurnDeadline = !DEVELOPER_MODE && side === "red"
+  state.pveTimerEnabled = activePveTimerEnabled;
+  pveTurnDeadline = activePveTimerEnabled && !DEVELOPER_MODE && side === "red"
     ? Date.now() + PVE_TURN_LIMIT_MS
     : null;
   render();
@@ -2328,11 +2353,10 @@ function openSettingsModal() {
 settingsBtn.addEventListener("click", openSettingsModal);
 lobbySettingsBtn.addEventListener("click", openSettingsModal);
 musicToggle.addEventListener("change", () => {
-  saveToggleSetting(MUSIC_SETTING_KEY, musicToggle.checked);
-  syncBackgroundMusic();
+  setMusicEnabled(musicToggle.checked);
 });
 sfxToggle.addEventListener("change", () => {
-  saveToggleSetting(SFX_SETTING_KEY, sfxToggle.checked);
+  setSfxEnabled(sfxToggle.checked);
   if (sfxToggle.checked) playPlacementSound();
 });
 specialHelpToggle.addEventListener("change", () => {
@@ -2353,7 +2377,7 @@ resultDownloadJournalBtn?.addEventListener("click", downloadPveJournal);
 closeSettingsBtn.addEventListener("click", () => {
   settingsModal.hidden = true;
 });
-document.addEventListener("pointerdown", syncBackgroundMusic, { once: true });
+initAudioGesture();
 playAgainBtn.addEventListener("click", playAgain);
 resultLobbyBtn.addEventListener("click", startNewGame);
 toastAcceptRematchBtn?.addEventListener("click", () => {
@@ -2392,6 +2416,9 @@ pveSideButtons.forEach((button) => {
 });
 pveDifficultyButtons.forEach((button) => {
   button.addEventListener("click", () => applyPveRank(button.dataset.pveRank));
+});
+pveTimerButtons.forEach((button) => {
+  button.addEventListener("click", () => applyPveTimerSetting(button.dataset.pveTimer === "on"));
 });
 cancelPveSideBtn.addEventListener("click", () => {
   pveSideModal.hidden = true;
@@ -2459,6 +2486,7 @@ languageSelect.addEventListener("change", () => {
 
 applyLanguage();
 renderPveRankOptions();
+renderPveTimerOptions();
 state = newState();
 renderProgressionUi();
 const showingDemo = applyLocalDemo();
@@ -2479,7 +2507,7 @@ window.setInterval(() => {
       text,
       sideName,
     });
-  } else if (!DEVELOPER_MODE && state.mode === "pve" && state.turn === pveHumanPlayer && pveTurnDeadline) {
+  } else if (activePveTimerEnabled && !DEVELOPER_MODE && state.mode === "pve" && state.turn === pveHumanPlayer && pveTurnDeadline) {
     if (Date.now() >= pveTurnDeadline) {
       pveTurnDeadline = null;
       if (!hasLegalDeployment(state, pveHumanPlayer)) {

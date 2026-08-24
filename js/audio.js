@@ -11,7 +11,7 @@ placementSound.preload = "auto";
 placementSound.volume = 0.58;
 
 export function isMusicEnabled() {
-  return localStorage.getItem(MUSIC_SETTING_KEY) === "enabled";
+  return localStorage.getItem(MUSIC_SETTING_KEY) !== "disabled";
 }
 
 export function isSfxEnabled() {

@@ -1,5 +1,26 @@
 import { DEPLOY_ORDER, SPECIALS } from "./config.js";
 
+export function teleportUiState(state, viewerSide, promptDismissed = false) {
+  const canControl = Boolean(
+    state?.teleporting
+    && state.teleporting.owner === viewerSide,
+  );
+  return {
+    canControl,
+    showPrompt: canControl && !promptDismissed,
+  };
+}
+
+export function isOpponentLastMoveCell(state, viewerSide, row, col) {
+  const lastMove = state?.lastMove;
+  return Boolean(
+    lastMove?.player
+    && lastMove.player !== viewerSide
+    && lastMove.row === row
+    && lastMove.col === col,
+  );
+}
+
 export function viewerOwnsPiece(state, networkPlayer, piece, pveHumanPlayer = "blue") {
   if (state.mode === "pve" || state.mode === "puzzle") return piece.owner === pveHumanPlayer;
   if (state.mode === "tutorial") return piece.owner === "blue";
@@ -61,6 +82,7 @@ function createTauntOverlay(context) {
 
 function renderBoard(context) {
   context.boardEl.innerHTML = "";
+  const { canControl: canControlTeleport } = teleportUiState(context.state, context.viewerSide);
   const kingZones = context.kingZones?.() || [];
   for (const zone of kingZones) {
     const overlay = document.createElement("div");
@@ -88,12 +110,14 @@ function renderBoard(context) {
       button.dataset.col = col;
 
       if (context.state.lastMove?.row === row && context.state.lastMove?.col === col) {
-        button.classList.add("last-move");
-        if (context.state.lastMove.player) button.classList.add(`last-move-${context.state.lastMove.player}`);
+        button.classList.add("latest-move");
+        if (isOpponentLastMoveCell(context.state, context.viewerSide, row, col)) {
+          button.classList.add("last-move", `last-move-${context.state.lastMove.player}`);
+        }
       }
       if (context.state.selected?.row === row && context.state.selected?.col === col) button.classList.add("selected");
       if (context.canDeploy(context.state.turn, context.currentUnitChoice(), row, col, { forHint: true })) button.classList.add("valid");
-      if (context.state.teleporting && !context.state.board[row][col]) button.classList.add("teleport");
+      if (canControlTeleport && !context.state.board[row][col]) button.classList.add("teleport");
       const piece = context.state.board[row][col];
       if (piece) button.append(pieceElement(piece, row, col, context));
       button.addEventListener("click", () => context.selectCell(row, col));
@@ -181,6 +205,7 @@ export function updateTurnTimerPill(turnPill, context) {
 
 function renderPanel(context) {
   updateTurnTimerPill(context.turnPill, context);
+  const teleportUi = teleportUiState(context.state, context.viewerSide, context.wizardMovePromptDismissed);
   context.redCount.textContent = context.countPieces("red");
   context.blueCount.textContent = context.countPieces("blue");
   if (context.modeInfo) context.modeInfo.textContent = context.modeLabel;
@@ -197,8 +222,8 @@ function renderPanel(context) {
   if (context.resignBtn) {
     context.resignBtn.disabled = Boolean(context.state.winner) || (context.state.mode === "pvp" && !context.networkReady);
   }
-  if (context.confirmTeleportBtn) context.confirmTeleportBtn.hidden = !context.state.teleporting || context.wizardMovePromptDismissed;
-  context.cancelTeleportBtn.hidden = !context.state.teleporting;
+  if (context.confirmTeleportBtn) context.confirmTeleportBtn.hidden = !teleportUi.showPrompt;
+  context.cancelTeleportBtn.hidden = !teleportUi.canControl;
 
   const showMatchResult = Boolean(
     context.state.winner
