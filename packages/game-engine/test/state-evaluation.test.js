@@ -194,3 +194,56 @@ test("the territory verdict is exactly zero unless the terminal objective model 
     4,
   );
 });
+
+test("the additive combination stops a King penalty from erasing a strategic lead", () => {
+  const state = createGameState();
+  state.firstDeployDone = { red: true, blue: true };
+  // Red's King stands in the open, so the danger term is live rather than anchored to 0.
+  state.board[4][4] = piece("red", "king", "red-king");
+  state.board[3][4] = piece("blue", "soldier", "presser");
+  state.board[8][4] = piece("blue", "king", "blue-king");
+  for (let col = 0; col < 9; col += 1) {
+    state.board[6][col] = piece("red", "soldier", `red-wall-${col}`);
+  }
+
+  // The blend only bites when a tier actually sets a King priority; Grandmaster ships 0.9.
+  const budgeted = { ...settings, kingTacticalPriority: 0.9 };
+  const blended = evaluateStateDetailed(state, "red", budgeted);
+  const additive = evaluateStateDetailed(state, "red", { ...budgeted, terminalObjectiveModel: true });
+
+  // The premise of the test: this is a position where the King term is not zero, which is the
+  // only case in which the two combinations can differ.
+  assert.notEqual(blended.weighted.kingLiberties, 0);
+  assert.notEqual(additive.weighted.kingLiberties, 0);
+
+  const strategicSum = (result) => Object.entries(result.weighted)
+    .filter(([key]) => key !== "kingLiberties" && key !== "territoryVerdict")
+    .reduce((sum, [, component]) => sum + component, 0);
+  assert.ok(strategicSum(blended) > 0, "Red must hold a positional lead here");
+
+  // Under the fixed budget a King penalty smaller than the positional lead still outvotes it,
+  // because the lead is only worth `1 - kingTacticalPriority` of itself.
+  assert.ok(Math.abs(blended.weighted.kingLiberties) < strategicSum(blended));
+  assert.ok(blended.value < additive.value);
+
+  // Added rather than traded, so both terms can be large at once.
+  assert.ok(additive.value > 0);
+});
+
+test("the additive path keeps the territory verdict out of the phase multiplier", () => {
+  const on = { ...settings, terminalObjectiveModel: true, strategicContext: true };
+  const state = filledBoard(72, 4);
+  const result = evaluateStateDetailed(state, "red", on);
+
+  // A settled stone count is not a matter of shape, so the phase multiplier must not touch it:
+  // the verdict enters the total at exactly its weighted value.
+  const strategicSum = Object.entries(result.weighted)
+    .filter(([key]) => key !== "kingLiberties" && key !== "territoryVerdict")
+    .reduce((sum, [, component]) => sum + component, 0);
+  const withoutPhase = result.weighted.territoryVerdict + strategicSum + result.weighted.kingLiberties;
+  const phaseApplied = result.value - withoutPhase;
+
+  // Whatever the multiplier does, it moves only the strategic block.
+  assert.ok(Math.abs(phaseApplied) < Math.abs(strategicSum) + 1e-9);
+  assert.ok(result.weighted.territoryVerdict > 0);
+});

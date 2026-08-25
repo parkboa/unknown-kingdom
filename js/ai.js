@@ -465,7 +465,11 @@ function scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer, rootStrate
       kingScore += kingMineDefusalValue(state, row, col, aiPlayer, humanPlayer).value;
       kingScore += kingWallConnectionValue(state, row, col, aiPlayer).value;
     }
-    const priority = Math.max(0, Math.min(1, settings.kingTacticalPriority || 0));
+    // Root ordering has to combine the same way the state evaluation does, or candidates get
+    // ranked by one objective and then searched under another.
+    const priority = settings.terminalObjectiveModel
+      ? 0
+      : Math.max(0, Math.min(1, settings.kingTacticalPriority || 0));
     if (kingScore !== 0 && priority > 0) {
       return kingScore * priority + strategicScore * (1 - priority);
     }

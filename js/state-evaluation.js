@@ -143,6 +143,42 @@ export function stateEvaluationWeights(settings = {}) {
   };
 }
 
+/**
+ * The fixed-budget blend: King safety and everything else split one unit of weight, so raising
+ * either necessarily lowers the other.
+ *
+ * Measured 2026-08-24: `kingTacticalPriority: 0` took Grandmaster from 65% to 52.5% against
+ * real tiers, which is what a shared budget does — you cannot buy territory here without
+ * selling King safety. Kept for the default path.
+ */
+function blendedValue(weighted, kingValue, priority, strategicMultiplier) {
+  const strategicValue = Object.entries(weighted)
+    .filter(([key]) => key !== "kingLiberties")
+    .reduce((sum, [, component]) => sum + component * strategicMultiplier, 0);
+  return priority > 0 && kingValue !== 0
+    ? kingValue * priority + strategicValue * (1 - priority)
+    : kingValue + strategicValue;
+}
+
+/**
+ * Three independent terms rather than a split budget: `territoryVerdict + strategicValue +
+ * kingDanger`.
+ *
+ * Each is already scaled to mean something on its own — King danger is a bounded penalty that
+ * reaches 0 when the King is out of reach, and the territory verdict is the stone margin
+ * discounted by how close the board is to ending. Adding them lets both be large at once,
+ * which the blend forbade.
+ *
+ * The phase multiplier stays on the positional terms only. It exists to retune shape play by
+ * game phase, and neither a capture distance nor a settled stone count is a matter of shape.
+ */
+function additiveValue(weighted, strategicMultiplier) {
+  const strategicValue = Object.entries(weighted)
+    .filter(([key]) => key !== "kingLiberties" && key !== "territoryVerdict")
+    .reduce((sum, [, component]) => sum + component * strategicMultiplier, 0);
+  return weighted.territoryVerdict + strategicValue + weighted.kingLiberties;
+}
+
 export function evaluateStateDetailed(state, perspective, settings = {}) {
   if (state.winner) {
     const value = state.winner === "draw" ? 0 : state.winner === perspective
@@ -159,12 +195,9 @@ export function evaluateStateDetailed(state, perspective, settings = {}) {
   const priority = Math.max(0, Math.min(1, Number(settings.kingTacticalPriority || 0)));
   const strategicMultiplier = settings.strategicContext ? phaseStrategicMultiplier(state) : 1;
   const kingValue = weighted.kingLiberties;
-  const strategicValue = Object.entries(weighted)
-    .filter(([key]) => key !== "kingLiberties")
-    .reduce((sum, [, component]) => sum + component * strategicMultiplier, 0);
-  const value = priority > 0 && kingValue !== 0
-    ? kingValue * priority + strategicValue * (1 - priority)
-    : kingValue + strategicValue;
+  const value = settings.terminalObjectiveModel
+    ? additiveValue(weighted, strategicMultiplier)
+    : blendedValue(weighted, kingValue, priority, strategicMultiplier);
   return { value, terminal: false, features, weighted };
 }
 
