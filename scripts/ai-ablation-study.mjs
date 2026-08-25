@@ -18,6 +18,33 @@ function numberOption(name, fallback) {
   return value;
 }
 
+/**
+ * Expands a seed list, accepting both `a,b,c` and inclusive `a..b` ranges.
+ *
+ * Parsing used to be `parseInt` per comma-separated item, which reads `1..30` as `1` and
+ * silently measures one seed instead of thirty. A run that quietly loses 90% of its sample
+ * still writes a plausible-looking report, so anything unparseable throws instead.
+ */
+function parseSeedSpec(spec) {
+  const seeds = [];
+  for (const rawPart of String(spec).split(",")) {
+    const part = rawPart.trim();
+    if (!part) continue;
+    const range = part.match(/^(\d+)\.\.(\d+)$/);
+    if (range) {
+      const start = Number(range[1]);
+      const end = Number(range[2]);
+      if (end < start) throw new Error(`--seeds range must ascend: ${part}`);
+      for (let seed = start; seed <= end; seed += 1) seeds.push(seed >>> 0);
+      continue;
+    }
+    if (!/^\d+$/.test(part)) throw new Error(`--seeds accepts numbers or a..b ranges: ${part}`);
+    seeds.push(Number(part) >>> 0);
+  }
+  if (!seeds.length) throw new Error("--seeds produced no seeds");
+  return [...new Set(seeds)];
+}
+
 function mergeSettings(tier, overridePath) {
   const base = structuredClone(AI_RANK_SETTINGS[tier]);
   if (!overridePath) return base;
@@ -105,8 +132,7 @@ if (process.argv.includes("--worker")) {
   for (const tier of opponents) {
     if (!isKnownTier(tier)) throw new Error(`Unknown opponent tier: ${tier}`);
   }
-  const seeds = optionValue("--seeds", "20260821,20260822,20260823")
-    .split(",").map((value) => Number.parseInt(value.trim(), 10) >>> 0).filter(Number.isFinite);
+  const seeds = parseSeedSpec(optionValue("--seeds", "20260821,20260822,20260823"));
   const randomOpeningPlies = Math.max(0, Math.floor(numberOption("--random-opening", 0)));
   const handicapStones = Math.max(0, Math.floor(numberOption("--handicap", 0)));
   const maxDeployments = Math.floor(numberOption("--max-deployments", 120));
