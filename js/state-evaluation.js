@@ -64,7 +64,11 @@ export function stateEvaluationWeights(settings = {}) {
   const kingWeight = ((score.kingSafety ?? 10) + (score.kingPressure ?? 10)) / 2;
   return {
     material: (score.capture ?? 9) * 3,
-    captures: (score.capture ?? 9) * 6,
+    // `captures` counts capture *events* cumulatively and never decreases, while the
+    // stones a capture wins are already in `material` (a captured group becomes the
+    // captor's soldiers). Set captureHistoryMultiplier to 0 to score the board as it
+    // stands instead of rewarding capture history.
+    captures: (score.capture ?? 9) * (score.captureHistoryMultiplier ?? 6),
     kingLiberties: kingWeight * 8,
     connectivity: score.groupTactics ?? score.defense ?? 2,
     influence: score.influence ?? 0,

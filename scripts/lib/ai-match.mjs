@@ -3,6 +3,7 @@ import {
   countPieces,
   createGameJournal,
   createGameState,
+  dispatchAction,
   dispatchRecordedAction,
   getLegalActions,
   neighbors,
@@ -24,7 +25,23 @@ export function seededRandom(initialSeed) {
   };
 }
 
+/**
+ * The neutral yardstick. Specialized engines played against each other measure style
+ * matchups as much as strength (the round robin produced an intransitive novice >
+ * expert > intermediate > novice cycle). A uniformly random legal player has no style
+ * to exploit, so every tier faces an identical, unbiased opponent.
+ */
+export const RANDOM_TIER = "random";
+
+function randomLegalDeploy(state, player) {
+  const deploys = getLegalActions(state, player).filter((action) => action.type === "deploy");
+  if (!deploys.length) return null;
+  const pick = deploys[Math.floor(Math.random() * deploys.length)];
+  return { type: pick.unitType, row: pick.row, col: pick.col };
+}
+
 function chooseDeployMove(state, player, tier, settings) {
+  if (tier === RANDOM_TIER) return randomLegalDeploy(state, player);
   const enemy = player === "red" ? "blue" : "red";
   const playerView = stateForPlayer(state, player);
   playerView.aiRank = tier;
@@ -81,6 +98,11 @@ function chooseRequiredAction(state, tiers, settings) {
 
   const player = state.teleporting.owner;
   const enemy = player === "red" ? "blue" : "red";
+  if (tiers[player] === RANDOM_TIER) {
+    const options = getLegalActions(state, player)
+      .filter((action) => action.type === "wizard_teleport" || action.type === "wizard_stay");
+    return { player, action: options[Math.floor(Math.random() * options.length)] || { type: "wizard_stay" } };
+  }
   const playerView = stateForPlayer(state, player);
   playerView.aiRank = tiers[player];
   if (settings[player]) playerView.aiSettings = settings[player];
@@ -99,6 +121,46 @@ function territoryWinner(state) {
   return red === blue ? "draw" : red > blue ? "red" : "blue";
 }
 
+/**
+ * Opening-book randomization. Zero-variance tiers replay one identical game per
+ * matchup, so seeds alone cannot produce independent samples. Scattering the first
+ * few plies gives every seed a genuinely different position to play out, without
+ * touching the tiers' own (game-facing) variance setting.
+ *
+ * Restricted to King and Soldier so the randomized prefix stays representative:
+ * specials are the layer under evaluation, not part of the neutral starting position.
+ */
+/**
+ * Handicap stones, the Go answer to a yardstick that is too weak to lose to.
+ * Every tier beats the random player 100% of the time, so win rate alone cannot rank
+ * them. Giving the weaker side K free stones before play begins restores a losable
+ * game; the K at which a tier falls to ~50% is its strength on a common scale.
+ *
+ * Applied before the journal snapshot is taken, so the handicap position becomes the
+ * recorded initial state and replay verification still holds.
+ */
+function applyHandicap(state, player, stones) {
+  const previousTurn = state.turn;
+  for (let placed = 0; placed < stones; placed += 1) {
+    state.turn = player;
+    const deploys = getLegalActions(state, player).filter((action) => action.type === "deploy");
+    if (!deploys.length) break;
+    const pick = deploys[Math.floor(Math.random() * deploys.length)];
+    if (!dispatchAction(state, player, pick).accepted) break;
+    if (state.winner) break;
+  }
+  state.turn = previousTurn;
+  return state;
+}
+
+function randomOpeningMove(state, player) {
+  const deploys = getLegalActions(state, player)
+    .filter((action) => action.type === "deploy" && (action.unitType === "king" || action.unitType === "soldier"));
+  if (!deploys.length) return null;
+  const pick = deploys[Math.floor(Math.random() * deploys.length)];
+  return { type: pick.unitType, row: pick.row, col: pick.col };
+}
+
 export function playDeterministicAiMatch({
   redTier,
   blueTier,
@@ -110,13 +172,27 @@ export function playDeterministicAiMatch({
   redSettings = null,
   blueSettings = null,
   onDecision = null,
+  randomOpeningPlies = 0,
+  handicapPlayer = null,
+  handicapStones = 0,
 }) {
   const state = createGameState("pve", { aiRank: redTier });
   state.turn = startingPlayer;
   state.log = [`Evaluation match started. ${startingPlayer} deploys first.`];
   const tiers = { red: redTier, blue: blueTier };
   const settings = { red: redSettings, blue: blueSettings };
-  const metadata = { gameId, seed, tiers, settings, startingPlayer };
+  const previousRandomForHandicap = Math.random;
+  if (handicapPlayer && handicapStones > 0) {
+    Math.random = seededRandom(seed);
+    try {
+      applyHandicap(state, handicapPlayer, handicapStones);
+    } finally {
+      Math.random = previousRandomForHandicap;
+    }
+  }
+  const metadata = {
+    gameId, seed, tiers, settings, startingPlayer, randomOpeningPlies, handicapPlayer, handicapStones,
+  };
   const fileRecorder = journalPath
     ? createJsonlGameRecorder(journalPath, state, metadata)
     : null;
@@ -143,7 +219,10 @@ export function playDeterministicAiMatch({
       }
 
       const player = state.turn;
-      const move = chooseDeployMove(state, player, tiers[player], settings[player]);
+      const openingPly = deployments < randomOpeningPlies;
+      const move = openingPly
+        ? randomOpeningMove(state, player)
+        : chooseDeployMove(state, player, tiers[player], settings[player]);
       if (!move) {
         const pass = getLegalActions(state, player).find((action) => action.type === "pass");
         if (!pass || !dispatch(player, pass).accepted) {
@@ -192,6 +271,9 @@ export function playDeterministicAiMatch({
     blueTier,
     seed,
     startingPlayer,
+    randomOpeningPlies,
+    handicapPlayer,
+    handicapStones,
     ...outcome,
     durationMs: Math.round(performance.now() - startedAt),
     actionCount: replay.actionCount,
