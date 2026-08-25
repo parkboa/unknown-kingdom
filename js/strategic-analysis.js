@@ -2,6 +2,7 @@ import {
   SIZE,
   boardSignature,
   collectGroup,
+  findKingPosition,
   orthogonalPositions,
   wallOwnerForEdge,
 } from "../packages/game-engine/src/index.js";
@@ -126,6 +127,52 @@ const ATTACK_SPECIALS = new Set(["general", "wizard", "diplomat"]);
 function groupTouchesOwnWall(state, group, owner) {
   return group.some(([row, col]) => orthogonalPositions(row, col).some(([nextRow, nextCol]) =>
     !inBounds(nextRow, nextCol) && wallOwnerForEdge(row, nextRow, nextCol) === owner));
+}
+
+/**
+ * Stones of the group that rest against a wall the opponent can never fill — the group's own
+ * wall or a neutral one.
+ *
+ * `groupTouchesOwnWall` ignores neutral edges, but `groupHasLiberty` treats them as liberties
+ * just like an own wall, so a safety measure has to follow the capture rule rather than that
+ * helper.
+ */
+function countWallAnchors(state, group, owner) {
+  return group.filter(([row, col]) => orthogonalPositions(row, col).some(([nextRow, nextCol]) => {
+    if (inBounds(nextRow, nextCol)) return false;
+    const wallOwner = wallOwnerForEdge(row, nextRow, nextCol);
+    return wallOwner === owner || wallOwner === null;
+  })).length;
+}
+
+/**
+ * How far the King is from being captured by ordinary soldier play.
+ *
+ * `kingLibertyCount` adds board liberties and wall liberties into a single number, which ranks
+ * a King sealed against its own wall (one liberty, and no soldier can ever take it) below a
+ * King standing in the open with three empty neighbours (three liberties, dead in three
+ * moves). Separating the two restores the ordering the rules actually imply.
+ *
+ * A wall anchor is permanent under soldier play: the opponent cannot occupy a wall edge, so no
+ * sequence of ordinary deployments removes that liberty. Only a special can break the anchor,
+ * by converting or removing the stone that holds it — modelled in Stage 2, deliberately absent
+ * here so this stays a pure Go-style measure.
+ *
+ * `soldierCaptureDistance` is `Infinity` for an anchored group, otherwise the number of empty
+ * liberties the opponent must fill. A missing King yields 0, matching the "already lost"
+ * reading the evaluation gives a captured King.
+ */
+export function kingSafetyProfile(state, owner) {
+  const king = findKingPosition(state, owner);
+  if (!king) return { wallAnchors: 0, boardLiberties: 0, soldierCaptureDistance: 0 };
+  const group = collectGroup(state, king.row, king.col);
+  const wallAnchors = countWallAnchors(state, group, owner);
+  const boardLiberties = groupLiberties(state, group).length;
+  return {
+    wallAnchors,
+    boardLiberties,
+    soldierCaptureDistance: wallAnchors > 0 ? Infinity : boardLiberties,
+  };
 }
 
 function groupsForOwner(state, owner) {

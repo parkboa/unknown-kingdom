@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createGameState } from "../src/index.js";
+import { createGameState, kingLibertyCount } from "../src/index.js";
 import {
   evaluateState,
   evaluateStateDetailed,
@@ -82,4 +82,62 @@ test("common evaluation respects explicit zero-weight ablations", () => {
   });
 
   assert.equal(result.value, 0);
+});
+
+/**
+ * Red's King is sealed against its own wall with no board liberty; Blue's stands in the open
+ * with three. This is the pair the liberty count ranked backwards.
+ */
+function inversionState() {
+  const state = createGameState();
+  state.firstDeployDone = { red: true, blue: true };
+  state.board[0][4] = piece("red", "king", "red-king");
+  state.board[1][4] = piece("blue", "soldier", "seal-south");
+  state.board[0][3] = piece("blue", "soldier", "seal-west");
+  state.board[0][5] = piece("blue", "soldier", "seal-east");
+  state.board[5][4] = piece("blue", "king", "blue-king");
+  state.board[4][4] = piece("red", "soldier", "red-centre");
+  return state;
+}
+
+test("the terminal objective model ranks a wall-anchored King above an exposed one", () => {
+  const state = inversionState();
+
+  // Red's King cannot be taken by soldiers at all; Blue's is three moves from capture. The
+  // liberty count says the opposite, because one wall liberty reads as fewer than three board
+  // liberties.
+  assert.ok(kingLibertyCount(state, "red") < kingLibertyCount(state, "blue"));
+  assert.ok(evaluateStateDetailed(state, "red", settings).features.kingLiberties < 0);
+
+  const fixed = evaluateStateDetailed(state, "red", { ...settings, terminalObjectiveModel: true });
+  assert.ok(fixed.features.kingLiberties > 0);
+
+  // An out-of-reach King scores exactly 0, so safety stops drawing on the budget the
+  // territory term will need.
+  const safeOnly = evaluateStateDetailed(state, "blue", { ...settings, terminalObjectiveModel: true });
+  assert.equal(fixed.features.kingLiberties, -safeOnly.features.kingLiberties);
+});
+
+test("the terminal objective flag leaves the default evaluation path untouched", () => {
+  const state = inversionState();
+  const off = evaluateStateDetailed(state, "red", settings);
+  const on = evaluateStateDetailed(state, "red", { ...settings, terminalObjectiveModel: true });
+
+  // The flag has to change something, or the A/B run measures nothing.
+  assert.notEqual(off.features.kingLiberties, on.features.kingLiberties);
+
+  // With the flag absent the feature still follows the liberty-count formula exactly.
+  const libertyValue = (owner) => {
+    const liberties = kingLibertyCount(state, owner);
+    if (liberties <= 0) return -12;
+    if (liberties === 1) return -8;
+    if (liberties === 2) return -3;
+    return Math.min(6, liberties - 2);
+  };
+  assert.equal(off.features.kingLiberties, libertyValue("red") - libertyValue("blue"));
+
+  // Both paths stay exactly zero-sum.
+  for (const s of [settings, { ...settings, terminalObjectiveModel: true }]) {
+    assert.equal(evaluateState(state, "red", s), -evaluateState(state, "blue", s));
+  }
 });

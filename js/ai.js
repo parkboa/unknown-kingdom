@@ -163,6 +163,10 @@ export const AI_RANK_SETTINGS = {
     midgameTacticalCandidateLimit: 8,
     midgameSpecialAttackLimit: 4,
     kingAssaultSafetyCandidateLimit: 2,
+    // Grandmaster-only, off by default. Switches King safety from a liberty-count bonus to a
+    // soldier-capture-distance penalty; `experiments/fix-terminal-objective.json` turns it on
+    // for A/B runs. Listed explicitly so the tier that owns the flag is visible here.
+    terminalObjectiveModel: false,
     score: {
       center: 3.2,
       allies: 7.5,

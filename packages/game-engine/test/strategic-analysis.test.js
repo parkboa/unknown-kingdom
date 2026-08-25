@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canDeploy, createGameState, dispatchAction } from "../src/index.js";
+import { canDeploy, createGameState, dispatchAction, kingLibertyCount } from "../src/index.js";
 import { AI_RANK_SETTINGS, findAiDeployMove } from "../../../js/ai.js";
 import { neighbors } from "../../../js/board.js";
 import { evaluateState } from "../../../js/state-evaluation.js";
@@ -16,6 +16,7 @@ import {
   gamePhase,
   kingAdjacentMinePositions,
   kingMineDefusalValue,
+  kingSafetyProfile,
   kingWallConnectionValue,
   observedRemainingSpecialTypes,
   phaseStrategicMultiplier,
@@ -335,4 +336,93 @@ test("production high-tier choices apply wall funneling and 100% King-mine defus
   assert.equal(["general", "wizard"].includes(attackMove.type), true);
   assert.deepEqual({ row: attackMove.row, col: attackMove.col }, { row: 7, col: 4 });
   assert.equal(attackMove.midgameTactics.specialAttack, true);
+});
+
+function kingSafetyState(build) {
+  const state = createGameState();
+  state.firstDeployDone = { red: true, blue: true };
+  const place = (row, col, owner, type) => {
+    state.board[row][col] = {
+      id: `${owner}-${row}-${col}`,
+      owner,
+      type,
+      originalType: type,
+      revealed: type === "king",
+      abilityUsed: false,
+      kingEscapeUsed: false,
+    };
+  };
+  build(place);
+  return state;
+}
+
+test("soldier capture distance separates wall anchors from board liberties", () => {
+  // Own wall: the top edge belongs to red, so red's King keeps a liberty no soldier can fill.
+  const ownWall = kingSafetyState((place) => {
+    place(0, 4, "red", "king");
+    place(1, 4, "blue", "soldier");
+    place(0, 3, "blue", "soldier");
+    place(0, 5, "blue", "soldier");
+  });
+  assert.deepEqual(kingSafetyProfile(ownWall, "red"), {
+    wallAnchors: 1,
+    boardLiberties: 0,
+    soldierCaptureDistance: Infinity,
+  });
+
+  // Neutral wall: the side edges are neutral only on row 4, and groupHasLiberty counts a
+  // neutral edge exactly like an own wall, so the profile has to as well.
+  const neutralWall = kingSafetyState((place) => {
+    place(4, 0, "red", "king");
+    place(3, 0, "blue", "soldier");
+    place(5, 0, "blue", "soldier");
+    place(4, 1, "blue", "soldier");
+  });
+  assert.equal(kingSafetyProfile(neutralWall, "red").wallAnchors, 1);
+  assert.equal(kingSafetyProfile(neutralWall, "red").soldierCaptureDistance, Infinity);
+
+  // Open centre: three empty neighbours are three soldier moves from capture.
+  const centre = kingSafetyState((place) => {
+    place(4, 4, "red", "king");
+    place(3, 4, "blue", "soldier");
+  });
+  assert.deepEqual(kingSafetyProfile(centre, "red"), {
+    wallAnchors: 0,
+    boardLiberties: 3,
+    soldierCaptureDistance: 3,
+  });
+
+  // The opponent's wall grants nothing: this King is already without a liberty.
+  const enemyWall = kingSafetyState((place) => {
+    place(8, 4, "red", "king");
+    place(7, 4, "blue", "soldier");
+    place(8, 3, "blue", "soldier");
+    place(8, 5, "blue", "soldier");
+  });
+  assert.equal(kingSafetyProfile(enemyWall, "red").wallAnchors, 0);
+  assert.equal(kingSafetyProfile(enemyWall, "red").soldierCaptureDistance, 0);
+});
+
+test("kingLibertyCount cannot express the ordering that soldier capture distance does", () => {
+  // The regression anchor for Stage 1a: these two positions are the pair the old measure
+  // ranked backwards, so any future change must keep them in this order.
+  const anchored = kingSafetyState((place) => {
+    place(0, 4, "red", "king");
+    place(1, 4, "blue", "soldier");
+    place(0, 3, "blue", "soldier");
+    place(0, 5, "blue", "soldier");
+  });
+  const exposed = kingSafetyState((place) => {
+    place(4, 4, "red", "king");
+    place(3, 4, "blue", "soldier");
+  });
+
+  // One wall liberty against three board liberties — indistinguishable to a plain count, and
+  // ordered the wrong way round by it.
+  assert.ok(kingLibertyCount(anchored, "red") < kingLibertyCount(exposed, "red"));
+  // Uncapturable by soldiers against three moves from death.
+  assert.ok(
+    kingSafetyProfile(anchored, "red").soldierCaptureDistance
+      > kingSafetyProfile(exposed, "red").soldierCaptureDistance,
+  );
 });

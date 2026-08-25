@@ -1,5 +1,5 @@
 import { collectGroup, kingLibertyCount, SIZE } from "../packages/game-engine/src/index.js";
-import { phaseStrategicMultiplier } from "./strategic-analysis.js";
+import { kingSafetyProfile, phaseStrategicMultiplier } from "./strategic-analysis.js";
 
 export const TERMINAL_STATE_VALUE = 100000;
 
@@ -17,12 +17,42 @@ function kingLibertyValue(state, owner) {
   return Math.min(6, liberties - 2);
 }
 
-function rawStateFeatures(state, perspective) {
+/**
+ * Penalty by soldier-capture distance, indexed 0..4; beyond that the tail below takes over.
+ *
+ * Distance 0 means the King's group already has no liberty, so it reads as lost rather than
+ * merely threatened.
+ */
+const SOLDIER_CAPTURE_DANGER = [-16, -12, -6, -2.5, -1];
+
+/**
+ * King risk as a penalty that vanishes once the King is out of soldier reach.
+ *
+ * `kingLibertyValue` pays a *bonus* for surplus liberties, so a safe King keeps drawing on the
+ * evaluation budget no matter how safe it already is. Bounding this at 0 from above hands that
+ * budget back, which is what lets the territory term of Stage 1b actually decide endgames.
+ *
+ * An anchored King scores exactly 0: soldiers cannot break a wall anchor, and pretending
+ * otherwise is what produced the inversion this replaces. The special-unit threat against
+ * anchors is Stage 2's job.
+ */
+function kingDangerValue(state, owner) {
+  if (!state.firstDeployDone?.[owner]) return 0;
+  const { soldierCaptureDistance: distance } = kingSafetyProfile(state, owner);
+  if (!Number.isFinite(distance)) return 0;
+  if (distance < SOLDIER_CAPTURE_DANGER.length) return SOLDIER_CAPTURE_DANGER[distance];
+  return -6 / (distance * distance);
+}
+
+function rawStateFeatures(state, perspective, settings = {}) {
   const enemy = perspective === "red" ? "blue" : "red";
+  // Same slot, different measure: Stage 1c replaces the blending that consumes it, so the key
+  // stays put until then and a disabled flag leaves the old path byte-identical.
+  const kingValueFor = settings.terminalObjectiveModel ? kingDangerValue : kingLibertyValue;
   const features = {
     material: 0,
     captures: (state.stats?.captures?.[perspective] || 0) - (state.stats?.captures?.[enemy] || 0),
-    kingLiberties: kingLibertyValue(state, perspective) - kingLibertyValue(state, enemy),
+    kingLiberties: kingValueFor(state, perspective) - kingValueFor(state, enemy),
     connectivity: 0,
     influence: 0,
     center: 0,
@@ -85,7 +115,7 @@ export function evaluateStateDetailed(state, perspective, settings = {}) {
     return { value, terminal: true, features: {}, weighted: {} };
   }
 
-  const features = rawStateFeatures(state, perspective);
+  const features = rawStateFeatures(state, perspective, settings);
   const weights = stateEvaluationWeights(settings);
   const weighted = Object.fromEntries(
     Object.keys(features).map((key) => [key, features[key] * weights[key]]),
