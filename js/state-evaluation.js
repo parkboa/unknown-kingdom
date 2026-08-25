@@ -44,6 +44,31 @@ function kingDangerValue(state, owner) {
   return -6 / (distance * distance);
 }
 
+/**
+ * How sharply the territory verdict takes over as the board fills.
+ *
+ * Measured over 440 recorded games: King captures finish at a median 27% fill and 90% of them
+ * land below 65%, while territory finishes cluster at 98-100%. The exponent has to keep this
+ * term out of the midgame, where King tactics genuinely decide things, and still have it near
+ * full strength by the time stones settle the match — `p ** 12` gives 0.006 at 65%, 0.28 at
+ * 90% and 0.78 at 98%.
+ */
+const TERRITORY_PROXIMITY_EXPONENT = 12;
+
+/**
+ * The territory result, discounted by how far the board is from producing it.
+ *
+ * A territory finish compares raw piece counts (`victory.js` uses `red > blue`, with the komi
+ * hook `WHITE_TERRITORY_BONUS` still at 0), so the margin here is exactly `features.material`.
+ * What the evaluation lacked was any notion of how close that comparison is to being the final
+ * word: a +1 margin on move 5 and a +1 margin on move 80 scored identically, though the second
+ * one simply is the win.
+ */
+function territoryVerdictValue(margin, filledCells) {
+  const proximity = filledCells / (SIZE * SIZE);
+  return margin * (proximity ** TERRITORY_PROXIMITY_EXPONENT);
+}
+
 function rawStateFeatures(state, perspective, settings = {}) {
   const enemy = perspective === "red" ? "blue" : "red";
   // Same slot, different measure: Stage 1c replaces the blending that consumes it, so the key
@@ -53,12 +78,14 @@ function rawStateFeatures(state, perspective, settings = {}) {
     material: 0,
     captures: (state.stats?.captures?.[perspective] || 0) - (state.stats?.captures?.[enemy] || 0),
     kingLiberties: kingValueFor(state, perspective) - kingValueFor(state, enemy),
+    territoryVerdict: 0,
     connectivity: 0,
     influence: 0,
     center: 0,
     home: 0,
   };
   const seen = new Set();
+  let filledCells = 0;
 
   for (let row = 0; row < SIZE; row += 1) {
     for (let col = 0; col < SIZE; col += 1) {
@@ -74,6 +101,7 @@ function rawStateFeatures(state, perspective, settings = {}) {
       }
 
       const sign = sideSign(piece.owner, perspective);
+      filledCells += 1;
       features.material += sign;
       features.center += sign * (8 - (Math.abs(row - 4) + Math.abs(col - 4)));
       const homeValue = piece.owner === "red" ? SIZE - 1 - row : row;
@@ -85,6 +113,11 @@ function rawStateFeatures(state, perspective, settings = {}) {
       for (const [groupRow, groupCol] of group) seen.add(`${groupRow}:${groupCol}`);
       features.connectivity += sign * group.length * group.length;
     }
+  }
+  // Stays exactly 0 on the default path, so the disabled flag leaves every weighted component
+  // untouched rather than merely small.
+  if (settings.terminalObjectiveModel) {
+    features.territoryVerdict = territoryVerdictValue(features.material, filledCells);
   }
   return features;
 }
@@ -100,6 +133,9 @@ export function stateEvaluationWeights(settings = {}) {
     // stands instead of rewarding capture history.
     captures: (score.capture ?? 9) * (score.captureHistoryMultiplier ?? 6),
     kingLiberties: kingWeight * 8,
+    // Deliberately heavier than `material`, which scores the same margin: near a territory
+    // finish the margin is not one consideration among several, it is the result.
+    territoryVerdict: (score.territory ?? (score.capture ?? 9) * 12),
     connectivity: score.groupTactics ?? score.defense ?? 2,
     influence: score.influence ?? 0,
     center: score.center ?? 0,

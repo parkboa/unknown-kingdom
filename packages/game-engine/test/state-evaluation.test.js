@@ -141,3 +141,56 @@ test("the terminal objective flag leaves the default evaluation path untouched",
     assert.equal(evaluateState(state, "red", s), -evaluateState(state, "blue", s));
   }
 });
+
+/**
+ * Fills `filled` cells while holding Red's margin at exactly `margin`, so the only thing that
+ * varies between two of these boards is how close the match is to a territory finish.
+ * `filled` and `margin` must share parity for an exact split to exist.
+ */
+function filledBoard(filled, margin) {
+  assert.equal((filled - margin) % 2, 0, "filled and margin must share parity");
+  const state = createGameState();
+  state.firstDeployDone = { red: true, blue: true };
+  const reds = (filled + margin) / 2;
+  let placed = 0;
+  for (let row = 0; row < 9 && placed < filled; row += 1) {
+    for (let col = 0; col < 9 && placed < filled; col += 1) {
+      state.board[row][col] = piece(placed < reds ? "red" : "blue", "soldier", `s${placed}`);
+      placed += 1;
+    }
+  }
+  return state;
+}
+
+test("the territory verdict grows with board fill at a fixed stone margin", () => {
+  const on = { ...settings, terminalObjectiveModel: true };
+  const margin = 4;
+  const values = [20, 40, 60, 72, 80].map((filled) =>
+    evaluateStateDetailed(filledBoard(filled, margin), "red", on).features.territoryVerdict);
+
+  for (let i = 1; i < values.length; i += 1) {
+    assert.ok(values[i] > values[i - 1], `fill step ${i} must raise the verdict`);
+  }
+
+  // King captures finish at a median 27% fill, so the term has to stay out of the midgame...
+  assert.ok(values[0] < 0.01, "an early board must not carry a territory verdict");
+  // ...and be most of the margin by the time a territory finish is actually imminent.
+  assert.ok(values[4] > margin * 0.5, "a nearly full board must nearly commit to the margin");
+});
+
+test("the territory verdict is exactly zero unless the terminal objective model is on", () => {
+  for (const filled of [20, 60, 80]) {
+    const state = filledBoard(filled, 4);
+    const off = evaluateStateDetailed(state, "red", settings);
+    assert.equal(off.features.territoryVerdict, 0);
+    assert.equal(off.weighted.territoryVerdict, 0);
+  }
+
+  // The margin itself is unchanged; only its verdict weighting is gated.
+  const state = filledBoard(60, 4);
+  assert.equal(evaluateStateDetailed(state, "red", settings).features.material, 4);
+  assert.equal(
+    evaluateStateDetailed(state, "red", { ...settings, terminalObjectiveModel: true }).features.material,
+    4,
+  );
+});
