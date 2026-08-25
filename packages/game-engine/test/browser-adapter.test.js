@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createGameState } from "../src/index.js";
+import { createGameState, isSuicideDeployment } from "../src/index.js";
 import {
   dispatchSharedLocalAction,
-  isSharedLocalSuicideDeployment,
+  classifySharedLocalPlacement,
 } from "../../../js/shared-engine-adapter.mjs";
 
 function soldier(owner, id) {
@@ -105,7 +105,7 @@ test("browser local suicide checks use the player-filtered shared state", () => 
   state.board[4][3] = soldier("blue", "west");
   state.board[4][5] = soldier("blue", "east");
 
-  assert.equal(isSharedLocalSuicideDeployment(state, "red", "soldier", 4, 4), true);
+  assert.equal(classifySharedLocalPlacement(state, "red", "soldier", 4, 4), "suicide");
   assert.equal(state.board[4][4], null);
 });
 
@@ -194,7 +194,7 @@ test("tutorial scripted surround and General activation are both shared-engine a
   state.board[5][4] = soldier("red", "south");
   state.board[4][3] = soldier("red", "west");
 
-  assert.equal(isSharedLocalSuicideDeployment(state, "blue", "general", 4, 4), false);
+  assert.equal(classifySharedLocalPlacement(state, "blue", "general", 4, 4), null);
   const placed = dispatchSharedLocalAction(
     state,
     "blue",
@@ -245,4 +245,26 @@ test("browser adapter adopts explicit no-move pass and territory completion", ()
   assert.deepEqual(result.visibleEvents.map(({ type }) => type), ["turn_passed", "match_ended"]);
   assert.equal(result.state.winner, "red");
   assert.equal(state.winner, null);
+});
+
+test("a special dropped into an enclosed point is flagged for confirmation, unlike a plain suicide", () => {
+  const state = createGameState();
+  state.mode = "pve";
+  state.firstDeployDone = { red: true, blue: true };
+  state.deploymentCount = { red: 5, blue: 5 };
+  state.turn = "red";
+  state.board[3][4] = soldier("blue", "north");
+  state.board[5][4] = soldier("blue", "south");
+  state.board[4][3] = soldier("blue", "west");
+  state.board[4][5] = soldier("blue", "east");
+
+  // The special survives here — it fires on placement and clears its neighbours — so it
+  // must not be described as dying, but it still needs a confirmation step.
+  assert.equal(classifySharedLocalPlacement(state, "red", "general", 4, 4), "special_detonation");
+  assert.equal(classifySharedLocalPlacement(state, "red", "diplomat", 4, 4), "special_detonation");
+  assert.equal(classifySharedLocalPlacement(state, "red", "soldier", 4, 4), "suicide");
+
+  // The match-ending machinery reads isSuicideDeployment, which must keep its old answer.
+  assert.equal(isSuicideDeployment(state, "red", "general", 4, 4), false);
+  assert.equal(isSuicideDeployment(state, "red", "soldier", 4, 4), true);
 });

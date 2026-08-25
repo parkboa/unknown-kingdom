@@ -3,6 +3,7 @@ export {
   applyAction,
   dispatchAction,
   getLegalActions,
+  isEnclosedPlacement,
   isSuicideDeployment,
 } from "./actions.js";
 export { eventsForPlayer } from "./events.js";

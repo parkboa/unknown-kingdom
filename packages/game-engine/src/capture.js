@@ -12,15 +12,44 @@ import { queueSpecialActivation } from "./reactions.js";
 import { createPiece, occupiedSoldier } from "./state.js";
 import { declareWinner } from "./victory.js";
 
-export function isSuicideDeployment(state, player, type, row, col) {
-  if (!canDeployPosition(state, player, type, row, col)) return false;
+function simulateDeployment(state, player, type, row, col, queueReaction) {
   const simulated = structuredClone(state);
   simulated.board[row][col] = createPiece(simulated, player, type);
   simulated.stock[player][type] -= 1;
   simulated.firstDeployDone[player] = true;
   incrementDeploymentCount(simulated, player);
-  resolveCaptures(simulated, player, undefined, queueSpecialActivation);
+  resolveCaptures(simulated, player, undefined, queueReaction);
+  return simulated;
+}
+
+function placementLost(simulated, player, row, col) {
   return simulated.board[row][col]?.owner !== player || simulated.winner === opponent(player);
+}
+
+export function isSuicideDeployment(state, player, type, row, col) {
+  if (!canDeployPosition(state, player, type, row, col)) return false;
+  const simulated = simulateDeployment(state, player, type, row, col, queueSpecialActivation);
+  return placementLost(simulated, player, row, col);
+}
+
+const withoutSpecialReaction = () => false;
+
+/**
+ * Whether the placement lands in a cell with no liberty, judging the position as it stands
+ * rather than as its special reaction would rescue it.
+ *
+ * `isSuicideDeployment` lets the pending special stay on the board, so a special dropped
+ * into an enemy-enclosed point reads as survivable and the player gets no warning at all.
+ * That is the only placement where the two predicates disagree, and it is exactly the case
+ * the confirmation dialog needs to cover.
+ *
+ * Deliberately separate from `isSuicideDeployment`: `hasLegalDeployment` decides the
+ * territory finish from that one, so widening it would move a match-ending condition.
+ */
+export function isEnclosedPlacement(state, player, type, row, col) {
+  if (!canDeployPosition(state, player, type, row, col)) return false;
+  const simulated = simulateDeployment(state, player, type, row, col, withoutSpecialReaction);
+  return placementLost(simulated, player, row, col);
 }
 
 function occupyGroup(state, group, captor, events) {

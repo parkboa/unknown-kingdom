@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { applyAction, canDeploy, createGameState, getLegalActions, kingLibertyCount, stateForPlayer } from "../src/index.js";
+import { applyAction, canDeploy, createGameState, getLegalActions, hasLegalDeployment, isSuicideDeployment, kingLibertyCount, stateForPlayer } from "../src/index.js";
 import {
   AI_RANK_SETTINGS,
   AI_TIER_ORDER,
@@ -332,4 +332,50 @@ test("Grandmaster defensive move is legal and increases its King's liberties", (
   assert.equal(applyAction(after, "blue", { type: "deploy", unitType: move.type, row: move.row, col: move.col }), true);
   assert.equal(after.winner, null);
   assert.ok(kingLibertyCount(after, "blue") > beforeLiberties);
+});
+
+test("the AI suicide filter never removes a move the engine still requires", () => {
+  // Regression: an earlier filter judged placements without special reactions, so it
+  // discarded a soldier move that its own General would rescue. The engine still reported a
+  // legal deployment and therefore withheld `pass`, leaving the AI with nothing to play.
+  const state = createGameState("pve", { aiRank: "grandmaster" });
+  state.firstDeployDone = { red: true, blue: true };
+  state.deploymentCount = { red: 6, blue: 6 };
+  state.turn = "red";
+  const place = (row, col, owner, type) => {
+    state.board[row][col] = {
+      id: `p${row}-${col}`,
+      owner,
+      type,
+      originalType: type,
+      revealed: type === "king",
+      abilityUsed: false,
+      kingEscapeUsed: false,
+    };
+  };
+
+  // Fill the board so 4,5 is the only empty point red can play.
+  for (let row = 0; row < 9; row += 1) {
+    for (let col = 0; col < 9; col += 1) place(row, col, "blue", "soldier");
+  }
+  place(0, 0, "red", "king"); // survives on its own wall, so the match stays live
+  place(8, 8, "blue", "king");
+  place(4, 4, "red", "general");
+  state.board[4][5] = null;
+  state.stock.red = { soldier: 10, king: 0, general: 0, diplomat: 0, wizard: 0 };
+
+  // Sealing at 4,5 leaves the red group without a liberty, which fires the unspent General
+  // and rescues it — so the engine counts this as a real move, not a suicide.
+  assert.equal(isSuicideDeployment(state, "red", "soldier", 4, 5), false);
+  assert.equal(hasLegalDeployment(state, "red"), true);
+
+  const move = findAiDeployMove(state, {
+    aiPlayer: "red",
+    humanPlayer: "blue",
+    canDeploy: (owner, type, row, col) => canDeploy(state, owner, type, row, col),
+    countPieces: (owner) => countPieces(state, owner),
+    neighbors,
+  });
+  assert.ok(move, "the AI must return a move while the engine reports a legal deployment");
+  assert.deepEqual({ row: move.row, col: move.col }, { row: 4, col: 5 });
 });

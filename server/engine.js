@@ -6,6 +6,7 @@ export {
   eventsForPlayer,
   getLegalActions,
   hasLegalDeployment,
+  isEnclosedPlacement,
   isSuicideDeployment,
   opponent,
   stateForPlayer,

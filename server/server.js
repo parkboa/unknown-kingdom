@@ -5,12 +5,13 @@ import {
   createGameState,
   declareWinner,
   hasLegalDeployment,
-  isSuicideDeployment,
+  isEnclosedPlacement,
   opponent,
   stateForPlayer,
 } from "./engine.js";
 import { declineRematch, startAutomaticTauntLock } from "./room-actions.js";
 
+const SPECIAL_UNIT_TYPES = new Set(["general", "diplomat", "wizard"]);
 const PORT = Number(process.env.PORT || 4175);
 const TAUNT_DISPLAY_MS = 3000;
 const TURN_TIMEOUT_MS = 30000;
@@ -390,7 +391,7 @@ webSocketServer.on("connection", (socket) => {
       && message.action.col >= 0
       && message.action.col < 9
       && !room.state.board[message.action.row][message.action.col]
-      && isSuicideDeployment(
+      && isEnclosedPlacement(
         stateForPlayer(room.state, player),
         player,
         message.action.unitType,
@@ -398,7 +399,13 @@ webSocketServer.on("connection", (socket) => {
         message.action.col,
       )
     ) {
-      send(socket, { type: "suicide_warning", action: message.action });
+      // A special fires and survives in an enclosed point, so the client must not describe
+      // it as dying. `kind` is additive; older clients ignore it and show the plain warning.
+      send(socket, {
+        type: "suicide_warning",
+        action: message.action,
+        kind: SPECIAL_UNIT_TYPES.has(message.action.unitType) ? "special_detonation" : "suicide",
+      });
       return;
     }
     if (!applyAction(room.state, player, message.action)) {

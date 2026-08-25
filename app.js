@@ -53,7 +53,7 @@ import {
 } from "./js/puzzles.js?v=progression-2";
 import {
   dispatchSharedLocalAction,
-  isSharedLocalSuicideDeployment,
+  classifySharedLocalPlacement,
 } from "./js/shared-engine-adapter.mjs?v=local-shared-1";
 import { createPveJournalRecorder } from "./js/pve-journal.js?v=browser-jsonl-1";
 import {
@@ -289,6 +289,8 @@ const pendingSpecialTitle = document.querySelector("#pendingSpecialTitle");
 const pendingSpecialText = document.querySelector("#pendingSpecialText");
 const activateSpecialBtn = document.querySelector("#activateSpecialBtn");
 const suicideConfirmModal = document.querySelector("#suicideConfirmModal");
+const suicideConfirmTitle = document.querySelector("#suicideConfirmTitle");
+const suicideConfirmText = document.querySelector("#suicideConfirmText");
 const cancelSuicideBtn = document.querySelector("#cancelSuicideBtn");
 const confirmSuicideBtn = document.querySelector("#confirmSuicideBtn");
 const resignConfirmModal = document.querySelector("#resignConfirmModal");
@@ -936,6 +938,14 @@ function undoLastMove() {
 
 function openSuicideConfirmation(confirmation) {
   pendingSuicideConfirmation = structuredClone(confirmation);
+  // A special dropped into an enclosed point does not die — it fires and clears its
+  // neighbours — so the plain suicide wording would be false. Swapping the i18n keys keeps
+  // the copy correct through a later language change too, since applyLanguage re-reads them.
+  const enclosedSpecial = confirmation.kind === "special_detonation";
+  suicideConfirmTitle.dataset.i18n = enclosedSpecial ? "enclosedSpecialTitle" : "suicideWarningTitle";
+  suicideConfirmText.dataset.i18n = enclosedSpecial ? "enclosedSpecialWarning" : "suicideWarning";
+  suicideConfirmTitle.textContent = text(suicideConfirmTitle.dataset.i18n);
+  suicideConfirmText.textContent = text(suicideConfirmText.dataset.i18n);
   suicideConfirmReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   suicideConfirmModal.hidden = false;
   window.requestAnimationFrame(() => confirmSuicideBtn.focus());
@@ -964,9 +974,9 @@ function deploy(row, col, options = {}) {
     render();
     return;
   }
-  const isSuicide = isSharedLocalSuicideDeployment(state, player, unitType, row, col);
-  if (isSuicide && !options.confirmedSuicide) {
-    openSuicideConfirmation({ source: "local", player, unitType, row, col });
+  const enclosedKind = classifySharedLocalPlacement(state, player, unitType, row, col);
+  if (enclosedKind && !options.confirmedSuicide) {
+    openSuicideConfirmation({ source: "local", player, unitType, row, col, kind: enclosedKind });
     return;
   }
 
@@ -2303,7 +2313,7 @@ function handleNetworkMessage(message) {
   }
 
   if (message.type === "suicide_warning") {
-    openSuicideConfirmation({ source: "online", action: message.action });
+    openSuicideConfirmation({ source: "online", action: message.action, kind: message.kind });
     return;
   }
 

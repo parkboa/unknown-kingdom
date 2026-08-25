@@ -5,7 +5,7 @@ import {
   incrementDeploymentCount,
   touchesOwnWall,
 } from "./board.js";
-import { isSuicideDeployment, resolveCaptures } from "./capture.js";
+import { isEnclosedPlacement, isSuicideDeployment, resolveCaptures } from "./capture.js";
 import { emitEvent, recordInformationTransition } from "./events.js";
 import {
   activatePendingSpecial,
@@ -15,7 +15,7 @@ import {
 import { createPiece } from "./state.js";
 import { declareResignation, endTurn, finishNoLegalDeployment } from "./victory.js";
 
-export { isSuicideDeployment };
+export { isEnclosedPlacement, isSuicideDeployment };
 
 export function dispatchAction(state, player, action, options = {}) {
   const events = [];

@@ -5,6 +5,7 @@ import {
   collectGroup,
   getLegalActions,
   groupHasLiberty,
+  isSuicideDeployment,
   kingLibertyCount,
   opponent,
   orthogonalPositions,
@@ -477,6 +478,31 @@ function compareCandidates(a, b, perspectivePlayer) {
     || relativeRowA - relativeRowB
     || a.col - b.col
     || a.type.localeCompare(b.type);
+}
+
+function hasAdjacentEmptyCell(state, row, col) {
+  return orthogonalPositions(row, col).some(([nextRow, nextCol]) =>
+    nextRow >= 0 && nextRow < SIZE && nextCol >= 0 && nextCol < SIZE && !state.board[nextRow][nextCol]);
+}
+
+/**
+ * A placement that throws the unit away for nothing.
+ *
+ * Uses `isSuicideDeployment` rather than `isEnclosedPlacement` because special reactions
+ * genuinely rescue the placement: a special dropped into an enclosed point fires and
+ * survives, and an ordinary soldier that seals a group holding an unspent special is saved
+ * when that special triggers. Neither wastes the unit, so neither should be filtered.
+ *
+ * Sharing the predicate with `hasLegalDeployment` also keeps the AI and the engine in
+ * agreement — if this removes every candidate, the engine likewise reports no legal
+ * deployment and offers `pass`, so the AI can never be left with nothing to play.
+ *
+ * The cheap adjacency test comes first because the exact check clones and re-resolves the
+ * board, and this runs over every legal cell of every deployable type.
+ */
+function isPointlessSuicide(publicState, player, type, row, col) {
+  if (hasAdjacentEmptyCell(publicState, row, col)) return false;
+  return isSuicideDeployment(publicState, player, type, row, col);
 }
 
 function countStatePieces(state, owner) {
@@ -1109,11 +1135,13 @@ function scoreWithLookahead(
 export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, countPieces, neighbors }) {
   const settings = difficultySettings(state);
   const types = availableDeployTypes(state, aiPlayer, countPieces, humanPlayer);
+  const publicState = stateForPlayer(state, aiPlayer);
   const candidates = [];
   for (const type of types) {
     for (let row = 0; row < SIZE; row += 1) {
       for (let col = 0; col < SIZE; col += 1) {
         if (!canDeploy(aiPlayer, type, row, col)) continue;
+        if (isPointlessSuicide(publicState, aiPlayer, type, row, col)) continue;
         candidates.push({
           row,
           col,
@@ -1127,7 +1155,6 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
   }
   candidates.sort((a, b) => compareCandidates(a, b, aiPlayer));
   if (!candidates.length) return null;
-  const publicState = stateForPlayer(state, aiPlayer);
   const criticalWorldCache = new Map();
   const criticalWorldsFor = (candidate) => {
     const key = `${candidate.type}:${candidate.row}:${candidate.col}`;

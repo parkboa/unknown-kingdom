@@ -1,9 +1,11 @@
 import {
+  isEnclosedPlacement,
   dispatchAction,
   eventsForPlayer,
-  isSuicideDeployment,
   stateForPlayer,
 } from "../packages/game-engine/src/index.js";
+
+const SPECIALS = new Set(["general", "diplomat", "wizard"]);
 
 const LOCAL_MODES = new Set(["pve", "puzzle", "tutorial"]);
 
@@ -22,7 +24,18 @@ export function dispatchSharedLocalAction(state, player, action, viewer, options
   };
 }
 
-export function isSharedLocalSuicideDeployment(state, player, unitType, row, col) {
-  if (!LOCAL_MODES.has(state?.mode)) return false;
-  return isSuicideDeployment(stateForPlayer(state, player), player, unitType, row, col);
+/**
+ * Classifies a placement into a cell that has no liberty of its own.
+ *
+ * Returns `null` for an ordinary move, `"suicide"` when the unit simply dies, and
+ * `"special_detonation"` when a special lands there and fires on the spot — it survives and
+ * clears its neighbours, so the plain suicide wording would be untrue.
+ *
+ * The check runs against the player-filtered state so it cannot leak hidden enemy identities.
+ */
+export function classifySharedLocalPlacement(state, player, unitType, row, col) {
+  if (!LOCAL_MODES.has(state?.mode)) return null;
+  const view = stateForPlayer(state, player);
+  if (!isEnclosedPlacement(view, player, unitType, row, col)) return null;
+  return SPECIALS.has(unitType) ? "special_detonation" : "suicide";
 }
