@@ -984,141 +984,126 @@ function scoreWithLookahead(
   worldOverride = null,
 ) {
   const action = { type: "deploy", unitType: candidate.type, row: candidate.row, col: candidate.col };
-  const beliefWorlds = [worldOverride || stateForPlayer(state, aiPlayer)];
+  // One belief world per call: the caller decides whether that is the public state
+  // or a specific hidden-special hypothesis (see the deep-risk pass in findAiDeployMove).
+  const world = worldOverride || stateForPlayer(state, aiPlayer);
 
-  let totalValue = 0;
+  const afterAi = simulateEngineTransition(world, aiPlayer, action, neighbors);
+  if (!afterAi) return -100000;
+  if (afterAi.winner === aiPlayer) return 100000;
+  if (afterAi.winner && afterAi.winner !== aiPlayer) return -100000;
 
-  for (const world of beliefWorlds) {
-    const afterAi = simulateEngineTransition(world, aiPlayer, action, neighbors);
-    if (!afterAi) {
-      totalValue += -100000;
-      continue;
+  const rootEngineDelta = evaluateEngineTransitionDelta(world, afterAi, aiPlayer, humanPlayer, settings);
+  let worldValue = candidate.score + rootEngineDelta;
+
+  // Tactical Checkmate Extension (6~8-ply deep mating net)
+  if (settings.tacticalExtension) {
+    const enemyLibs = kingLibertyCount(afterAi, humanPlayer);
+    // kingLibertyCount returns -1 while the opponent's King is not deployed.
+    if (enemyLibs >= 0 && enemyLibs <= 2) {
+      const matingScore = evaluateTacticalMatingNet(afterAi, aiPlayer, humanPlayer, 4, 8, neighbors);
+      if (matingScore >= 100000) return 100000;
+      worldValue += matingScore;
     }
-
-    if (afterAi.winner === aiPlayer) {
-      totalValue += 100000;
-      continue;
-    }
-    if (afterAi.winner && afterAi.winner !== aiPlayer) {
-      if (settings.hiddenKingRiskVeto) return -100000;
-      totalValue += -100000;
-      continue;
-    }
-
-    const rootEngineDelta = evaluateEngineTransitionDelta(world, afterAi, aiPlayer, humanPlayer, settings);
-    let worldValue = candidate.score + rootEngineDelta;
-
-    // Tactical Checkmate Extension (6~8-ply deep mating net)
-    if (settings.tacticalExtension) {
-      const enemyLibs = kingLibertyCount(afterAi, humanPlayer);
-      // kingLibertyCount returns -1 while the opponent's King is not deployed.
-      if (enemyLibs >= 0 && enemyLibs <= 2) {
-        const matingScore = evaluateTacticalMatingNet(afterAi, aiPlayer, humanPlayer, 4, 8, neighbors);
-        if (matingScore >= 100000) return 100000;
-        worldValue += matingScore;
-      }
-    }
-
-    if (settings.searchDepth >= 2) {
-      const replies = selectSearchCandidates(
-        afterAi,
-        humanPlayer,
-        aiPlayer,
-        neighbors,
-        settings.replyCandidateLimit || 12,
-      );
-
-      if (replies.length > 0) {
-        let strongestReply = -Infinity;
-        for (const reply of replies) {
-          const replyAction = { type: "deploy", unitType: reply.type, row: reply.row, col: reply.col };
-          const afterReply = simulateEngineTransition(afterAi, humanPlayer, replyAction, neighbors);
-          if (!afterReply) continue;
-
-          if (afterReply.winner === humanPlayer) {
-            strongestReply = 100000;
-            break;
-          }
-
-          const replyEngineDelta = evaluateEngineTransitionDelta(afterAi, afterReply, humanPlayer, aiPlayer, settings);
-          let replyValue = reply.score + replyEngineDelta;
-
-          if (settings.searchDepth >= 3) {
-            const continuations = selectSearchCandidates(
-              afterReply,
-              aiPlayer,
-              humanPlayer,
-              neighbors,
-              settings.continuationCandidateLimit || 10,
-            );
-
-            let bestContinuation = -Infinity;
-            for (const cont of continuations) {
-              const contAction = { type: "deploy", unitType: cont.type, row: cont.row, col: cont.col };
-              const afterCont = simulateEngineTransition(afterReply, aiPlayer, contAction, neighbors);
-              if (!afterCont) continue;
-
-              if (afterCont.winner === aiPlayer) {
-                bestContinuation = 100000;
-                break;
-              }
-
-              const contEngineDelta = evaluateEngineTransitionDelta(afterReply, afterCont, aiPlayer, humanPlayer, settings);
-              let contVal = cont.score + contEngineDelta;
-
-              if (settings.searchDepth >= 4) {
-                const ply4Candidates = selectSearchCandidates(
-                  afterCont,
-                  humanPlayer,
-                  aiPlayer,
-                  neighbors,
-                  settings.ply4CandidateLimit || 6,
-                );
-
-                let strongestPly4 = -Infinity;
-                for (const ply4 of ply4Candidates) {
-                  const ply4Action = { type: "deploy", unitType: ply4.type, row: ply4.row, col: ply4.col };
-                  const afterPly4 = simulateEngineTransition(afterCont, humanPlayer, ply4Action, neighbors);
-                  if (!afterPly4) continue;
-                  if (afterPly4.winner === humanPlayer) {
-                    strongestPly4 = 100000;
-                    break;
-                  }
-                  const ply4Delta = evaluateEngineTransitionDelta(afterCont, afterPly4, humanPlayer, aiPlayer, settings);
-                  const ply4Val = ply4.score + ply4Delta;
-                  if (ply4Val > strongestPly4) strongestPly4 = ply4Val;
-                }
-                if (strongestPly4 !== -Infinity) {
-                  contVal -= strongestPly4 * 0.5;
-                }
-              }
-
-              if (contVal > bestContinuation) bestContinuation = contVal;
-            }
-
-            if (bestContinuation !== -Infinity) {
-              replyValue -= bestContinuation * 0.6;
-            }
-          }
-
-          if (replyValue > strongestReply) {
-            strongestReply = replyValue;
-            if (worldValue - 0.8 * strongestReply <= alpha) {
-              break;
-            }
-          }
-        }
-
-        if (strongestReply !== -Infinity) {
-          worldValue -= strongestReply * 0.8;
-        }
-      }
-    }
-
-    totalValue += worldValue;
   }
 
-  return totalValue / beliefWorlds.length;
+  if (settings.searchDepth >= 2) {
+    const replies = selectSearchCandidates(
+      afterAi,
+      humanPlayer,
+      aiPlayer,
+      neighbors,
+      settings.replyCandidateLimit || 12,
+    );
+
+    if (replies.length > 0) {
+      let strongestReply = -Infinity;
+      for (const reply of replies) {
+        const replyAction = { type: "deploy", unitType: reply.type, row: reply.row, col: reply.col };
+        const afterReply = simulateEngineTransition(afterAi, humanPlayer, replyAction, neighbors);
+        if (!afterReply) continue;
+
+        if (afterReply.winner === humanPlayer) {
+          strongestReply = 100000;
+          break;
+        }
+
+        const replyEngineDelta = evaluateEngineTransitionDelta(afterAi, afterReply, humanPlayer, aiPlayer, settings);
+        let replyValue = reply.score + replyEngineDelta;
+
+        if (settings.searchDepth >= 3) {
+          const continuations = selectSearchCandidates(
+            afterReply,
+            aiPlayer,
+            humanPlayer,
+            neighbors,
+            settings.continuationCandidateLimit || 10,
+          );
+
+          let bestContinuation = -Infinity;
+          for (const cont of continuations) {
+            const contAction = { type: "deploy", unitType: cont.type, row: cont.row, col: cont.col };
+            const afterCont = simulateEngineTransition(afterReply, aiPlayer, contAction, neighbors);
+            if (!afterCont) continue;
+
+            if (afterCont.winner === aiPlayer) {
+              bestContinuation = 100000;
+              break;
+            }
+
+            const contEngineDelta = evaluateEngineTransitionDelta(afterReply, afterCont, aiPlayer, humanPlayer, settings);
+            let contVal = cont.score + contEngineDelta;
+
+            if (settings.searchDepth >= 4) {
+              const ply4Candidates = selectSearchCandidates(
+                afterCont,
+                humanPlayer,
+                aiPlayer,
+                neighbors,
+                settings.ply4CandidateLimit || 6,
+              );
+
+              let strongestPly4 = -Infinity;
+              for (const ply4 of ply4Candidates) {
+                const ply4Action = { type: "deploy", unitType: ply4.type, row: ply4.row, col: ply4.col };
+                const afterPly4 = simulateEngineTransition(afterCont, humanPlayer, ply4Action, neighbors);
+                if (!afterPly4) continue;
+                if (afterPly4.winner === humanPlayer) {
+                  strongestPly4 = 100000;
+                  break;
+                }
+                const ply4Delta = evaluateEngineTransitionDelta(afterCont, afterPly4, humanPlayer, aiPlayer, settings);
+                const ply4Val = ply4.score + ply4Delta;
+                if (ply4Val > strongestPly4) strongestPly4 = ply4Val;
+              }
+              if (strongestPly4 !== -Infinity) {
+                contVal -= strongestPly4 * 0.5;
+              }
+            }
+
+            if (contVal > bestContinuation) bestContinuation = contVal;
+          }
+
+          if (bestContinuation !== -Infinity) {
+            replyValue -= bestContinuation * 0.6;
+          }
+        }
+
+        if (replyValue > strongestReply) {
+          strongestReply = replyValue;
+          if (worldValue - 0.8 * strongestReply <= alpha) {
+            break;
+          }
+        }
+      }
+
+      if (strongestReply !== -Infinity) {
+        worldValue -= strongestReply * 0.8;
+      }
+    }
+  }
+
+  return worldValue;
 }
 
 export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, countPieces, neighbors }) {
