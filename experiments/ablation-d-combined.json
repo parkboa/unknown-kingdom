@@ -1,0 +1,5 @@
+{
+  "kingTacticalPriority": 0.5,
+  "kingMineStrategy": false,
+  "hiddenKingRiskVeto": false
+}
