@@ -1,5 +1,63 @@
 # Daeguk Prototype — Development Log
 
+## AI Evaluation Methodology And King/Territory Asymmetry — 2026-08-24
+
+### The Measured AI League Was Not Measuring Anything
+
+- Instrumented every tier's root decision: `advanced`, `expert`, and `grandmaster` consume **zero** `Math.random` calls, and `novice` (`variance: 1.5`) and `intermediate` (`variance: 0.5`) pick an identical move in **200/200** random streams at every probed position. The variance added at `js/ai.js` root scoring is a rounding error next to score magnitudes in the hundreds, and the final ordering uses `deepScore` where it is smaller still. All five tiers are effectively deterministic.
+- Consequence: a matchup replays one identical game per seed. Verified directly — `grandmaster` vs `expert` produced the same winner, move count, and `finalDigest` under seeds `20260821` and `99999999`.
+- This invalidates the multi-seed league contract. `artifacts/ai-league-20260821-20260823-aggregate.json` reports `seedWinRates` of `[37.5, 37.5, 37.5]` for `expert` and `[25, 25, 25]` for `grandmaster` — byte-identical across seeds. Of the 18 games among the three deterministic tiers, only 6 were distinct; the other 12 were duplicates counted as independent samples. `scripts/ai-promotion-gate.mjs` Wilson intervals are correspondingly invalid for top-tier comparisons: `--pairs 50` carries the information of 2 games.
+- Added `scripts/ai-ablation-study.mjs`, which collapses seed repeats for deterministic matchups and always reports `distinctGames` beside `winRate` so duplicates can never be mistaken for evidence.
+
+### Three Hypotheses Tested And Rejected
+
+- **The tier inversion was an artifact, not a defect.** Under randomized openings the ordering is not inverted: `grandmaster` scores `61.3%` (95% CI `[50.3, 71.2]`) against the field and beats all four other tiers head to head. The old "novice `66.7%` > grandmaster `25%`" reading came entirely from replaying one fixed opening.
+- **`kingMineStrategy` (the 100% King-adjacent mine assumption) is net-neutral.** Disabling it changes which moves are played and shifts per-opponent results substantially, but leaves overall strength unchanged.
+- **`hiddenKingRiskVeto` never fired.** Disabling it produced games byte-identical to stock in 16/16. One of its two sites was provably dead: `beliefWorlds` is always a one-element array literal, so `return -100000` and the `totalValue += -100000` path both resolve to `-100000 / 1`.
+
+### Reference-Opponent Calibration
+
+- Specialized engines played against each other measure style, not strength: the round robin produced an intransitive `novice > expert > intermediate > novice` cycle, and the bottom four tiers were indistinguishable at `46.3 / 47.5 / 47.5 / 47.5`.
+- Added a uniformly random legal player (`--reference random`) as a neutral yardstick, plus randomized openings (`--random-opening`) and Go-style handicap stones (`--handicap`). Randomized openings are what make seeds informative: `grandmaster` vs `expert` went from 2 distinct games across 4 seeds to 8/8.
+- Handicap stones are applied before the journal snapshot, so the handicap position becomes the recorded initial state and replay verification still holds.
+
+### The Real Defect: King And Territory Competence Are Split
+
+- Against the random reference (40 games per tier), splitting by how the match ended:
+
+  | tier | King-capture games | territory games | territory stone margin |
+  | --- | --- | --- | --- |
+  | novice | 93.8% | 87.5% | +16.75 |
+  | intermediate | 100% | 90.0% | +21.00 |
+  | advanced | 100% | 88.9% | +13.33 |
+  | expert | 100% | 80.0% | +15.20 |
+  | grandmaster | **100%** | **50.0%** | **+1.88** |
+
+- All four `grandmaster` losses to a random player were territory losses at 84–86 deployments, never a King loss; one finished `58-23`. It defends its King perfectly and cannot count the board.
+- Mechanism: territory margin *is* `material` (the territory rule compares `countPieces`), and `kingTacticalPriority: 0.9` splits a fixed budget between the King term and everything else. Effective territory share of the King term: `novice 45.0%`, `intermediate 37.8%`, `advanced 36.3%`, `expert 3.3–8.6%`, `grandmaster 3.3–8.6%`.
+
+### Phase System Does Not Do What It Looks Like
+
+- `phaseStrategicMultiplier` scales only `strategicValue`; `kingValue` is never phase-scaled, and the fixed `kingTacticalPriority` blend is applied afterwards. The King term therefore holds a constant 90% share in every phase, and the phase multiplier only redistributes within the remaining 10%.
+- Territory share for `expert`/`grandmaster` moves `3.3% → 6.3% → 8.6%` from opening to endgame. There is no point in the game where territory takes priority.
+- Thresholds are `OPENING_DEPLOYMENT_LIMIT = 20` / `MIDDLE_DEPLOYMENT_LIMIT = 40`, measured as `Math.min(red, blue)` completed deployments, and the opening multiplier is `0.5` — territory is suppressed, not emphasized, for the first 20 deployments per side.
+- `territoryFocus` in `buildMidgameTacticalPolicy` does trigger at `> 20` deployments (or `> 15` once specials are spent), but it filters candidate moves only; the 90%-King evaluation still ranks whatever survives the filter, and `midgameCandidatePolicy` is enabled for `grandmaster` alone.
+
+### Ratio Tuning Cannot Fix This
+
+- `kingTacticalPriority: 0` looked decisive against the random reference: territory win rate `58.3% → 100%`, territory margin `+4.67 → +27.44`, King-capture games `97.9% → 100%`, overall `90% → 100%`, paired sign test 6 better / 0 worse (`p = 0.031`).
+- The same setting is **worse against opponents that actually attack**: overall `65% → 52.5%`, territory win rate `68.2% → 43.5%`, territory margin `+3.73 → −4.22`, and King-defence losses rose from 21 to 25 of 80. Paired sign test 13 better / 23 worse (`p = 0.13`) — no evidence of improvement, consistent direction against.
+- A random opponent never mounts a King attack, so it cannot price the loss of King weighting. Reference calibration is the right tool for *ranking* tiers and the wrong tool for *validating* a King-safety change; both suites are required.
+- Because King and territory draw from one fixed budget, no ratio can raise both. The fix has to be structural: a bounded, situational King term that grows only when the King is genuinely in danger, leaving the rest of the budget to territory. Not implemented — `kingTacticalPriority` is unchanged.
+
+### Changes Landed
+
+- `js/ai.js`: flattened the single-element `beliefWorlds` loop in `scoreWithLookahead` and removed the no-op veto branch. Behaviour-preserving — 16/16 replayed games matched the pre-refactor `finalDigest`.
+- `js/state-evaluation.js`: exposed `score.captureHistoryMultiplier` (default `6`, unchanged behaviour — verified 20/20 identical digests) so the cumulative `captures` term can be ablated without code edits. Removing it did not help on its own.
+- `scripts/lib/ai-match.mjs`: `randomOpeningPlies`, the `random` reference player, and `handicapPlayer`/`handicapStones`.
+- `scripts/ai-ablation-study.mjs`: parallel ablation and league runner with `--league`, `--reference`, `--handicap`, `--random-opening`, and distinct-game accounting.
+- Regression: `113/113` tests pass (11 web, 98 engine, 4 server).
+
 ## Selective Hidden-Risk Search — 2026-08-20
 
 - Split hidden-information handling from the normal lookahead: every root candidate now receives one public-state search, while only the difficulty-specific top shortlist checks locally capturable hidden stones as General, Wizard, or Diplomat worlds.
