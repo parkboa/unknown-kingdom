@@ -27,6 +27,7 @@ import {
   collectGroup,
   countPieces,
   createGameState,
+  dispatchAction,
   getLegalActions,
   isSuicideDeployment,
   opponent,
@@ -133,14 +134,21 @@ function ownGroups(state, owner) {
  * win by special reaction reads as a quiet move and the win-now key misses it entirely.
  */
 function simulate(state, player, action) {
+  // The information history grows all game and gets deep-cloned on every one of the hundreds of
+  // simulations a single position needs. Nothing the answer keys read — the winner, the board,
+  // the piece counts — depends on it, so it is dropped before cloning and its recording skipped.
+  const carried = state.informationHistory;
+  state.informationHistory = undefined;
   const next = structuredClone(state);
+  state.informationHistory = carried;
+  next.informationHistory = { schemaVersion: carried?.schemaVersion ?? 1, red: [], blue: [] };
   const before = countPieces(next, opponent(player));
-  const accepted = applyAction(next, player, {
+  const accepted = dispatchAction(next, player, {
     type: "deploy",
     unitType: action.unitType,
     row: action.row,
     col: action.col,
-  });
+  }, { recordInformationHistory: false }).accepted;
   if (!accepted) return null;
   let guard = 0;
   while (next.pendingSpecial && !next.winner && guard < 8) {
@@ -214,20 +222,46 @@ function playerView(state, player) {
  */
 function classifyHiddenTrap(state, player, { soldiersOnly }) {
   if (soldiersOnly) return null;
+  const enemy = opponent(player);
+
+  // A trap can only sit where a special is waiting: from behind the mask the group looks like
+  // ordinary soldiers, and taking it detonates. Locating those points first turns a scan of
+  // every legal deployment into a scan of one or two. Unfiltered this classifier ran two full
+  // scans on every sampled ply and pushed a 250-game exam past four hours.
+  const suspect = new Set();
+  for (const group of ownGroups(state, enemy)) {
+    const hidesSpecial = group.some(([row, col]) => {
+      const piece = state.board[row][col];
+      return piece && !piece.revealed && SPECIAL_TYPES.includes(piece.type);
+    });
+    if (!hidesSpecial) continue;
+    const liberties = boardLiberties(state, group);
+    if (liberties.size !== 1) continue;
+    for (const key of liberties) suspect.add(key);
+  }
+  if (!suspect.size) return null;
+
   const view = playerView(state, player);
   const traps = new Set();
   for (const action of legalDeployments(state, player)) {
-    if (simulate(state, player, action)?.won) return null;
+    if (!suspect.has(`${action.row}:${action.col}`)) continue;
     if (!simulate(view, player, action)?.won) continue;
+    if (simulate(state, player, action)?.won) continue;
     traps.add(moveKey(action));
   }
   if (!traps.size) return null;
+
+  // Only now is the full scan worth paying for: a real win on the board would make the trap
+  // moot, since taking it is simply better.
+  for (const action of legalDeployments(state, player)) {
+    if (simulate(state, player, action)?.won) return null;
+  }
   return {
     category: "hidden_trap",
     scored: true,
     correct: null,
     forbidden: [...traps],
-    detail: { trapMoves: traps.size },
+    detail: { trapMoves: traps.size, suspectPoints: suspect.size },
   };
 }
 
