@@ -19,7 +19,7 @@
  * What survives is what the rules settle on their own: winning now, not losing now, and not
  * throwing a unit away for nothing.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
   applyAction,
@@ -33,7 +33,7 @@ import {
   orthogonalPositions,
   SIZE,
 } from "../packages/game-engine/src/index.js";
-import { findAiDeployMove } from "../js/ai.js";
+import { AI_RANK_SETTINGS, findAiDeployMove } from "../js/ai.js";
 import { neighbors } from "../js/board.js";
 
 const TIERS = ["novice", "intermediate", "advanced", "expert", "grandmaster"];
@@ -289,10 +289,17 @@ function classifySuicideAvoidance(state, player) {
 
 const CLASSIFIERS = [classifyWinNow, classifyMustDefend, classifyTrueAtari, classifySuicideAvoidance];
 
+/**
+ * Settings merged into every tier before it answers, so one knob can be swept across the exam
+ * without disturbing how the sample was generated.
+ */
+let tierOverride = null;
+
 function askTier(position, tier) {
   const state = structuredClone(position);
   state.aiRank = tier;
   delete state.aiSettings;
+  if (tierOverride) state.aiSettings = { ...AI_RANK_SETTINGS[tier], ...tierOverride };
   const player = state.turn;
   return findAiDeployMove(state, {
     aiPlayer: player,
@@ -396,6 +403,20 @@ function mcnemar(a, b) {
   return { onlyA, onlyB, p: Math.min(1, p) };
 }
 
+/**
+ * Pins the global RNG for the whole run.
+ *
+ * `findAiDeployMove` reaches for `Math.random()` when it picks a unit type, and every tier does
+ * — not only the ones carrying positional variance. Left alone, two processes sample two
+ * different sets of games, and a variant sweep ends up comparing tiers on different exams. The
+ * first attempt at this sweep produced 23 positions in two runs and 36 in the other two for
+ * exactly that reason.
+ */
+function pinRandom(seed) {
+  const next = seededRandom(seed ^ 0x5f3759df);
+  Math.random = next;
+}
+
 function main() {
   const seed = Number(optionValue("--seed", "20260826"));
   const target = Number(optionValue("--positions", "60"));
@@ -405,8 +426,11 @@ function main() {
   const perCategory = Number(optionValue("--per-category", "0"));
   const soldiersOnly = hasFlag("--soldiers-only");
   const dump = hasFlag("--dump-positions");
+  const overridePath = optionValue("--tier-override");
+  const pendingOverride = overridePath ? JSON.parse(readFileSync(resolve(overridePath), "utf8")) : null;
   const outputPath = optionValue("--output", "experiments/ai-tactics-suite.json");
   const random = seededRandom(seed);
+  pinRandom(seed);
 
   const caps = {
     // Wasteful suicides are everywhere and every tier passes them, so left uncapped they fill
@@ -441,6 +465,10 @@ function main() {
 
   if (dump) for (const item of exam) process.stderr.write(`${renderPosition(item)}\n\n`);
 
+  // Applied only now. `askTier` also drives the games that produce the sample, so setting this
+  // before sampling would hand each variant a different exam and make the comparison meaningless.
+  tierOverride = pendingOverride;
+
   const scores = {};
   const outcomes = {};
   for (const tier of TIERS) { scores[tier] = {}; outcomes[tier] = []; }
@@ -454,9 +482,13 @@ function main() {
       detail: item.detail,
       correct: item.correct,
       forbidden: item.forbidden,
-      // Kept so a surprising score can be re-examined without regenerating the sample.
+      // A compact board for reading, and the whole state for replaying. Reconstructing from the
+      // board alone is not faithful: stock, `stats.specialsUsed`, `deploymentCount` and the
+      // information history all steer the belief model, and a rebuilt position scored nothing
+      // like the original.
       board: item.position.board.map((row) => row.map((piece) => (piece ? `${piece.owner === "red" ? "R" : "b"}${piece.type}` : null))),
       turn: item.position.turn,
+      position: item.position,
       byTier: {},
     };
     for (const tier of TIERS) {
@@ -509,6 +541,7 @@ function main() {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     mode,
+    tierOverride,
     seed,
     positions: exam.length,
     sampledPlies: scanned,
