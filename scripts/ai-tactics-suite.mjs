@@ -32,6 +32,7 @@ import {
   opponent,
   orthogonalPositions,
   SIZE,
+  stateForPlayer,
 } from "../packages/game-engine/src/index.js";
 import { AI_RANK_SETTINGS, findAiDeployMove } from "../js/ai.js";
 import { neighbors } from "../js/board.js";
@@ -176,6 +177,61 @@ function classifyWinNow(state, player) {
 }
 
 /**
+ * The position as `player` actually sees it, with the enemy stock filled back in.
+ *
+ * `stateForPlayer` masks unrevealed enemy pieces as soldiers and blanks the enemy stock, and a
+ * null stock makes `hasLegalDeployment` throw partway through a simulated turn. `js/ai.js`
+ * solves this with `materializeUnknownStockForSimulation`; the exam only needs the stock to be
+ * present and plausible, since what it is measuring is the masked piece types.
+ */
+function playerView(state, player) {
+  const view = stateForPlayer(state, player);
+  const enemy = opponent(player);
+  if (!view.stock[enemy]) {
+    const deployed = view.board.flat().filter((piece) => piece?.owner === enemy).length;
+    view.stock[enemy] = {
+      soldier: Math.max(0, 77 - deployed),
+      king: 0,
+      general: 1,
+      diplomat: 1,
+      wizard: 1,
+    };
+  }
+  return view;
+}
+
+/**
+ * A move that wins in the player's own view and loses that win to a special they cannot see.
+ *
+ * This is the other half of the boldness question. `win_now` asks whether a tier finds a
+ * verified win, and its key knows the true position, so loosening `instantWinRiskTolerance`
+ * improves that score by construction and can never charge for being wrong. Here the charge is
+ * the whole point: the apparent win is real from behind the mask, and the hidden special is
+ * real on the board. The key is negative — anything except the trap.
+ *
+ * Only meaningful with specials in play, and only when no genuine win is available, since
+ * taking a real win would make the trap moot.
+ */
+function classifyHiddenTrap(state, player, { soldiersOnly }) {
+  if (soldiersOnly) return null;
+  const view = playerView(state, player);
+  const traps = new Set();
+  for (const action of legalDeployments(state, player)) {
+    if (simulate(state, player, action)?.won) return null;
+    if (!simulate(view, player, action)?.won) continue;
+    traps.add(moveKey(action));
+  }
+  if (!traps.size) return null;
+  return {
+    category: "hidden_trap",
+    scored: true,
+    correct: null,
+    forbidden: [...traps],
+    detail: { trapMoves: traps.size },
+  };
+}
+
+/**
  * The opponent can win next move, and some replies stop it while others do not.
  *
  * Each candidate is played and then every enemy answer is re-scanned, so a move counts as a
@@ -287,7 +343,7 @@ function classifySuicideAvoidance(state, player) {
   };
 }
 
-const CLASSIFIERS = [classifyWinNow, classifyMustDefend, classifyTrueAtari, classifySuicideAvoidance];
+const CLASSIFIERS = [classifyWinNow, classifyHiddenTrap, classifyMustDefend, classifyTrueAtari, classifySuicideAvoidance];
 
 /**
  * Settings merged into every tier before it answers, so one knob can be swept across the exam
@@ -439,12 +495,35 @@ function main() {
   };
   if (perCategory > 0) for (const name of ["win_now", "must_defend", "true_atari"]) caps[name] = perCategory;
 
+  // Generating the exam means playing hundreds of AI games; scoring it is cheap. A sweep over
+  // tier settings should pay that cost once, so a finished report can be replayed as the exam.
+  const examPath = optionValue("--load-exam");
   const exam = [];
   const counts = {};
   const endings = [];
   let scanned = 0;
 
-  for (const position of sampledPositions(random, { games, openingPlies, maxPlies, soldiersOnly, endings })) {
+  if (examPath) {
+    const prior = JSON.parse(readFileSync(resolve(examPath), "utf8"));
+    for (const record of prior.answers) {
+      if (!record.position) throw new Error(`${examPath} has no stored positions to replay`);
+      exam.push({
+        id: record.id,
+        player: record.position.turn,
+        position: record.position,
+        category: record.category,
+        scored: record.scored,
+        correct: record.correct,
+        forbidden: record.forbidden,
+        detail: record.detail,
+      });
+      counts[record.category] = (counts[record.category] || 0) + 1;
+    }
+    scanned = prior.sampledPlies ?? 0;
+    endings.push(...(prior.gameEndings || []));
+  }
+
+  for (const position of examPath ? [] : sampledPositions(random, { games, openingPlies, maxPlies, soldiersOnly, endings })) {
     if (exam.length >= target) break;
     scanned += 1;
     const player = position.turn;
