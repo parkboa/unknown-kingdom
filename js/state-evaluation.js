@@ -132,7 +132,10 @@ export function stateEvaluationWeights(settings = {}) {
     // captor's soldiers). Set captureHistoryMultiplier to 0 to score the board as it
     // stands instead of rewarding capture history.
     captures: (score.capture ?? 9) * (score.captureHistoryMultiplier ?? 6),
-    kingLiberties: kingWeight * 8,
+      // `kingDangerScale` only applies on the new path, so a sweep of it cannot disturb the
+    // default weights. It multiplies the danger term alone, unlike raising `kingSafety` or
+    // `kingPressure`, which would also move the separate King terms inside `scoreCell`.
+    kingLiberties: kingWeight * 8 * (settings.terminalObjectiveModel ? (settings.kingDangerScale ?? 1) : 1),
     // Deliberately heavier than `material`, which scores the same margin: near a territory
     // finish the margin is not one consideration among several, it is the result.
     territoryVerdict: (score.territory ?? (score.capture ?? 9) * 12),
