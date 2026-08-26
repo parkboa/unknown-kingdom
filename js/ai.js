@@ -695,6 +695,46 @@ function createCriticalBeliefWorlds(publicState, perspectivePlayer, opponentPlay
   return worlds;
 }
 
+/** Enemy stones whose identity is still hidden — the pool a hypothesised special is drawn from. */
+function unrevealedEnemyStoneCount(publicState, opponentPlayer) {
+  let count = 0;
+  for (const piece of publicState.board.flat()) {
+    if (piece?.owner === opponentPlayer && !piece.revealed) count += 1;
+  }
+  return count;
+}
+
+/**
+ * How likely an engine-verified win survives the specials that could still be hiding.
+ *
+ * The belief worlds say *what* could go wrong; they say nothing about *how likely* it is. A
+ * hypothesis places a specific special on a specific stone, and the odds of that stone being
+ * that special are one in however many enemy stones are still unidentified — usually dozens.
+ * Treating every hypothesis as certain is what made the tiers that model belief the ones that
+ * walk away from wins: measured over 118 positions, immediate wins found ran 85% for the two
+ * tiers with almost no belief modelling and 40% for expert, with the miss sets nesting.
+ *
+ * Each critical stone can only be one unit, so its danger is the number of failing types over
+ * the size of the hidden pool, and the win holds only if none of the critical stones turns out
+ * to be dangerous.
+ */
+function instantWinSurvivalOdds(publicState, opponentPlayer, failingWorlds) {
+  const pool = unrevealedEnemyStoneCount(publicState, opponentPlayer);
+  // No unidentified enemy stone means no special can be hiding, so the hypotheses are empty
+  // talk and the verified win stands.
+  if (pool <= 0) return 1;
+  const dangerousTypesByStone = new Map();
+  for (const world of failingWorlds) {
+    const key = `${world.row}:${world.col}`;
+    dangerousTypesByStone.set(key, (dangerousTypesByStone.get(key) || 0) + 1);
+  }
+  let odds = 1;
+  for (const dangerous of dangerousTypesByStone.values()) {
+    odds *= Math.max(0, 1 - dangerous / pool);
+  }
+  return odds;
+}
+
 function immediateBeliefValue(beforeState, afterState, aiPlayer, humanPlayer, settings) {
   if (!afterState || afterState.winner === humanPlayer) return -100000;
   if (afterState.winner === aiPlayer) return 100000;
@@ -1183,11 +1223,18 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
       if (publicResult?.winner !== aiPlayer) continue;
 
       const criticalWorlds = criticalWorldsFor(cand);
-      const winsInEveryWorld = criticalWorlds.every((hypothesis) => {
+      const failingWorlds = criticalWorlds.filter((hypothesis) => {
         const simulated = simulateEngineTransition(hypothesis.state, aiPlayer, quickAction, neighbors);
-        return simulated?.winner === aiPlayer;
+        return simulated?.winner !== aiPlayer;
       });
-      if (winsInEveryWorld) {
+      // `instantWinRiskTolerance` is the share of the hidden pool a tier will bet against. Left
+      // unset the odds must be a flat 1, which is the old "wins in every hypothesised world"
+      // rule exactly — any failing world drops the odds below 1 and the win is passed over.
+      const requiredOdds = 1 - Math.max(0, Math.min(1, Number(settings.instantWinRiskTolerance || 0)));
+      const survivalOdds = failingWorlds.length
+        ? instantWinSurvivalOdds(publicState, humanPlayer, failingWorlds)
+        : 1;
+      if (survivalOdds >= requiredOdds) {
         return cand;
       }
     }
