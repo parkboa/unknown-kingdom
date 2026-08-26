@@ -36,12 +36,25 @@ const SOLDIER_CAPTURE_DANGER = [-16, -12, -6, -2.5, -1];
  * otherwise is what produced the inversion this replaces. The special-unit threat against
  * anchors is Stage 2's job.
  */
-function kingDangerValue(state, owner) {
-  if (!state.firstDeployDone?.[owner]) return 0;
-  const { soldierCaptureDistance: distance } = kingSafetyProfile(state, owner);
+function dangerForDistance(distance) {
   if (!Number.isFinite(distance)) return 0;
   if (distance < SOLDIER_CAPTURE_DANGER.length) return SOLDIER_CAPTURE_DANGER[distance];
   return -6 / (distance * distance);
+}
+
+function kingDangerValue(state, owner, settings = {}) {
+  if (!state.firstDeployDone?.[owner]) return 0;
+  const specialsBreakAnchors = Boolean(settings.specialAnchorThreat);
+  const profile = kingSafetyProfile(state, owner, { specialsBreakAnchors });
+  const soldierDanger = dangerForDistance(profile.soldierCaptureDistance);
+  if (!specialsBreakAnchors) return soldierDanger;
+
+  // The special route is a threat in proportion to the odds that the stone beside the King is
+  // one, so its danger is scaled rather than asserted. Taking the worse of the two routes keeps
+  // the term honest in both directions: a wall still stops soldiers, and it never stopped a
+  // Diplomat.
+  const specialDanger = dangerForDistance(profile.specialDistance) * profile.specialRisk;
+  return Math.min(soldierDanger, specialDanger);
 }
 
 /**
@@ -73,7 +86,9 @@ function rawStateFeatures(state, perspective, settings = {}) {
   const enemy = perspective === "red" ? "blue" : "red";
   // Same slot, different measure: Stage 1c replaces the blending that consumes it, so the key
   // stays put until then and a disabled flag leaves the old path byte-identical.
-  const kingValueFor = settings.terminalObjectiveModel ? kingDangerValue : kingLibertyValue;
+  const kingValueFor = settings.terminalObjectiveModel
+    ? (target, side) => kingDangerValue(target, side, settings)
+    : kingLibertyValue;
   const features = {
     material: 0,
     captures: (state.stats?.captures?.[perspective] || 0) - (state.stats?.captures?.[enemy] || 0),

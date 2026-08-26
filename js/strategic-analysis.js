@@ -3,6 +3,7 @@ import {
   boardSignature,
   collectGroup,
   findKingPosition,
+  opponent,
   orthogonalPositions,
   wallOwnerForEdge,
 } from "../packages/game-engine/src/index.js";
@@ -137,41 +138,133 @@ function groupTouchesOwnWall(state, group, owner) {
  * just like an own wall, so a safety measure has to follow the capture rule rather than that
  * helper.
  */
-function countWallAnchors(state, group, owner) {
+function wallAnchorStones(state, group, owner) {
   return group.filter(([row, col]) => orthogonalPositions(row, col).some(([nextRow, nextCol]) => {
     if (inBounds(nextRow, nextCol)) return false;
     const wallOwner = wallOwnerForEdge(row, nextRow, nextCol);
     return wallOwner === owner || wallOwner === null;
-  })).length;
+  }));
 }
 
 /**
- * How far the King is from being captured by ordinary soldier play.
+ * Whether a special could be detonated against this King, and how soon.
  *
- * `kingLibertyCount` adds board liberties and wall liberties into a single number, which ranks
- * a King sealed against its own wall (one liberty, and no soldier can ever take it) below a
- * King standing in the open with three empty neighbours (three liberties, dead in three
- * moves). Separating the two restores the ordering the rules actually imply.
+ * The first attempt here counted how many specials it would take to strip the wall anchors one
+ * at a time. That models the wrong threat, and a test on a fully sealed group exposed it: a
+ * reaction strikes or converts everything beside the special, and an adjacent King is captured
+ * outright — `reactions.js` declares a winner in both the strike and the Diplomat conversion
+ * paths. The opponent never has to dismantle an anchor. They need one special next to the King
+ * and a reason for it to go off.
  *
- * A wall anchor is permanent under soldier play: the opponent cannot occupy a wall edge, so no
- * sequence of ordinary deployments removes that liberty. Only a special can break the anchor,
- * by converting or removing the stone that holds it — modelled in Stage 2, deliberately absent
- * here so this stays a pure Go-style measure.
+ * Returns how many moves away that threat is:
  *
- * `soldierCaptureDistance` is `Infinity` for an anchored group, otherwise the number of empty
- * liberties the opponent must fill. A missing King yields 0, matching the "already lost"
- * reading the evaluation gives a captured King.
+ *   - 1: an unrevealed enemy stone already sits beside the King. It may be a special already,
+ *        and it fires the moment its group runs out of liberties.
+ *   - 2: an empty point sits beside the King, so a special can still be brought there.
+ *   - `Infinity`: the King is enclosed by stones that are known, or no special remains.
  */
-export function kingSafetyProfile(state, owner) {
+function specialThreatProfile(state, group, owner, enemySpecials) {
+  const idle = { specialDistance: Infinity, adjacentUnknown: 0, hiddenPool: 0, specialRisk: 0 };
+  if (enemySpecials <= 0) return idle;
+  const enemy = opponent(owner);
+
+  let hiddenPool = 0;
+  for (const piece of state.board.flat()) {
+    if (piece?.owner === enemy && !piece.revealed && piece.type !== "king") hiddenPool += 1;
+  }
+
+  const border = new Set();
+  for (const [row, col] of group) {
+    for (const [nextRow, nextCol] of orthogonalPositions(row, col)) {
+      if (inBounds(nextRow, nextCol)) border.add(positionKey(nextRow, nextCol));
+    }
+  }
+  let adjacentUnknown = 0;
+  let hasEmptyNeighbour = false;
+  for (const key of border) {
+    const [row, col] = key.split(":").map(Number);
+    const piece = state.board[row][col];
+    if (!piece) { hasEmptyNeighbour = true; continue; }
+    if (piece.owner === enemy && !piece.revealed && piece.type !== "king") adjacentUnknown += 1;
+  }
+
+  const specialDistance = adjacentUnknown > 0 ? 1 : (hasEmptyNeighbour ? 2 : Infinity);
+  if (!Number.isFinite(specialDistance)) return { ...idle, hiddenPool };
+
+  // A stone beside the King is only a threat if it is *actually* a special, and the odds of that
+  // are the remaining specials over the stones whose identity is still unknown — usually dozens.
+  // Reporting distance 1 without this would make every King with an unidentified neighbour read
+  // as one move from death, which is the same overstatement as the `Infinity` it replaces, only
+  // pointed the other way. Placement costs a move, so a reachable empty point is discounted.
+  const perStone = hiddenPool > 0 ? Math.min(1, enemySpecials / hiddenPool) : 0;
+  const specialRisk = adjacentUnknown > 0
+    ? Math.min(1, perStone * adjacentUnknown)
+    : perStone * 0.5;
+  return { specialDistance, adjacentUnknown, hiddenPool, specialRisk };
+}
+
+/**
+ * How far the King is from being captured.
+ *
+ * Without `specialsBreakAnchors` this is the Stage 1a measure exactly: `kingLibertyCount` sums
+ * board liberties and wall liberties into one number, which ranks a King sealed against its own
+ * wall below a King standing in the open, and separating the two restores the ordering the
+ * rules imply. A wall anchor is permanent under soldier play — the opponent cannot occupy a wall
+ * edge — so an anchored King reads as `Infinity`.
+ *
+ * With the option on, that `Infinity` is qualified. It is true of soldiers and of nothing else,
+ * and left unqualified it pins the danger term at zero for most of the game: over 706 sampled
+ * King positions, 53.7% were anchored overall and 100% were past 40% board fill. Once specials
+ * are counted the measure becomes a spectrum again.
+ */
+export function kingSafetyProfile(state, owner, options = {}) {
   const king = findKingPosition(state, owner);
-  if (!king) return { wallAnchors: 0, boardLiberties: 0, soldierCaptureDistance: 0 };
+  if (!king) {
+    return {
+      wallAnchors: 0,
+      boardLiberties: 0,
+      soldierCaptureDistance: 0,
+      enemySpecials: 0,
+      specialDistance: Infinity,
+      adjacentUnknown: 0,
+      hiddenPool: 0,
+      specialRisk: 0,
+      effectiveCaptureDistance: 0,
+    };
+  }
   const group = collectGroup(state, king.row, king.col);
-  const wallAnchors = countWallAnchors(state, group, owner);
+  const anchors = wallAnchorStones(state, group, owner);
   const boardLiberties = groupLiberties(state, group).length;
+  const soldierCaptureDistance = anchors.length > 0 ? Infinity : boardLiberties;
+
+  if (!options.specialsBreakAnchors) {
+    return {
+      wallAnchors: anchors.length,
+      boardLiberties,
+      soldierCaptureDistance,
+      enemySpecials: 0,
+      specialDistance: Infinity,
+      adjacentUnknown: 0,
+      hiddenPool: 0,
+      specialRisk: 0,
+      effectiveCaptureDistance: soldierCaptureDistance,
+    };
+  }
+
+  // Hidden information is respected: this counts what the owner could have observed, not what
+  // the opponent actually holds.
+  const enemySpecials = observedRemainingSpecialTypes(state, owner, opponent(owner)).length;
+  const threat = specialThreatProfile(state, group, owner, enemySpecials);
+  const { specialDistance } = threat;
   return {
-    wallAnchors,
+    wallAnchors: anchors.length,
     boardLiberties,
-    soldierCaptureDistance: wallAnchors > 0 ? Infinity : boardLiberties,
+    soldierCaptureDistance,
+    enemySpecials,
+    ...threat,
+    // Whichever route is shorter. Claiming `Infinity` while a special can still be walked up to
+    // the King is the overstatement that flattened the danger term.
+    effectiveCaptureDistance: Math.min(soldierCaptureDistance, specialDistance),
   };
 }
 

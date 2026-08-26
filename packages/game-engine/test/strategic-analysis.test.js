@@ -364,11 +364,10 @@ test("soldier capture distance separates wall anchors from board liberties", () 
     place(0, 3, "blue", "soldier");
     place(0, 5, "blue", "soldier");
   });
-  assert.deepEqual(kingSafetyProfile(ownWall, "red"), {
-    wallAnchors: 1,
-    boardLiberties: 0,
-    soldierCaptureDistance: Infinity,
-  });
+  const ownWallProfile = kingSafetyProfile(ownWall, "red");
+  assert.equal(ownWallProfile.wallAnchors, 1);
+  assert.equal(ownWallProfile.boardLiberties, 0);
+  assert.equal(ownWallProfile.soldierCaptureDistance, Infinity);
 
   // Neutral wall: the side edges are neutral only on row 4, and groupHasLiberty counts a
   // neutral edge exactly like an own wall, so the profile has to as well.
@@ -386,11 +385,10 @@ test("soldier capture distance separates wall anchors from board liberties", () 
     place(4, 4, "red", "king");
     place(3, 4, "blue", "soldier");
   });
-  assert.deepEqual(kingSafetyProfile(centre, "red"), {
-    wallAnchors: 0,
-    boardLiberties: 3,
-    soldierCaptureDistance: 3,
-  });
+  const centreProfile = kingSafetyProfile(centre, "red");
+  assert.equal(centreProfile.wallAnchors, 0);
+  assert.equal(centreProfile.boardLiberties, 3);
+  assert.equal(centreProfile.soldierCaptureDistance, 3);
 
   // The opponent's wall grants nothing: this King is already without a liberty.
   const enemyWall = kingSafetyState((place) => {
@@ -425,4 +423,67 @@ test("kingLibertyCount cannot express the ordering that soldier capture distance
     kingSafetyProfile(anchored, "red").soldierCaptureDistance
       > kingSafetyProfile(exposed, "red").soldierCaptureDistance,
   );
+});
+
+test("a wall anchor only stops soldiers, and the profile says so once specials are counted", () => {
+  // Red's King is sealed against its own wall. No soldier can ever take it, which is exactly
+  // what Stage 1a measures — and on its own that reads as absolute safety.
+  const state = kingSafetyState((place) => {
+    place(0, 4, "red", "king");
+    place(0, 3, "red", "soldier");
+    place(0, 2, "blue", "soldier");
+    place(0, 5, "blue", "soldier");
+    place(1, 4, "blue", "soldier");
+    place(1, 3, "blue", "soldier");
+  });
+
+  const soldierOnly = kingSafetyProfile(state, "red");
+  assert.equal(soldierOnly.wallAnchors, 2);
+  assert.equal(soldierOnly.soldierCaptureDistance, Infinity);
+  // Without the option nothing about Stage 1a may move.
+  assert.equal(soldierOnly.effectiveCaptureDistance, Infinity);
+
+  // A reaction captures an adjacent King outright, so an unidentified stone beside it is a live
+  // threat no wall can answer.
+  const withSpecials = kingSafetyProfile(state, "red", { specialsBreakAnchors: true });
+  assert.equal(withSpecials.specialDistance, 1);
+  assert.equal(withSpecials.effectiveCaptureDistance, 1);
+  assert.equal(withSpecials.enemySpecials, 3);
+  assert.ok(withSpecials.specialRisk > 0);
+
+  // Spent specials cannot threaten anything, and the anchor becomes permanent again.
+  const spent = structuredClone(state);
+  spent.stats.specialsUsed.blue = 3;
+  const afterSpending = kingSafetyProfile(spent, "red", { specialsBreakAnchors: true });
+  assert.equal(afterSpending.effectiveCaptureDistance, Infinity);
+  assert.equal(afterSpending.specialRisk, 0);
+});
+
+test("the danger of an unidentified neighbour falls as the hidden pool grows", () => {
+  const build = (extraHidden) => kingSafetyState((place) => {
+    place(0, 4, "red", "king");
+    place(0, 3, "red", "soldier");
+    place(0, 2, "blue", "soldier");
+    place(0, 5, "blue", "soldier");
+    place(1, 4, "blue", "soldier");
+    place(1, 3, "blue", "soldier");
+    let placed = 0;
+    for (let row = 5; row < 9 && placed < extraHidden; row += 1) {
+      for (let col = 0; col < 9 && placed < extraHidden; col += 1) {
+        place(row, col, "blue", "soldier");
+        placed += 1;
+      }
+    }
+  });
+
+  const tight = kingSafetyProfile(build(0), "red", { specialsBreakAnchors: true });
+  const loose = kingSafetyProfile(build(40), "red", { specialsBreakAnchors: true });
+
+  // Same four unidentified neighbours either way; what changes is how many stones the three
+  // specials could be hiding among. Reporting distance 1 without this weighting would call
+  // every King with an unknown neighbour one move from death.
+  assert.equal(tight.adjacentUnknown, loose.adjacentUnknown);
+  assert.equal(tight.specialDistance, loose.specialDistance);
+  assert.ok(loose.hiddenPool > tight.hiddenPool);
+  assert.ok(loose.specialRisk < tight.specialRisk);
 });
