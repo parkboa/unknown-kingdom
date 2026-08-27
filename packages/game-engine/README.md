@@ -123,6 +123,7 @@ It must not depend on DOM APIs, `window`, browser storage, audio, timers, WebSoc
 - `pass` is exposed by `getLegalActions` only when the current player has no legal deployment and no reaction decision is pending.
 - Dispatching `pass` emits `turn_passed`, then completes the match by territory with `match_ended`.
 - A voluntary pass is not allowed while any legal deployment exists.
+- `timeout` is a timer-system action, not a player-legal action. It is accepted only for the current player with `{ authoritative: true }` and emits `match_ended` with reason `timeout`.
 
 ## Next Migration Steps
 

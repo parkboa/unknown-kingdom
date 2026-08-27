@@ -13,7 +13,12 @@ import {
   resumeNormalTurnIfReady,
 } from "./reactions.js";
 import { createPiece } from "./state.js";
-import { declareResignation, endTurn, finishNoLegalDeployment } from "./victory.js";
+import {
+  declareResignation,
+  declareTimeout,
+  endTurn,
+  finishNoLegalDeployment,
+} from "./victory.js";
 
 export { isEnclosedPlacement, isSuicideDeployment };
 
@@ -32,6 +37,11 @@ function performAction(state, player, action, events, options) {
   if (!PLAYERS.includes(player) || !action || typeof action !== "object" || state.winner) return false;
   if (action.type === "resign") {
     declareResignation(state, player, events);
+    return true;
+  }
+  if (action.type === "timeout") {
+    if (options.authoritative !== true || state.turn !== player) return false;
+    declareTimeout(state, player, events);
     return true;
   }
   if (action.type === "pass") {

@@ -65,6 +65,32 @@ test("round-trips a complete action, event, and digest journal through JSONL", (
   assert.equal(browserParsed.replay.actionCount, 2);
 });
 
+test("PvE timeout is journaled and deterministically restored from JSONL", () => {
+  const state = createGameState("pve");
+  const recorder = createPveJournalRecorder(state, { source: "browser-pve" });
+
+  const timeout = recorder.record(
+    "red",
+    { type: "timeout" },
+    { advanceTurn: true, authoritative: true },
+  );
+  assert.equal(timeout.accepted, true);
+  assert.deepEqual(timeout.events, [{
+    type: "match_ended",
+    winner: "blue",
+    reason: "timeout",
+    defeatedPlayer: "red",
+  }]);
+
+  const parsed = parseGameJournalJsonl(recorder.jsonl({ winner: "blue", reason: "timeout" }));
+  assert.equal(parsed.journal.actions.length, 1);
+  assert.deepEqual(parsed.journal.actions[0].action, { type: "timeout" });
+  assert.deepEqual(parsed.journal.actions[0].options, { advanceTurn: true, authoritative: true });
+  assert.equal(parsed.replay.state.winner, "blue");
+  assert.equal(parsed.replay.state.resultReason, "Time limit exceeded (30s).");
+  assert.deepEqual(parsed.outcome, { winner: "blue", reason: "timeout" });
+});
+
 test("streams a complete replayable JSONL journal to a real file", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "daeguk-jsonl-recorder-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));

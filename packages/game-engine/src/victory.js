@@ -78,3 +78,15 @@ export function declareResignation(state, player, events) {
     { resigningPlayer: player },
   );
 }
+
+export function declareTimeout(state, player, events) {
+  const winner = opponent(player);
+  declareWinner(
+    state,
+    winner,
+    "Time limit exceeded (30s).",
+    events,
+    "timeout",
+    { defeatedPlayer: player },
+  );
+}

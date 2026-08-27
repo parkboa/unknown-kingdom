@@ -58,3 +58,13 @@ test("AI timer preference gates both deadline creation and timeout checks", asyn
   assert.match(appSource, /activePveTimerEnabled && !DEVELOPER_MODE && side === "red"/);
   assert.match(appSource, /activePveTimerEnabled && !DEVELOPER_MODE && state\.mode === "pve"/);
 });
+
+test("AI timer expiry is committed through the journaled shared action path", async () => {
+  const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
+
+  assert.match(
+    appSource,
+    /applySharedPveAction\(pveHumanPlayer, \{ type: "timeout" \}, \{ authoritative: true \}\)/,
+  );
+  assert.doesNotMatch(appSource, /declareWinner\([\s\S]{0,200}"timeout"/);
+});

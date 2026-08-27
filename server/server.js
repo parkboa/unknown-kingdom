@@ -3,10 +3,9 @@ import { WebSocketServer, WebSocket } from "ws";
 import {
   applyAction,
   createGameState,
-  declareWinner,
+  dispatchAction,
   hasLegalDeployment,
   isEnclosedPlacement,
-  opponent,
   stateForPlayer,
 } from "./engine.js";
 import { declineRematch, startAutomaticTauntLock } from "./room-actions.js";
@@ -77,14 +76,7 @@ function resetTurnTimer(room) {
     if (!hasLegalDeployment(room.state, timedOutPlayer)) {
       applyAction(room.state, timedOutPlayer, { type: "pass" });
     } else {
-      declareWinner(
-        room.state,
-        opponent(timedOutPlayer),
-        "Time limit exceeded (30s).",
-        undefined,
-        "timeout",
-        { defeatedPlayer: timedOutPlayer },
-      );
+      dispatchAction(room.state, timedOutPlayer, { type: "timeout" }, { authoritative: true });
     }
     broadcastState(room);
   }, duration);

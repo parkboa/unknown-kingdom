@@ -560,3 +560,25 @@ test("player resignation immediately awards victory to the opponent", () => {
   assert.equal(result.events[0].reason, "resignation");
   assert.equal(result.events[0].winner, "blue");
 });
+
+test("current player timeout is an authoritative match-ending action", () => {
+  const state = createGameState();
+
+  assert.equal(
+    dispatchAction(state, "blue", { type: "timeout" }, { authoritative: true }).accepted,
+    false,
+  );
+  assert.equal(dispatchAction(state, "red", { type: "timeout" }).accepted, false);
+  assert.equal(getLegalActions(state, "red").some(({ type }) => type === "timeout"), false);
+  const result = dispatchAction(state, "red", { type: "timeout" }, { authoritative: true });
+
+  assert.equal(result.accepted, true);
+  assert.equal(state.winner, "blue");
+  assert.equal(state.resultReason, "Time limit exceeded (30s).");
+  assert.deepEqual(result.events, [{
+    type: "match_ended",
+    winner: "blue",
+    reason: "timeout",
+    defeatedPlayer: "red",
+  }]);
+});

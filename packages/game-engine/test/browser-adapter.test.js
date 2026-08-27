@@ -247,6 +247,31 @@ test("browser adapter adopts explicit no-move pass and territory completion", ()
   assert.equal(state.winner, null);
 });
 
+test("browser adapter adopts timeout as a shared-engine action", () => {
+  const state = createGameState("pve");
+  assert.equal(
+    dispatchSharedLocalAction(state, "red", { type: "timeout" }, "red").status,
+    "rejected",
+  );
+  const result = dispatchSharedLocalAction(
+    state,
+    "red",
+    { type: "timeout" },
+    "red",
+    { authoritative: true },
+  );
+
+  assert.equal(result.status, "accepted");
+  assert.equal(result.state.winner, "blue");
+  assert.equal(state.winner, null);
+  assert.deepEqual(result.visibleEvents, [{
+    type: "match_ended",
+    winner: "blue",
+    reason: "timeout",
+    defeatedPlayer: "red",
+  }]);
+});
+
 test("a special dropped into an enclosed point is flagged for confirmation, unlike a plain suicide", () => {
   const state = createGameState();
   state.mode = "pve";

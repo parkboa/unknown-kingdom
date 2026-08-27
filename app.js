@@ -15,7 +15,6 @@ import {
   activeKingZones as engineActiveKingZones,
   canDeploy as engineCanDeploy,
   countPieces as engineCountPieces,
-  declareWinner,
   findKingPosition as engineFindKingPosition,
   hasLegalDeployment,
 } from "./packages/game-engine/src/index.js";
@@ -1271,8 +1270,8 @@ function applySharedPveDeployment(player, unitType, row, col) {
   return applySharedPveAction(player, { type: "deploy", unitType, row, col });
 }
 
-function applySharedPveAction(player, action) {
-  const status = commitSharedLocalAction(player, action);
+function applySharedPveAction(player, action, options = {}) {
+  const status = commitSharedLocalAction(player, action, options);
   if (status !== "accepted") return status;
 
   render();
@@ -1280,19 +1279,20 @@ function applySharedPveAction(player, action) {
   return "accepted";
 }
 
-function commitSharedLocalAction(player, action) {
+function commitSharedLocalAction(player, action, options = {}) {
   const viewer = state.mode === "tutorial" ? "blue" : pveHumanPlayer;
+  const dispatchOptions = { ...options, advanceTurn: state.mode === "pve" };
   const result = dispatchSharedLocalAction(
     state,
     player,
     action,
     viewer,
-    { advanceTurn: state.mode === "pve" },
+    dispatchOptions,
   );
   if (result.status !== "accepted") return result.status;
 
   if (state.mode === "pve" && pveJournalRecorder) {
-    const recorded = pveJournalRecorder.record(player, action, { advanceTurn: true });
+    const recorded = pveJournalRecorder.record(player, action, dispatchOptions);
     if (!recorded.accepted) throw new Error(`PvE journal rejected accepted action ${action.type}`);
   }
 
@@ -2523,14 +2523,7 @@ window.setInterval(() => {
       if (!hasLegalDeployment(state, pveHumanPlayer)) {
         applySharedPveAction(pveHumanPlayer, { type: "pass" });
       } else {
-        declareWinner(
-          state,
-          pveAiPlayer,
-          "Time limit exceeded (30s).",
-          undefined,
-          "timeout",
-          { defeatedPlayer: pveHumanPlayer },
-        );
+        applySharedPveAction(pveHumanPlayer, { type: "timeout" }, { authoritative: true });
       }
       render();
     } else {
