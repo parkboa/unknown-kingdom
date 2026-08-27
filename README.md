@@ -31,6 +31,8 @@ Install the monorepo workspaces and run all shared-engine and server-adapter tes
 ```bash
 npm ci
 npm test
+npx playwright install chromium
+npm run test:browser
 ```
 
 Start the WebSocket server from the repository root:

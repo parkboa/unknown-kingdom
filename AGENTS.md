@@ -33,4 +33,6 @@
 - Lint: 현재 별도 명령 없음
 - Typecheck: 현재 별도 명령 없음
 - Test: `npm test`
+- Browser install: `npx playwright install chromium`
+- Browser test: `npm run test:browser`
 - Build: `npm run build:mobile`

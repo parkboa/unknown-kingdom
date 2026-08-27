@@ -1,6 +1,8 @@
 .DS_Store
 **/.DS_Store
 node_modules/
+playwright-report/
+test-results/
 dist-mobile/
 build/
 ios/App/DerivedData/

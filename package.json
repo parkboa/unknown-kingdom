@@ -16,6 +16,7 @@
     "ios:archive": "bash scripts/archive-ios.sh",
     "test": "npm run test:web && npm test --workspace=packages/game-engine && npm test --workspace=server",
     "test:web": "node --test test/*.test.js",
+    "test:browser": "playwright test",
     "ai:promotion": "node scripts/ai-promotion-gate.mjs",
     "ai:reproduce-losses": "node scripts/reproduce-is-mcts-losses.mjs",
     "ai:open-spiel-crosscheck": "node scripts/crosscheck-open-spiel-tactics.mjs",
@@ -32,6 +33,7 @@
     "@capacitor/ios": "7.6.8"
   },
   "devDependencies": {
-    "@capacitor/cli": "7.6.8"
+    "@capacitor/cli": "7.6.8",
+    "@playwright/test": "^1.62.1"
   }
 }
