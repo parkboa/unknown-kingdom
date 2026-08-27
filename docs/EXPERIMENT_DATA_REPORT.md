@@ -30,6 +30,7 @@
 | `experiments/grandmaster-legacy-settings.json` | `package.json` → `ai:compare-grandmaster` |
 | `experiments/tolerance-{015,030,050,070,100}.json` | `ai-tactics-suite.mjs --tier-override` (AI_MODEL.md 검증 절차) |
 | `experiments/ablation-*.json`, `fix-*.json`, `sweep-king-danger-x{2,4,8}.json` | 오버라이드 설정 (각 3~5줄) |
+| `experiments/stage1*.json`, `experiments/stage2-*.json` | 1a·1b·1c 독립 채점과 2단계 조합 검증용 오버라이드 |
 | `experiments/is-mcts-{candidate,expert,tier-budgets}.json` | `packages/game-engine/README.md`, IS-MCTS 설정 |
 | `experiments/hidden-special-prior.json` | `estimate-hidden-special-prior.mjs`가 재생성, AI 입력 (25줄) |
 

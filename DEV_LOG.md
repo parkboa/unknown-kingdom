@@ -1,5 +1,14 @@
 # Daeguk Prototype — Development Log
 
+## Stage 1/2 Deterministic Re-evaluation — 2026-08-27
+
+- Split the parked `terminalObjectiveModel` into independently measurable `kingDangerModel` (1a), `territoryVerdictModel` (1b), and `additiveObjectiveModel` (1c) flags. The legacy umbrella remains exactly equivalent to enabling all three, so production defaults and earlier experiment overrides are unchanged.
+- Generated current-schema deterministic shards outside the repository: 36 soldiers-only positions from 8 games/368 sampled plies and 29 all-unit positions from 8 games/323 sampled plies. A 60-game monolithic run exceeded the execution window without writing its end-only output, so bounded shards are now the safe protocol.
+- Soldiers-only paired results preserved every must-defend, win-now, and suicide-avoidance answer. 1a moved Expert true-atari from 2/12 to 3/12 and Grandmaster from 11/12 to 10/12; 1c and the full combination moved Expert to 4/12 while Grandmaster stayed at 10/12. 1b changed no move in any tier.
+- `specialAnchorThreat` was compared both on top of 1a and on top of the full Stage 1 combination. It changed some Advanced/Expert moves but produced +0/−0 scored-answer changes and no Grandmaster move changes on the all-unit shard.
+- Decision: promote none of Stage 1/2. Keep every production default off. The observed Grandmaster regression blocks 1a/1c; 1b and Stage 2 need targeted engine-verifiable territory/anchor positions because the current general exam has insufficient power to accept or reject them.
+- Verification: 131/131 automated tests, 5/5 Grandmaster tactical scenarios, Challenge browser regression, mobile build, syntax check, and diff check pass.
+
 ## Territory-Finish AI Regression — 2026-08-27
 
 - Fixed the four saved soldiers-only endgame misses (`p77`, `p94`, `p100`, `p107`). All five tiers now take the unique move that removes the opponent's final legal deployment and ends the match by territory: 20/20 tier-position checks pass.

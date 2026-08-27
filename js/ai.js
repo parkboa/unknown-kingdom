@@ -490,7 +490,7 @@ function scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer, rootStrate
     }
     // Root ordering has to combine the same way the state evaluation does, or candidates get
     // ranked by one objective and then searched under another.
-    const priority = settings.terminalObjectiveModel
+    const priority = settings.terminalObjectiveModel || settings.additiveObjectiveModel
       ? 0
       : Math.max(0, Math.min(1, settings.kingTacticalPriority || 0));
     if (kingScore !== 0 && priority > 0) {

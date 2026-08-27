@@ -142,6 +142,37 @@ test("the terminal objective flag leaves the default evaluation path untouched",
   }
 });
 
+test("the three Stage 1 flags isolate their features and reproduce the combined model", () => {
+  const state = inversionState();
+  for (let col = 0; col < 9; col += 1) {
+    if (!state.board[7][col]) state.board[7][col] = piece("red", "soldier", `late-red-${col}`);
+  }
+  const baseSettings = { ...settings, kingTacticalPriority: 0.9 };
+  const baseline = evaluateStateDetailed(state, "red", baseSettings);
+  const kingOnly = evaluateStateDetailed(state, "red", { ...baseSettings, kingDangerModel: true });
+  const territoryOnly = evaluateStateDetailed(state, "red", { ...baseSettings, territoryVerdictModel: true });
+  const additiveOnly = evaluateStateDetailed(state, "red", { ...baseSettings, additiveObjectiveModel: true });
+
+  assert.notEqual(kingOnly.features.kingLiberties, baseline.features.kingLiberties);
+  assert.equal(kingOnly.features.territoryVerdict, 0);
+  assert.equal(territoryOnly.features.kingLiberties, baseline.features.kingLiberties);
+  assert.notEqual(territoryOnly.features.territoryVerdict, 0);
+  assert.deepEqual(additiveOnly.features, baseline.features);
+  assert.notEqual(additiveOnly.value, baseline.value);
+
+  const split = evaluateStateDetailed(state, "red", {
+    ...baseSettings,
+    kingDangerModel: true,
+    territoryVerdictModel: true,
+    additiveObjectiveModel: true,
+  });
+  const combined = evaluateStateDetailed(state, "red", {
+    ...baseSettings,
+    terminalObjectiveModel: true,
+  });
+  assert.deepEqual(split, combined);
+});
+
 /**
  * Fills `filled` cells while holding Red's margin at exactly `margin`, so the only thing that
  * varies between two of these boards is how close the match is to a territory finish.

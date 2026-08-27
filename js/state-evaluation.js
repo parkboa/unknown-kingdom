@@ -82,11 +82,21 @@ function territoryVerdictValue(margin, filledCells) {
   return margin * (proximity ** TERRITORY_PROXIMITY_EXPONENT);
 }
 
+function evaluationModelFlags(settings = {}) {
+  const combined = Boolean(settings.terminalObjectiveModel);
+  return {
+    kingDanger: combined || Boolean(settings.kingDangerModel),
+    territoryVerdict: combined || Boolean(settings.territoryVerdictModel),
+    additiveObjective: combined || Boolean(settings.additiveObjectiveModel),
+  };
+}
+
 function rawStateFeatures(state, perspective, settings = {}) {
   const enemy = perspective === "red" ? "blue" : "red";
+  const models = evaluationModelFlags(settings);
   // Same slot, different measure: Stage 1c replaces the blending that consumes it, so the key
   // stays put until then and a disabled flag leaves the old path byte-identical.
-  const kingValueFor = settings.terminalObjectiveModel
+  const kingValueFor = models.kingDanger
     ? (target, side) => kingDangerValue(target, side, settings)
     : kingLibertyValue;
   const features = {
@@ -131,7 +141,7 @@ function rawStateFeatures(state, perspective, settings = {}) {
   }
   // Stays exactly 0 on the default path, so the disabled flag leaves every weighted component
   // untouched rather than merely small.
-  if (settings.terminalObjectiveModel) {
+  if (models.territoryVerdict) {
     features.territoryVerdict = territoryVerdictValue(features.material, filledCells);
   }
   return features;
@@ -140,6 +150,7 @@ function rawStateFeatures(state, perspective, settings = {}) {
 export function stateEvaluationWeights(settings = {}) {
   const score = settings.score || settings;
   const kingWeight = ((score.kingSafety ?? 10) + (score.kingPressure ?? 10)) / 2;
+  const { kingDanger } = evaluationModelFlags(settings);
   return {
     material: (score.capture ?? 9) * 3,
     // `captures` counts capture *events* cumulatively and never decreases, while the
@@ -150,7 +161,7 @@ export function stateEvaluationWeights(settings = {}) {
       // `kingDangerScale` only applies on the new path, so a sweep of it cannot disturb the
     // default weights. It multiplies the danger term alone, unlike raising `kingSafety` or
     // `kingPressure`, which would also move the separate King terms inside `scoreCell`.
-    kingLiberties: kingWeight * 8 * (settings.terminalObjectiveModel ? (settings.kingDangerScale ?? 1) : 1),
+    kingLiberties: kingWeight * 8 * (kingDanger ? (settings.kingDangerScale ?? 1) : 1),
     // Deliberately heavier than `material`, which scores the same margin: near a territory
     // finish the margin is not one consideration among several, it is the result.
     territoryVerdict: (score.territory ?? (score.capture ?? 9) * 12),
@@ -213,7 +224,7 @@ export function evaluateStateDetailed(state, perspective, settings = {}) {
   const priority = Math.max(0, Math.min(1, Number(settings.kingTacticalPriority || 0)));
   const strategicMultiplier = settings.strategicContext ? phaseStrategicMultiplier(state) : 1;
   const kingValue = weighted.kingLiberties;
-  const value = settings.terminalObjectiveModel
+  const value = evaluationModelFlags(settings).additiveObjective
     ? additiveValue(weighted, strategicMultiplier)
     : blendedValue(weighted, kingValue, priority, strategicMultiplier);
   return { value, terminal: false, features, weighted };
