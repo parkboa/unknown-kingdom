@@ -88,7 +88,7 @@ export const TEXT = {
     appTitle: "고수의 대국", brandMain: "DAEGUK", brandSubtitle: "고수의 대국", splashEyebrow: "대국", splashLoading: "게임 서버 확인 중…", splashReady: "로비로 이동 중…", splashOffline: "온라인 서버를 사용할 수 없습니다. 로비로 이동 중…", splashImagePlaceholder: "대문 이미지",
     deploy: "유닛 배치", language: "언어", chooseMode: "대국 선택", chooseModeDescription: "흑돌 선공, 백돌 후공으로 진행되는 9×9 대국",
     tutorial: "튜토리얼", tutorialDescription: "선공(흑)·후공(백)과 왕 배치, 기본 규칙을 단계별로 연습", puzzle: "챌린지", puzzleDescription: "퍼즐을 풀어 자신의 등급을 올리세요.", challengeRanks: "챌린지", challengeRanksDescription: "각 등급을 완료하면 다음 챌린지가 열립니다.", challengeComplete: "챌린지 완료", challengeIncomplete: "챌린지 미완료", nextChallenge: "다음 챌린지", retryChallenge: "다시 도전", backToChallenges: "챌린지로", rankLocked: "잠김", rankComplete: "완료", rankReady: "도전 가능", comingSoon: "준비 중", modeLocked: "첫 챌린지 등급을 완료하세요", exitTutorial: "종료", nextTutorial: "다음",
-    tutorialStep: "{current} / {total} 단계", tutorialKing: "흑돌이 선공, 백돌이 후공으로 대국을 시작합니다. 먼저 왕을 배치하세요.", tutorialKingPlaced: "다음 4번(특수유닛은 5번)의 턴 동안 상대방은 왕의 성역에 접근할 수 없습니다.",
+    tutorialStep: "{current} / {total} 단계", tutorialKing: "흑돌이 선공, 백돌이 후공으로 대국을 시작합니다. 먼저 왕을 배치하세요.", tutorialKingPlaced: "다음 4턴 동안(특수 유닛은 5턴 동안) 상대방은 왕의 성역에 접근할 수 없습니다.",
     tutorialWallDefense: "내 유닛이 성벽에 연결되어 있으면 어떻게 될까요? 흑 병사를 놓아 백 병사를 포위해보세요.",
     tutorialWallDefensePlaced: "백 병사는 자신의 성벽에 연결되어 있어 포획되지 않았습니다.",
     tutorialWallCapture: "성벽도 아군 병사처럼 포위에 참여합니다. 백 병사를 놓아 흑 병사를 포획해보세요.",
