@@ -1357,6 +1357,32 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
   for (const candidate of riskCandidates) {
     applyRiskToCandidate(candidate);
   }
+
+  // A veto needs somewhere to go. `prioritizeMidgameCandidates` commits to a single tactical
+  // class before any risk is known — special attacks, forced liberties, then captures — and
+  // returns only that class, so the one fatal move can be the entire pool. Vetoing it then
+  // changes nothing. Measured on a wall-anchored King with a hidden mine beside it: the capture
+  // that detonates the mine was the sole survivor of the policy, scored -100000 by the veto,
+  // and played regardless for all three special identities.
+  const isVetoed = (candidate) => candidate.deepScore <= -100000;
+  if (riskCandidates.length && riskCandidates.every(isVetoed)) {
+    const searchedKeys = new Set(searchedCandidates.map(
+      (candidate) => `${candidate.type}:${candidate.row}:${candidate.col}`,
+    ));
+    const reserves = candidates
+      .filter((candidate) => !searchedKeys.has(`${candidate.type}:${candidate.row}:${candidate.col}`))
+      .slice(0, Math.max(1, settings.riskCandidateLimit || 4));
+    for (const reserve of reserves) {
+      reserve.deepScore = reserve.score;
+      applyRiskToCandidate(reserve);
+    }
+    const survivors = reserves.filter((candidate) => !isVetoed(candidate));
+    if (survivors.length) {
+      searchedCandidates.push(...survivors);
+      riskCandidates.push(...survivors);
+    }
+  }
+
   const selectionPool = riskCandidates.length ? riskCandidates : searchedCandidates;
   selectionPool.sort((a, b) => compareCandidates(a, b, aiPlayer));
   const deepRiskCandidates = selectionPool

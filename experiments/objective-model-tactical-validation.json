@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-27T21:42:10.235Z",
+  "groundTruthVerified": true,
+  "decisions": {
+    "territoryVerdictModel": "hold",
+    "specialAnchorThreat": "redesign"
+  },
+  "territory": {
+    "name": "1b terminal territory verdict",
+    "correct": [
+      "soldier:4:7"
+    ],
+    "rootValues": [
+      {
+        "action": "soldier:4:7",
+        "value": 1
+      },
+      {
+        "action": "soldier:8:0",
+        "value": -1
+      },
+      {
+        "action": "soldier:8:8",
+        "value": -1
+      }
+    ],
+    "isolated": {
+      "baseline": "soldier:8:8",
+      "model": "soldier:4:7"
+    },
+    "production": {
+      "baseline": "soldier:4:7",
+      "model": "soldier:4:7"
+    },
+    "modelFixesIsolatedDecision": true,
+    "modelImprovesProductionDecision": false,
+    "modelPassesAnswerKey": true
+  },
+  "anchors": [
+    {
+      "hiddenType": "general",
+      "correct": "soldier:8:8",
+      "engine": {
+        "riskyWinner": "blue",
+        "riskyReason": "Black King was captured by General capture reaction.",
+        "safeWinner": null
+      },
+      "threat": {
+        "wallAnchors": 2,
+        "soldierCaptureDistance": "Infinity",
+        "specialDistance": 1,
+        "specialRisk": 1
+      },
+      "isolated": {
+        "baseline": "soldier:2:4",
+        "model": "soldier:2:4"
+      },
+      "production": {
+        "baseline": "soldier:8:8",
+        "model": "soldier:8:8"
+      },
+      "modelFixesIsolatedDecision": false,
+      "modelImprovesProductionDecision": false,
+      "groundTruthVerified": true,
+      "modelPassesAnswerKey": false
+    },
+    {
+      "hiddenType": "wizard",
+      "correct": "soldier:8:8",
+      "engine": {
+        "riskyWinner": "blue",
+        "riskyReason": "Black King was captured by Wizard capture reaction.",
+        "safeWinner": null
+      },
+      "threat": {
+        "wallAnchors": 2,
+        "soldierCaptureDistance": "Infinity",
+        "specialDistance": 1,
+        "specialRisk": 1
+      },
+      "isolated": {
+        "baseline": "soldier:2:4",
+        "model": "soldier:2:4"
+      },
+      "production": {
+        "baseline": "soldier:8:8",
+        "model": "soldier:8:8"
+      },
+      "modelFixesIsolatedDecision": false,
+      "modelImprovesProductionDecision": false,
+      "groundTruthVerified": true,
+      "modelPassesAnswerKey": false
+    },
+    {
+      "hiddenType": "diplomat",
+      "correct": "soldier:8:8",
+      "engine": {
+        "riskyWinner": "blue",
+        "riskyReason": "Black King was captured by Diplomat conversion.",
+        "safeWinner": null
+      },
+      "threat": {
+        "wallAnchors": 2,
+        "soldierCaptureDistance": "Infinity",
+        "specialDistance": 1,
+        "specialRisk": 1
+      },
+      "isolated": {
+        "baseline": "soldier:2:4",
+        "model": "soldier:2:4"
+      },
+      "production": {
+        "baseline": "soldier:8:8",
+        "model": "soldier:8:8"
+      },
+      "modelFixesIsolatedDecision": false,
+      "modelImprovesProductionDecision": false,
+      "groundTruthVerified": true,
+      "modelPassesAnswerKey": false
+    }
+  ]
+}
