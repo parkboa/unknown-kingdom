@@ -28,6 +28,7 @@
 - [CLAUDE CODE] 공통 2 사전 조사로 `docs/EXPERIMENT_DATA_REPORT.md`를 작성했다 — `experiments/`·`artifacts/` JSON 63개를 A~E 5범주(설정 입력 / 검증 산출물 / 재사용 픽스처 / 대용량 로그 / 퍼즐 덤프)로 분류하고 병합 전 정리 권고 정리. **데이터 파일은 수정·삭제·이동하지 않음.** 파일은 아직 untracked, 커밋 여부 대기. `npm test` 125개 통과.
 - [CODEX] Playwright 기반 Challenge/튜토리얼 브라우저 오케스트레이션 테스트를 추가했다 — 7단계 수련, 장군·외교관·마법사 반응, 마법사 이동, 완료 화면, 진행 저장 및 새로고침 후 복구 검증 통과. `npm run test:browser` 1개, 기존 테스트 129개, 모바일 빌드 통과.
 - [CODEX] 왕 배치 후 성역 보호 안내를 자연스러운 턴 표현으로 수정했다 — `node --check js/config.js`, Challenge 브라우저 테스트 통과.
+- [CODEX] `origin/main` 대비 27개 커밋의 코드·실험 데이터·문서 변경을 전체 리뷰하고 통합 기준선을 검증했다 — `npm test` 129개, Challenge 브라우저 테스트 1개, Grandmaster 전술 검증 5/5, 모바일 빌드 및 `git diff --check` 통과. 다른 AI가 재생성한 `experiments/grandmaster-tactical-validation.json` 수정은 보존하고 통합 커밋에서 제외한다.
 
 ## [CODEX]
 
