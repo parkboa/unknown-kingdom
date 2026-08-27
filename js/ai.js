@@ -13,6 +13,7 @@ import {
 } from "../packages/game-engine/src/index.js";
 import { evaluateStateTransition } from "./state-evaluation.js";
 import {
+  KING_ADJACENT_SPECIAL_ODDS_FACTOR,
   KING_ADJACENT_SPECIAL_PROBABILITY,
   KING_TACTIC_PRIORITY,
   RECENT_SPECIAL_PROBABILITY,
@@ -24,6 +25,7 @@ import {
   kingWallConnectionValue,
   observedRemainingSpecialTypes,
   phaseStrategicMultiplier,
+  specialCandidatePool,
   recentIntentValue,
   recentOpponentDeployments,
   wallTacticalValue,
@@ -695,15 +697,6 @@ function createCriticalBeliefWorlds(publicState, perspectivePlayer, opponentPlay
   return worlds;
 }
 
-/** Enemy stones whose identity is still hidden — the pool a hypothesised special is drawn from. */
-function unrevealedEnemyStoneCount(publicState, opponentPlayer) {
-  let count = 0;
-  for (const piece of publicState.board.flat()) {
-    if (piece?.owner === opponentPlayer && !piece.revealed) count += 1;
-  }
-  return count;
-}
-
 /**
  * How likely an engine-verified win survives the specials that could still be hiding.
  *
@@ -719,18 +712,27 @@ function unrevealedEnemyStoneCount(publicState, opponentPlayer) {
  * to be dangerous.
  */
 function instantWinSurvivalOdds(publicState, opponentPlayer, failingWorlds) {
-  const pool = unrevealedEnemyStoneCount(publicState, opponentPlayer);
-  // No unidentified enemy stone means no special can be hiding, so the hypotheses are empty
-  // talk and the verified win stands.
+  const pool = specialCandidatePool(publicState, opponentPlayer);
+  // No stone left that could be a special means the hypotheses are empty talk and the verified
+  // win stands. `specialCandidatePool` rules out the opening ten stones outright, since nobody
+  // may deploy a special before their fifth move.
   if (pool <= 0) return 1;
+  const kings = ["red", "blue"].map((side) => findKing(publicState, side)).filter(Boolean);
+  const besideKing = (row, col) => kings.some((king) =>
+    Math.abs(king.row - row) + Math.abs(king.col - col) === 1);
+
   const dangerousTypesByStone = new Map();
   for (const world of failingWorlds) {
     const key = `${world.row}:${world.col}`;
     dangerousTypesByStone.set(key, (dangerousTypesByStone.get(key) || 0) + 1);
   }
   let odds = 1;
-  for (const dangerous of dangerousTypesByStone.values()) {
-    odds *= Math.max(0, 1 - dangerous / pool);
+  for (const [key, dangerous] of dangerousTypesByStone) {
+    const [row, col] = key.split(":").map(Number);
+    // A stone that got itself next to a King is a chosen stone, not a random one, and is about
+    // three times likelier to be a special. Anywhere else the base rate stands.
+    const weight = besideKing(row, col) ? KING_ADJACENT_SPECIAL_ODDS_FACTOR : 1;
+    odds *= Math.max(0, 1 - Math.min(pool, dangerous * weight) / pool);
   }
   return odds;
 }
