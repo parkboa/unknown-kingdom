@@ -23,6 +23,7 @@ import {
   kingAdjacentMinePositions,
   kingMineDefusalValue,
   kingWallConnectionValue,
+  diplomatConversionCapturesKing,
   joinsOwnPendingSpecial,
   observedRemainingSpecialTypes,
   phaseStrategicMultiplier,
@@ -133,6 +134,10 @@ export const AI_RANK_SETTINGS = {
     recentIntentWeight: 4,
     wallTacticsWeight: 1,
     kingTacticalPriority: KING_TACTIC_PRIORITY,
+    // Diagonal breaching is mandatory from here up; the lower tiers stumble onto it and are
+    // left to keep planting mines they cannot manage, which is its own kind of difficulty.
+    specialAssaultDoctrine: true,
+    openingSpecialUrgency: true,
     score: {
       center: 3.0,
       allies: 6.5,
@@ -184,6 +189,10 @@ export const AI_RANK_SETTINGS = {
     recentIntentWeight: 6,
     wallTacticsWeight: 1.4,
     kingTacticalPriority: KING_TACTIC_PRIORITY,
+    specialAssaultDoctrine: true,
+    openingSpecialUrgency: true,
+    // Grandmaster alone reads the Diplomat conversion that turns a guard and closes the net.
+    diplomatConversionSight: true,
     kingMineStrategy: true,
     kingAdjacentSpecialProbability: KING_ADJACENT_SPECIAL_PROBABILITY,
     midgameCandidatePolicy: true,
@@ -435,15 +444,35 @@ const ASSAULT_RANK_BONUS = { 1: 180, 2: 120, 3: 60 };
  *   - Against a guarded King prefer the two that clear stones. A Diplomat converts rather than
  *     removes, which is worth more once a way through already exists.
  */
+/** Nothing has been spent yet and the lock is open, so the opening special is due. */
+function firstSpecialIsDue(state, player, settings) {
+  if (!settings.openingSpecialUrgency) return false;
+  const stock = state.stock?.[player];
+  if (!stock) return false;
+  const untouched = SPECIAL_UNIT_TYPES.size
+    === [...SPECIAL_UNIT_TYPES].filter((type) => (stock[type] || 0) > 0).length;
+  return untouched && (state.deploymentCount?.[player] ?? 0) >= 5;
+}
+
 function specialAssaultAdjustment(state, unitType, row, col, aiPlayer, humanPlayer, settings) {
-  if (!settings.specialAssaultDoctrine || !SPECIAL_UNIT_TYPES.has(unitType)) return 0;
+  if (!SPECIAL_UNIT_TYPES.has(unitType)) return 0;
+  // A conversion that completes the surround wins without the Diplomat ever touching the King,
+  // and it is invisible one ply deep because the reaction has not happened yet.
+  if (settings.diplomatConversionSight && unitType === "diplomat"
+    && diplomatConversionCapturesKing(state, aiPlayer, humanPlayer, row, col)) {
+    return 900;
+  }
+  if (!settings.specialAssaultDoctrine) return 0;
   if (joinsOwnPendingSpecial(state, aiPlayer, row, col)) return -220;
   const target = specialAssaultTargets(state, aiPlayer, humanPlayer)
     .find((candidate) => candidate.row === row && candidate.col === col);
   if (!target) return 0;
   const clears = unitType === "general" || unitType === "wizard";
   const breaching = target.rank > 1 && clears ? 40 : 0;
-  return (ASSAULT_RANK_BONUS[target.rank] || 0) + breaching;
+  // The opening special goes out the move it becomes legal, at the best square available, rather
+  // than waiting for a position that scores well on its own terms.
+  const opening = firstSpecialIsDue(state, aiPlayer, settings) ? 260 : 0;
+  return (ASSAULT_RANK_BONUS[target.rank] || 0) + breaching + opening;
 }
 
 function scoreDeployType(state, unitType, row, col, neighbors, aiPlayer, humanPlayer) {

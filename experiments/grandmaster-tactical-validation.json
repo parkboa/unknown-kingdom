@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-27T21:42:09.830Z",
+  "generatedAt": "2026-08-27T22:24:25.250Z",
   "aiTier": "grandmaster",
   "scenarioCount": 5,
   "passedCount": 5,
@@ -9,7 +9,7 @@
     {
       "name": "king-adjacent hidden identities are all treated as 100% mine risk",
       "passed": true,
-      "durationMs": 17.038041000000003,
+      "durationMs": 17.235,
       "cases": [
         {
           "hiddenType": "general",
@@ -43,7 +43,7 @@
     {
       "name": "mine escape and enemy connection route are preserved",
       "passed": true,
-      "durationMs": 3.3582919999999987,
+      "durationMs": 3.5621250000000018,
       "selectedAction": {
         "type": "deploy",
         "unitType": "soldier",
@@ -61,7 +61,7 @@
     {
       "name": "King group advances toward its own fortress wall",
       "passed": true,
-      "durationMs": 3.789874999999995,
+      "durationMs": 3.560666999999995,
       "selectedAction": {
         "type": "deploy",
         "unitType": "soldier",
@@ -78,7 +78,7 @@
     {
       "name": "spent specials disable mine belief and restore ordinary capture",
       "passed": true,
-      "durationMs": 59.755583,
+      "durationMs": 59.575667,
       "selectedAction": {
         "type": "deploy",
         "unitType": "soldier",
@@ -90,7 +90,7 @@
     {
       "name": "King emergency rescue overrides unrelated play without detonating adjacent mines",
       "passed": true,
-      "durationMs": 241.492375,
+      "durationMs": 337.918459,
       "selectedAction": {
         "type": "deploy",
         "unitType": "soldier",

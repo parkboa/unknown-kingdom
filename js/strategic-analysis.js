@@ -3,6 +3,7 @@ import {
   boardSignature,
   collectGroup,
   findKingPosition,
+  groupHasLiberty,
   opponent,
   orthogonalPositions,
   wallOwnerForEdge,
@@ -528,6 +529,47 @@ export function joinsOwnPendingSpecial(state, player, row, col) {
     const piece = state.board[nextRow][nextCol];
     return piece?.owner === player && ATTACK_SPECIALS.has(piece.type) && !piece.abilityUsed;
   });
+}
+
+/**
+ * Whether a Diplomat placed here would take the King by turning its own guards.
+ *
+ * A Diplomat converts every adjacent enemy into one of ours rather than removing it, and
+ * `activatePendingSpecial` runs `resolveCaptures` afterwards. So a guard that was giving the
+ * King its last liberty can change sides and complete the surround in the same reaction — the
+ * King is captured without the Diplomat ever touching it. Verified on the engine: flipping the
+ * single guard of an otherwise enclosed King left it with no liberty at all.
+ *
+ * The look-ahead is what makes this a Grandmaster move. The reward is invisible one ply deep,
+ * because the conversion has not happened yet.
+ */
+export function diplomatConversionCapturesKing(state, player, enemy, row, col) {
+  if (!inBounds(row, col) || state.board[row][col]) return false;
+  const king = findKingPosition(state, enemy);
+  if (!king) return false;
+  const after = structuredClone(state);
+  after.board[row][col] = {
+    id: "diplomat-probe",
+    owner: player,
+    type: "diplomat",
+    originalType: "diplomat",
+    revealed: true,
+    abilityUsed: false,
+    kingEscapeUsed: false,
+  };
+  let converted = 0;
+  for (const [nextRow, nextCol] of orthogonalPositions(row, col)) {
+    if (!inBounds(nextRow, nextCol)) continue;
+    const piece = after.board[nextRow][nextCol];
+    if (!piece || piece.owner !== enemy) continue;
+    if (piece.type === "king") return true;
+    piece.owner = player;
+    piece.type = "soldier";
+    converted += 1;
+  }
+  if (!converted) return false;
+  const group = collectGroup(after, king.row, king.col);
+  return !groupHasLiberty(after, group, enemy);
 }
 
 export function kingAdjacentMinePositions(state, player, enemy) {
