@@ -1,9 +1,16 @@
 # Daeguk Prototype — Development Log
 
+## Targeted Stage 1b/2 Answer Positions — 2026-08-27
+
+- Added `npm run ai:probe-objectives`, a compact deterministic probe whose answer keys come from exhaustive authoritative engine play rather than hand-authored preferences.
+- In the three-empty soldiers-only territory fixture, `soldier:4:7` is the sole winning root action; the other two lose under exact play. `territoryVerdictModel` corrects the depth-1 isolated evaluator, but production Grandmaster's existing three-ply search already selects the same win with the flag off. Decision: keep Stage 1b off because it has no incremental production decision benefit yet.
+- In three wall-anchored King fixtures, filling the last liberty of an adjacent hidden General, Wizard, or Diplomat triggers the authoritative reaction and immediately loses the King. `specialAnchorThreat` selects that losing move both in isolation and with production Grandmaster settings for all three identities. The static risk disappears after the public-view transition models the hidden stone as an ordinary captured Soldier. Decision: do not promote Stage 2; redesign it around hidden reaction transitions.
+- The earlier 60-game monolithic run was interrupted when the ChatGPT/Codex app was closed. It was not confirmed to have hit an execution limit; its end-only output was never written.
+
 ## Stage 1/2 Deterministic Re-evaluation — 2026-08-27
 
 - Split the parked `terminalObjectiveModel` into independently measurable `kingDangerModel` (1a), `territoryVerdictModel` (1b), and `additiveObjectiveModel` (1c) flags. The legacy umbrella remains exactly equivalent to enabling all three, so production defaults and earlier experiment overrides are unchanged.
-- Generated current-schema deterministic shards outside the repository: 36 soldiers-only positions from 8 games/368 sampled plies and 29 all-unit positions from 8 games/323 sampled plies. A 60-game monolithic run exceeded the execution window without writing its end-only output, so bounded shards are now the safe protocol.
+- Generated current-schema deterministic shards outside the repository: 36 soldiers-only positions from 8 games/368 sampled plies and 29 all-unit positions from 8 games/323 sampled plies. A 60-game monolithic run was interrupted when the app closed before its end-only output was written, so bounded shards are now the safe protocol.
 - Soldiers-only paired results preserved every must-defend, win-now, and suicide-avoidance answer. 1a moved Expert true-atari from 2/12 to 3/12 and Grandmaster from 11/12 to 10/12; 1c and the full combination moved Expert to 4/12 while Grandmaster stayed at 10/12. 1b changed no move in any tier.
 - `specialAnchorThreat` was compared both on top of 1a and on top of the full Stage 1 combination. It changed some Advanced/Expert moves but produced +0/−0 scored-answer changes and no Grandmaster move changes on the all-unit shard.
 - Decision: promote none of Stage 1/2. Keep every production default off. The observed Grandmaster regression blocks 1a/1c; 1b and Stage 2 need targeted engine-verifiable territory/anchor positions because the current general exam has insufficient power to accept or reject them.
