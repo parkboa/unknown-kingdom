@@ -1,5 +1,12 @@
 # Daeguk Prototype — Development Log
 
+## Territory-Finish AI Regression — 2026-08-27
+
+- Fixed the four saved soldiers-only endgame misses (`p77`, `p94`, `p100`, `p107`). All five tiers now take the unique move that removes the opponent's final legal deployment and ends the match by territory: 20/20 tier-position checks pass.
+- The defect was upstream of evaluation. Three winning moves were sacrifices removed by the Stage 0 pointless-suicide filter before the instant-win scan could inspect them. A suicidal deployment now survives that filter only when the same authoritative transition declares the moving player the winner.
+- Public-state simulation was also reconstructing all three opponent specials after observations had proved them spent. Unknown stock now restores only the types returned by `observedRemainingSpecialTypes`, so `hasLegalDeployment` can become false when special exhaustion is public knowledge.
+- Verification: 130/130 automated tests, 5/5 Grandmaster tactical scenarios, Challenge browser regression, mobile build, syntax check, and diff check pass.
+
 ## AI Evaluation Methodology And King/Territory Asymmetry — 2026-08-24
 
 ### The Measured AI League Was Not Measuring Anything

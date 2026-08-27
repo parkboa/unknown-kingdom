@@ -29,6 +29,7 @@
 - [CODEX] Playwright 기반 Challenge/튜토리얼 브라우저 오케스트레이션 테스트를 추가했다 — 7단계 수련, 장군·외교관·마법사 반응, 마법사 이동, 완료 화면, 진행 저장 및 새로고침 후 복구 검증 통과. `npm run test:browser` 1개, 기존 테스트 129개, 모바일 빌드 통과.
 - [CODEX] 왕 배치 후 성역 보호 안내를 자연스러운 턴 표현으로 수정했다 — `node --check js/config.js`, Challenge 브라우저 테스트 통과.
 - [CODEX] `origin/main` 대비 27개 커밋의 코드·실험 데이터·문서 변경을 전체 리뷰하고 통합 기준선을 검증했다 — `npm test` 129개, Challenge 브라우저 테스트 1개, Grandmaster 전술 검증 5/5, 모바일 빌드 및 `git diff --check` 통과. 다른 AI가 재생성한 `experiments/grandmaster-tactical-validation.json` 수정은 보존하고 통합 커밋에서 제외한다.
+- [CODEX] 다섯 AI 티어가 공통으로 놓치던 종국 마무리 p77·p94·p100·p107을 해결했다 — 승리하는 희생수 보존과 관측상 소진된 특수 재고 복원 방지, 4국면 × 5티어 20/20 및 전체 130개 테스트·전술 5/5·브라우저·모바일 빌드 통과.
 
 ## [CODEX]
 

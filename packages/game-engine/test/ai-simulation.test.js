@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { applyAction, canDeploy, createGameState, getLegalActions, hasLegalDeployment, isSuicideDeployment, kingLibertyCount, stateForPlayer } from "../src/index.js";
 import {
@@ -14,10 +15,71 @@ function countPieces(state, owner) {
   return state.board.flat().filter((p) => p?.owner === owner).length;
 }
 
+const soldiersOnlyExam = JSON.parse(readFileSync(
+  new URL("../../../experiments/ai-tactics-soldiers-only.json", import.meta.url),
+  "utf8",
+));
+
+function terminalFixtureState(answer, aiRank) {
+  const state = createGameState("pve", { aiRank });
+  let pieceId = 1;
+  for (let row = 0; row < answer.board.length; row += 1) {
+    for (let col = 0; col < answer.board[row].length; col += 1) {
+      const compact = answer.board[row][col];
+      if (!compact) continue;
+      const owner = compact[0] === "R" ? "red" : "blue";
+      const type = compact.slice(1);
+      state.board[row][col] = {
+        id: `terminal-fixture-${pieceId++}`,
+        owner,
+        type,
+        originalType: type,
+        revealed: true,
+        abilityUsed: false,
+        kingEscapeUsed: false,
+      };
+    }
+  }
+  state.turn = answer.turn;
+  state.firstDeployDone = { red: true, blue: true };
+  state.deploymentCount = { red: 50, blue: 50 };
+  state.stock = {
+    red: { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 },
+    blue: { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 },
+  };
+  state.stats.specialsUsed = { red: 3, blue: 3 };
+  return state;
+}
+
 test("all five production difficulty tiers remain on the promoted heuristic engine", () => {
   assert.equal(AI_TIER_ORDER.length, 5);
   for (const tier of AI_TIER_ORDER) {
     assert.equal(AI_RANK_SETTINGS[tier].searchAlgorithm, "heuristic");
+  }
+});
+
+test("all five tiers take the four saved territory-finishing moves", () => {
+  const fixtureIds = new Set(["p77", "p94", "p100", "p107"]);
+  const fixtures = soldiersOnlyExam.answers.filter(({ id }) => fixtureIds.has(id));
+  assert.equal(fixtures.length, fixtureIds.size);
+
+  for (const fixture of fixtures) {
+    for (const tier of AI_TIER_ORDER) {
+      const state = terminalFixtureState(fixture, tier);
+      const move = findAiDeployMove(state, {
+        aiPlayer: state.turn,
+        humanPlayer: state.turn === "red" ? "blue" : "red",
+        canDeploy: (player, type, row, col) => canDeploy(state, player, type, row, col),
+        countPieces: (owner) => countPieces(state, owner),
+        neighbors,
+      });
+
+      assert.ok(move, `${tier} should answer ${fixture.id}`);
+      assert.ok(
+        fixture.correct.includes(`${move.type}:${move.row}:${move.col}`),
+        `${tier} should finish ${fixture.id}, got ${move.type}:${move.row}:${move.col}`,
+      );
+    }
   }
 });
 

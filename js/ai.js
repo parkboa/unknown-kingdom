@@ -531,9 +531,21 @@ function hasAdjacentEmptyCell(state, row, col) {
  * The cheap adjacency test comes first because the exact check clones and re-resolves the
  * board, and this runs over every legal cell of every deployable type.
  */
-function isPointlessSuicide(publicState, player, type, row, col) {
+function isPointlessSuicide(publicState, player, type, row, col, neighbors) {
   if (hasAdjacentEmptyCell(publicState, row, col)) return false;
-  return isSuicideDeployment(publicState, player, type, row, col);
+  if (!isSuicideDeployment(publicState, player, type, row, col)) return false;
+
+  // A sacrifice on the last useful point can end the match by territory in the same
+  // authoritative transition. It is not pointless when the sacrificed stone still leaves us
+  // ahead and the opponent has no legal deployment. Keep that rare candidate so the instant-win
+  // pass below can select it before ordinary positional ordering.
+  const result = simulateEngineTransition(
+    publicState,
+    player,
+    { type: "deploy", unitType: type, row, col },
+    neighbors,
+  );
+  return result?.winner !== player;
 }
 
 function countStatePieces(state, owner) {
@@ -828,6 +840,8 @@ function evaluateCriticalBeliefRisk(
 function materializeUnknownStockForSimulation(state, player) {
   if (state.stock[player] !== null) return;
 
+  const perspective = opponent(player);
+  const remainingSpecials = new Set(observedRemainingSpecialTypes(state, perspective, player));
   const deployedSpecials = new Set();
   for (const piece of state.board.flat()) {
     if (!piece || piece.owner !== player) continue;
@@ -843,9 +857,9 @@ function materializeUnknownStockForSimulation(state, player) {
   state.stock[player] = {
     soldier: Math.max(0, 77 - assumedSoldiersUsed),
     king: kingUsed ? 0 : 1,
-    general: deployedSpecials.has("general") ? 0 : 1,
-    diplomat: deployedSpecials.has("diplomat") ? 0 : 1,
-    wizard: deployedSpecials.has("wizard") ? 0 : 1,
+    general: remainingSpecials.has("general") ? 1 : 0,
+    diplomat: remainingSpecials.has("diplomat") ? 1 : 0,
+    wizard: remainingSpecials.has("wizard") ? 1 : 0,
   };
 }
 
@@ -1212,7 +1226,7 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
     for (let row = 0; row < SIZE; row += 1) {
       for (let col = 0; col < SIZE; col += 1) {
         if (!canDeploy(aiPlayer, type, row, col)) continue;
-        if (isPointlessSuicide(publicState, aiPlayer, type, row, col)) continue;
+        if (isPointlessSuicide(publicState, aiPlayer, type, row, col, neighbors)) continue;
         candidates.push({
           row,
           col,

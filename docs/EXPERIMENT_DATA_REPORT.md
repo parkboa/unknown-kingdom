@@ -46,15 +46,16 @@
 > `grandmaster-tactical-validation.json`은 지금 작업 트리에서 수정된 상태다(재생성됨). 커밋
 > 여부는 별도 판단.
 
-### C. 재사용되는 시험 픽스처 — 크지만 입력이다, 유지
+### C. 진단·회귀용 시험 픽스처 — 크지만 유지
 
-| 파일 | 줄 | 용도 |
+| 파일 | 줄 | 용도와 제한 |
 | --- | --- | --- |
-| `experiments/ai-tactics-soldiers-only.json` | 16,723 | `--load-exam` 대상. **AI_MODEL.md가 지목한 종국 마무리 결함 재현 국면 p77·p94·p100·p107이 판까지 저장돼 있다.** |
-| `experiments/ai-tactics-all-units.json` | 16,505 | `--load-exam` 대상, 전 유닛 모드 시험 |
+| `experiments/ai-tactics-soldiers-only.json` | 16,723 | **종국 마무리 결함 재현 국면 p77·p94·p100·p107의 압축 보드가 저장돼 있다.** 구형 형식이라 현재 `--load-exam`에는 직접 사용할 수 없다. |
+| `experiments/ai-tactics-all-units.json` | 16,505 | 전 유닛 모드의 구형 압축 시험. 현재 `--load-exam`에는 직접 사용할 수 없다. |
 
-재생성 비용이 크다("AI가 수백 판을 둔다"). 큰 파일이지만 로그가 아니라 고정 입력이므로
-추적 유지가 맞다.
+재생성 비용이 크다("AI가 수백 판을 둔다"). 전체 `position`을 저장하기 전의 구형 산출물이라
+현재 채점 명령으로 그대로 재생할 수는 없지만, 과거 결과와 압축 보드 회귀의 근거이므로 추적
+유지가 맞다. 새 플래그 비교에는 현재 스키마로 생성한 별도 시험을 사용한다.
 
 ### D. 대용량 측정 로그 — 코드가 안 읽는다, 재생성 가능, 정리 후보
 
@@ -107,12 +108,16 @@ JSON을 다시 읽는 코드는 없다.
 ## 재생성 방법 (참고)
 
 D 범주 대부분은 `scripts/ai-ablation-study.mjs`(`--league`, `--reference`, `--random-opening`)와
-`scripts/ai-tactics-suite.mjs`로 재생성된다. 기존 C 범주 fixture를 다시 채점할 때는 원본을
-덮어쓰지 않고 `work/`에 결과를 쓴다:
+`scripts/ai-tactics-suite.mjs`로 재생성된다. 기존 C 범주 fixture는 전체 `position`이 없는 구형
+형식이라 현재 `--load-exam`으로 다시 채점할 수 없다. 먼저 현재 스키마의 새 시험을 `work/`에
+생성한 뒤 그 파일을 변형별로 재채점한다:
 
 ```
+node scripts/ai-tactics-suite.mjs --positions 120 --games 60 --seed 20260826 \
+  --soldiers-only --output work/ai-tactics-soldiers-only-current.json
+
 node scripts/ai-tactics-suite.mjs \
-  --load-exam experiments/ai-tactics-soldiers-only.json \
+  --load-exam work/ai-tactics-soldiers-only-current.json \
   --soldiers-only \
   --output work/ai-tactics-soldiers-only-scored.json
 ```
