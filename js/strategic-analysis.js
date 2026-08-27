@@ -476,6 +476,60 @@ export function observedRemainingSpecialTypes(state, perspective, enemy) {
   return ["general", "wizard", "diplomat"].filter((type) => !unavailable.has(type));
 }
 
+/**
+ * Where to put a special so it works against the enemy King, ranked best first.
+ *
+ * The offensive mirror of `kingAdjacentMinePositions`, which only ever looked at enemy stones
+ * beside *our* King. A reaction strikes or converts every enemy adjacent to the special and
+ * captures an adjacent King outright, and that one fact orders the whole board:
+ *
+ *   1. Beside the King. Any special ends the match when it goes off, so the type does not
+ *      matter. If the point is already enclosed it fires at once; otherwise it is a mine the
+ *      opponent can never safely approach.
+ *   2. The diagonals. A King guarded on all four sides cannot be reached, but a diagonal point
+ *      touches two of those guards at the same time, so one detonation opens two sides at once.
+ *      Verified on the engine: a General on the corner point removed both neighbouring guards.
+ *   3. Outside a guard, on the far side from the King. Slower, and it only threatens one guard,
+ *      but it is what remains when the diagonals are taken.
+ */
+export function specialAssaultTargets(state, player, enemy) {
+  const king = findKingPosition(state, enemy);
+  if (!king) return [];
+  const targets = [];
+  const consider = (row, col, rank, reason) => {
+    if (!inBounds(row, col) || state.board[row][col]) return;
+    targets.push({ row, col, rank, reason });
+  };
+  for (const [row, col] of orthogonalPositions(king.row, king.col)) {
+    consider(row, col, 1, "beside_king");
+  }
+  for (const [rowStep, colStep] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+    consider(king.row + rowStep, king.col + colStep, 2, "diagonal");
+  }
+  for (const [rowStep, colStep] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+    const guard = state.board[king.row + rowStep]?.[king.col + colStep];
+    if (guard?.owner !== enemy || guard.type === "king") continue;
+    consider(king.row + rowStep * 2, king.col + colStep * 2, 3, "outside_guard");
+  }
+  return targets.sort((a, b) => a.rank - b.rank);
+}
+
+/**
+ * Whether a placement would join one of our own specials that has not gone off yet.
+ *
+ * A special fires when its group runs out of liberties, so adding a stone beside it enlarges
+ * the group, hands it more liberties, and can leave it inert for the rest of the game. Placing
+ * a second special there wastes both at once. The evaluation pulls the other way — `connectivity`
+ * rewards `group.length * group.length` — which is why three of the five tiers walk into it.
+ */
+export function joinsOwnPendingSpecial(state, player, row, col) {
+  return orthogonalPositions(row, col).some(([nextRow, nextCol]) => {
+    if (!inBounds(nextRow, nextCol)) return false;
+    const piece = state.board[nextRow][nextCol];
+    return piece?.owner === player && ATTACK_SPECIALS.has(piece.type) && !piece.abilityUsed;
+  });
+}
+
 export function kingAdjacentMinePositions(state, player, enemy) {
   if (!observedRemainingSpecialTypes(state, player, enemy).length) return [];
   let king = null;

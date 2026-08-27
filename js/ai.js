@@ -23,13 +23,17 @@ import {
   kingAdjacentMinePositions,
   kingMineDefusalValue,
   kingWallConnectionValue,
+  joinsOwnPendingSpecial,
   observedRemainingSpecialTypes,
   phaseStrategicMultiplier,
+  specialAssaultTargets,
   specialCandidatePool,
   recentIntentValue,
   recentOpponentDeployments,
   wallTacticalValue,
 } from "./strategic-analysis.js";
+
+const SPECIAL_UNIT_TYPES = new Set(["general", "diplomat", "wizard"]);
 
 export const AI_TIER_ORDER = [
   "novice",
@@ -416,28 +420,57 @@ function availableDeployTypes(state, aiPlayer, countPieces, humanPlayer) {
     .map(([type]) => type);
 }
 
+const ASSAULT_RANK_BONUS = { 1: 180, 2: 120, 3: 60 };
+
+/**
+ * Doctrine for spending a special, layered on top of the positional score.
+ *
+ * Three rules, all of them consequences of a reaction striking every adjacent enemy and
+ * capturing an adjacent King outright:
+ *
+ *   - Go where it can reach the King. Beside it is decisive, the diagonals open two guarded
+ *     sides with one detonation, outside a guard is the fallback.
+ *   - Do not tuck a special beside one of ours that has not fired. The group gains liberties and
+ *     both stones can sit inert for the rest of the game.
+ *   - Against a guarded King prefer the two that clear stones. A Diplomat converts rather than
+ *     removes, which is worth more once a way through already exists.
+ */
+function specialAssaultAdjustment(state, unitType, row, col, aiPlayer, humanPlayer, settings) {
+  if (!settings.specialAssaultDoctrine || !SPECIAL_UNIT_TYPES.has(unitType)) return 0;
+  if (joinsOwnPendingSpecial(state, aiPlayer, row, col)) return -220;
+  const target = specialAssaultTargets(state, aiPlayer, humanPlayer)
+    .find((candidate) => candidate.row === row && candidate.col === col);
+  if (!target) return 0;
+  const clears = unitType === "general" || unitType === "wizard";
+  const breaching = target.rank > 1 && clears ? 40 : 0;
+  return (ASSAULT_RANK_BONUS[target.rank] || 0) + breaching;
+}
+
 function scoreDeployType(state, unitType, row, col, neighbors, aiPlayer, humanPlayer) {
   if (!difficultySettings(state).considerAllTypes) return 0;
   const adjacentEnemies = adjacentCount(state, row, col, humanPlayer, neighbors);
   const pressure = kingPressureScore(state, row, col, humanPlayer);
   const capturePotential = localCapturePotential(state, row, col, aiPlayer, humanPlayer, neighbors);
+  const doctrine = specialAssaultAdjustment(
+    state, unitType, row, col, aiPlayer, humanPlayer, difficultySettings(state),
+  );
 
   if (unitType === "general") {
-    if (adjacentEnemies >= 3) return 85;
-    if (adjacentEnemies === 2) return 55;
-    if (adjacentEnemies === 1) return 18;
-    return -10;
+    if (adjacentEnemies >= 3) return 85 + doctrine;
+    if (adjacentEnemies === 2) return 55 + doctrine;
+    if (adjacentEnemies === 1) return 18 + doctrine;
+    return -10 + doctrine;
   }
   if (unitType === "diplomat") {
     const ownKingDist = ownKingSafetyScore(state, row, col, aiPlayer);
-    if (adjacentEnemies >= 2) return 48 + ownKingDist * 2;
-    if (adjacentEnemies === 1) return 20;
-    return -8;
+    if (adjacentEnemies >= 2) return 48 + ownKingDist * 2 + doctrine;
+    if (adjacentEnemies === 1) return 20 + doctrine;
+    return -8 + doctrine;
   }
   if (unitType === "wizard") {
-    if (pressure > 0) return 38 + pressure * 2.5;
-    if (adjacentEnemies > 0) return 25;
-    return -5;
+    if (pressure > 0) return 38 + pressure * 2.5 + doctrine;
+    if (adjacentEnemies > 0) return 25 + doctrine;
+    return -5 + doctrine;
   }
   if (unitType === "soldier") {
     return capturePotential > 20 ? 25 : 8;
