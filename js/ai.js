@@ -86,6 +86,13 @@ export const AI_RANK_SETTINGS = {
     rootCandidateLimit: 32,
     replyCandidateLimit: 20,
     continuationCandidateLimit: 12,
+    // How much of the hidden pool this tier will bet against when a verified win is questioned
+    // by a belief world. 0 demands certainty, which is what made the tiers that model belief
+    // walk away from wins the tiers that do not took every time. Measured over a 260-position
+    // exam: at 0.7 immediate wins found rise from 75%/48%/63% to 87%/80%/90% for
+    // advanced/expert/grandmaster. Traps taken rise too, but a trap costs 2.24 stones on
+    // average and ends the game 1 time in 41, while a missed win hands back a decided game.
+    instantWinRiskTolerance: 0.7,
     criticalBeliefWorldLimit: 6,
     riskCandidateLimit: 3,
     deepRiskCandidateLimit: 0,
@@ -105,6 +112,13 @@ export const AI_RANK_SETTINGS = {
     rootCandidateLimit: 36,
     replyCandidateLimit: 18,
     continuationCandidateLimit: 10,
+    // How much of the hidden pool this tier will bet against when a verified win is questioned
+    // by a belief world. 0 demands certainty, which is what made the tiers that model belief
+    // walk away from wins the tiers that do not took every time. Measured over a 260-position
+    // exam: at 0.7 immediate wins found rise from 75%/48%/63% to 87%/80%/90% for
+    // advanced/expert/grandmaster. Traps taken rise too, but a trap costs 2.24 stones on
+    // average and ends the game 1 time in 41, while a missed win hands back a decided game.
+    instantWinRiskTolerance: 0.7,
     criticalBeliefWorldLimit: 6,
     riskCandidateLimit: 4,
     deepRiskCandidateLimit: 1,
@@ -148,6 +162,13 @@ export const AI_RANK_SETTINGS = {
     replyCandidateLimit: 12,
     continuationCandidateLimit: 8,
     ply4CandidateLimit: 4,
+    // How much of the hidden pool this tier will bet against when a verified win is questioned
+    // by a belief world. 0 demands certainty, which is what made the tiers that model belief
+    // walk away from wins the tiers that do not took every time. Measured over a 260-position
+    // exam: at 0.7 immediate wins found rise from 75%/48%/63% to 87%/80%/90% for
+    // advanced/expert/grandmaster. Traps taken rise too, but a trap costs 2.24 stones on
+    // average and ends the game 1 time in 41, while a missed win hands back a decided game.
+    instantWinRiskTolerance: 0.7,
     criticalBeliefWorldLimit: 6,
     hiddenKingRiskVeto: true,
     riskCandidateLimit: 6,
