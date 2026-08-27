@@ -242,7 +242,7 @@ This project is currently a static browser prototype for **Daeguk: Ascension / �
 ## Project Location
 
 ```text
-/Users/boahspark/Documents/Codex/Projects/unknown-kingdom
+/Users/boahspark/Projects/AI-Workspace/projects/daeguk/unknown-kingdom
 ```
 
 ## Shared Engine Stage 1 — 2026-08-14
@@ -429,8 +429,8 @@ The shared-engine migration and the day's requested browser cleanup are complete
 
 ```text
 We are continuing the Daeguk / 고수의 대국 mobile-first game.
-Prototype: /Users/boahspark/Documents/Codex/Projects/unknown-kingdom
-Online server: /Users/boahspark/Documents/Codex/Projects/unknown-kingdom-server
+Prototype: /Users/boahspark/Projects/AI-Workspace/projects/daeguk/unknown-kingdom
+Online server: /Users/boahspark/Projects/AI-Workspace/projects/daeguk/unknown-kingdom-server
 Read DESIGN_NOTES.md and DEV_LOG.md completely before changing code, especially “Shared Engine Stage 1 — 2026-08-14”.
 The special-reaction turn bug and stale opponent-disconnect indicator are fixed. The shared deterministic rules engine now owns browser/server deployment, capture, reactions, Wizard decisions, turn continuation, explicit no-move passing, and match completion. The stochastic bot is isolated in bot.js, and structured domain events are available through dispatchAction with player-specific hidden-information filtering. Progression, presentation timing, guidance, and taunt playback remain browser-owned. The shared package passes 44/44 tests and the server adapter passes 34/34.
 Late-session UI work added the accessible game-native suicide modal, the new Daeguk BGM, icon-only locked-mode buttons, and numbered online-board labels that never expose room codes. Real two-window Chrome QA completed room creation, join, side selection, and match start.
@@ -728,7 +728,7 @@ Use this in a new Codex chat if needed:
 
 ```text
 We are continuing the Daeguk / 고수의 대국 mobile-first prototype.
-Project path: /Users/boahspark/Documents/Codex/Projects/unknown-kingdom
+Project path: /Users/boahspark/Projects/AI-Workspace/projects/daeguk/unknown-kingdom
 Please read DESIGN_NOTES.md and DEV_LOG.md first.
 Current priority: preserve the stabilized mobile design while building the remaining Challenge ranks and tuning the eight fixed AI levels. See the Design Stabilization Milestone in DEV_LOG.md for the fixed layout, typography, card, and interaction rules.
 Do not change core rules unless explicitly asked.
@@ -808,8 +808,8 @@ Recommended practical sequence before attempting a learned AlphaGo-style system:
 
 ```text
 We are continuing the Daeguk / 고수의 대국 mobile-first game.
-Prototype: /Users/boahspark/Documents/Codex/Projects/unknown-kingdom
-Online server: /Users/boahspark/Documents/Codex/Projects/unknown-kingdom-server
+Prototype: /Users/boahspark/Projects/AI-Workspace/projects/daeguk/unknown-kingdom
+Online server: /Users/boahspark/Projects/AI-Workspace/projects/daeguk/unknown-kingdom-server
 Read DESIGN_NOTES.md and DEV_LOG.md completely before changing code, especially “End-of-Day Handoff — 2026-08-13”.
 First priority: fix and test special-reaction turn continuation in both browser and server. A self-surrounded special can currently let the same side deploy twice.
 Then fix the stale online disconnect indicator and begin extracting one pure shared rules engine before strengthening Life-and-Death AI.
