@@ -432,6 +432,20 @@ function availableDeployTypes(state, aiPlayer, countPieces, humanPlayer) {
 const ASSAULT_RANK_BONUS = { 1: 180, 2: 120, 3: 60 };
 
 /**
+ * What a standing conversion capture is worth after the search has spoken.
+ *
+ * The same figure the static sight bonus uses, applied again once the reply term is in, because
+ * the two answer different questions. The static one gets the move looked at; this one keeps it
+ * from being talked out of by a line the opponent is free not to play. It is deliberately not
+ * the instant-win score: the King dies when the Diplomat's group is surrounded and its reaction
+ * fires, which the opponent can decline to bring about.
+ */
+const CONVERSION_CAPTURE_THREAT = 900;
+
+const conversionThreat = (candidate) =>
+  (candidate.midgameTactics?.conversionCapture ? CONVERSION_CAPTURE_THREAT : 0);
+
+/**
  * Doctrine for spending a special, layered on top of the positional score.
  *
  * Three rules, all of them consequences of a reaction striking every adjacent enemy and
@@ -1020,7 +1034,9 @@ function generateSearchCandidates(state, player, enemy, neighbors) {
 
 function prioritizeMidgameCandidates(state, candidates, player, enemy, settings, limit) {
   if (!settings.midgameCandidatePolicy || !candidates.length) return candidates.slice(0, limit);
-  const policy = buildMidgameTacticalPolicy(state, player, enemy);
+  const policy = buildMidgameTacticalPolicy(state, player, enemy, {
+    conversionSight: settings.diplomatConversionSight,
+  });
   if (!policy.active) return candidates.slice(0, limit);
   const classified = candidates.map((candidate) => ({
     candidate,
@@ -1384,9 +1400,11 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
       bestScore,
       publicState,
     );
-    candidate.deepScore = deepScore;
-    candidate.publicDeepScore = deepScore;
+    candidate.deepScore = deepScore + conversionThreat(candidate);
+    candidate.publicDeepScore = candidate.deepScore;
     candidate.searchDepthUsed = candidateSettings.searchDepth;
+    // `bestScore` is the search window the remaining candidates prune against, so it stays on the
+    // score the search actually returned.
     if (deepScore > bestScore) bestScore = deepScore;
   }
 
@@ -1469,7 +1487,11 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
     );
     const weight = settings.deepRiskWeight || 0;
     candidate.worstBeliefDeepScore = worstDeepScore;
-    candidate.deepScore = candidate.deepScore * (1 - weight) + worstDeepScore * weight;
+    // The conversion holds in the pessimistic world as well: a belief world changes what a stone
+    // is, never where the King's group can breathe. So the same term stands in both scores and
+    // the blend has nothing to average away — otherwise the fact is halved for being examined.
+    candidate.deepScore = candidate.deepScore * (1 - weight)
+      + (worstDeepScore + conversionThreat(candidate)) * weight;
   }
   selectionPool.sort((a, b) => compareCandidates(a, b, aiPlayer));
   const selected = selectionPool[0] || null;

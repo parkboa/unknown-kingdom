@@ -487,3 +487,53 @@ test("the danger of an unidentified neighbour falls as the hidden pool grows", (
   assert.ok(loose.hiddenPool > tight.hiddenPool);
   assert.ok(loose.specialRisk < tight.specialRisk);
 });
+
+test("a Diplomat conversion that closes the net survives the pool and the belief blend", () => {
+  // Blue's King sits on the edge behind one guard, and the guard is what keeps the group
+  // breathing. A stone on 2:4 takes a liberty and no more; a General there strikes the guard off
+  // the board and hands the King the square it stood on. Only the Diplomat's conversion turns the
+  // guard red, which leaves the King alone with three red neighbours and no liberty at all.
+  const state = createGameState("pve");
+  state.turn = "red";
+  state.firstDeployDone = { red: true, blue: true };
+  state.deploymentCount = { red: 10, blue: 10 };
+  state.board[8][0] = piece("red", "king", "red-king");
+  state.board[0][4] = piece("blue", "king", "blue-king");
+  state.board[0][3] = piece("red", "soldier", "west-clamp");
+  state.board[0][5] = piece("red", "soldier", "east-clamp");
+  state.board[1][4] = piece("blue", "soldier", "king-guard", false);
+  state.board[2][2] = piece("blue", "soldier", "decoy-west", false);
+  state.board[3][3] = piece("blue", "soldier", "decoy-south", false);
+  state.stock.red = { soldier: 60, king: 0, general: 1, diplomat: 1, wizard: 1 };
+  state.stock.blue = { soldier: 60, king: 0, general: 1, diplomat: 1, wizard: 1 };
+  state.aiSettings = { ...AI_RANK_SETTINGS.grandmaster, searchDepth: 1, localSearchDepth: 1 };
+
+  assert.equal(kingLibertyCount(state, "blue"), 3, "the King is not in atari, so nothing wins on the spot");
+
+  const policy = buildMidgameTacticalPolicy(state, "red", "blue", { conversionSight: true });
+  assert.equal(policy.conversionCells.has("2:4"), true);
+
+  const conversion = classifyMidgameCandidate(policy, { type: "diplomat", row: 2, col: 4 });
+  const clearing = classifyMidgameCandidate(policy, { type: "general", row: 2, col: 4 });
+  assert.equal(conversion.conversionCapture, true);
+  assert.equal(clearing.conversionCapture, false);
+  // The order is what deleted the Diplomat before anything scored it: the assault pool keeps only
+  // the best rank, so a General on the same square used to end the search for it.
+  assert.ok(conversion.specialOrder > clearing.specialOrder);
+
+  const move = findMove(
+    state,
+    "red",
+    "blue",
+    (_player, type, row, col) => (row === 2 && col === 4)
+      || (row === 2 && col === 3 && type !== "king")
+      || (type === "soldier" && row === 5 && col === 5),
+  );
+  assert.deepEqual({ type: move.type, row: move.row, col: move.col }, {
+    type: "diplomat", row: 2, col: 4,
+  });
+  // Reaching the answer through `midgameTactics` is the part worth asserting: it is only attached
+  // by the policy, so its presence says the candidate survived the pool rather than arriving by
+  // some other route.
+  assert.equal(move.midgameTactics.conversionCapture, true);
+});

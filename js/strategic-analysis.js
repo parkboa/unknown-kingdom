@@ -302,7 +302,7 @@ function isHomeHalf(row, player) {
  * The returned coordinate sets deliberately contain only public board positions so callers can apply
  * the same policy to root and reply candidates without leaking hidden identities.
  */
-export function buildMidgameTacticalPolicy(state, player, enemy) {
+export function buildMidgameTacticalPolicy(state, player, enemy, options = {}) {
   const ownDeployments = state.deploymentCount?.[player] ?? (state.firstDeployDone?.[player] ? 1 : 0);
   const remainingSpecials = ["general", "wizard", "diplomat"]
     .reduce((total, type) => total + Math.max(0, state.stock?.[player]?.[type] || 0), 0);
@@ -314,6 +314,7 @@ export function buildMidgameTacticalPolicy(state, player, enemy) {
   const captureCells = new Set();
   const homeSealCells = new Set();
   const wallBridgeCells = new Set();
+  const conversionCells = new Set();
   if (!active) {
     return {
       active,
@@ -325,6 +326,7 @@ export function buildMidgameTacticalPolicy(state, player, enemy) {
       captureCells,
       homeSealCells,
       wallBridgeCells,
+      conversionCells,
       enemyKing: null,
     };
   }
@@ -375,6 +377,28 @@ export function buildMidgameTacticalPolicy(state, player, enemy) {
       break;
     }
   }
+  // A Diplomat that turns a guard and closes the net captures the King, and nothing else on the
+  // board can do it. That is the move worth protecting from a preference about unit types.
+  //
+  // Beside the King is not that move: a reaction takes an adjacent King whatever fired it, so
+  // there the General and the Wizard kill too and the doctrine's preference for the stones they
+  // clear still stands. Only the empty points touching the King's own group can change that
+  // group's liberties, so those, minus its neighbours, are the whole set worth testing.
+  if (options.conversionSight && kingAssault && enemyKing
+    && (state.stock?.[player]?.diplomat || 0) > 0) {
+    for (const [row, col] of collectGroup(state, enemyKing.row, enemyKing.col)) {
+      for (const [nextRow, nextCol] of orthogonalPositions(row, col)) {
+        if (!inBounds(nextRow, nextCol) || state.board[nextRow][nextCol]) continue;
+        if (Math.abs(nextRow - enemyKing.row) + Math.abs(nextCol - enemyKing.col) === 1) continue;
+        const key = positionKey(nextRow, nextCol);
+        if (conversionCells.has(key)) continue;
+        if (diplomatConversionCapturesKing(state, player, enemy, nextRow, nextCol)) {
+          conversionCells.add(key);
+        }
+      }
+    }
+  }
+
   return {
     active,
     ownDeployments,
@@ -385,6 +409,7 @@ export function buildMidgameTacticalPolicy(state, player, enemy) {
     captureCells,
     homeSealCells,
     wallBridgeCells,
+    conversionCells,
     enemyKing,
   };
 }
@@ -395,13 +420,23 @@ export function classifyMidgameCandidate(policy, candidate) {
   const kingDistance = policy.enemyKing
     ? Math.abs(candidate.row - policy.enemyKing.row) + Math.abs(candidate.col - policy.enemyKing.col)
     : Infinity;
-  const specialAttack = policy.kingAssault && special && kingDistance <= 3;
-  const specialOrder = candidate.type === "general" ? 3
-    : candidate.type === "wizard" ? 2
-      : candidate.type === "diplomat" ? 1 : 0;
+  // A conversion capture stays in the assault pool whatever its distance to the King, because
+  // the guard it turns need only belong to the King's group.
+  const conversionCapture = candidate.type === "diplomat"
+    && Boolean(policy.conversionCells?.has(key));
+  const specialAttack = conversionCapture || (policy.kingAssault && special && kingDistance <= 3);
+  // The type order is a real preference and not one the positional score carries: beside the
+  // King the table scores a Diplomat two points above a General, so with the order gone the
+  // stone-clearing doctrine loses those squares to an accident of the base values. What the
+  // order must not do is outrank a conversion capture, which is a win rather than a preference.
+  const specialOrder = conversionCapture ? 4
+    : candidate.type === "general" ? 3
+      : candidate.type === "wizard" ? 2
+        : candidate.type === "diplomat" ? 1 : 0;
   return {
     forcedSoldierLiberty: candidate.type === "soldier" && policy.forcedSoldierLiberties.has(key),
     specialAttack,
+    conversionCapture,
     specialOrder,
     kingDistance,
     capture: policy.captureCells.has(key),
