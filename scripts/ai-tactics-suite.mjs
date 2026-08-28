@@ -400,13 +400,26 @@ function askTier(position, tier) {
   });
 }
 
+/** The King and the four squares beside it — the tier's own opening doctrine. */
+const DOCTRINE_DEPLOYMENTS = 5;
+
 /**
  * Random play almost never manufactures a real threat — 92 random playouts produced no win-now,
  * must-defend or atari position at all. Tactics appear when someone is trying to win, so
- * positions come from tier-vs-tier games after a random opening, sampled at every ply.
+ * positions come from tier-vs-tier games, sampled at every ply.
+ *
+ * The opening belongs to the tier, not to the dice. A fixed stretch of random plies at the front
+ * looks harmless but is not: `canDeployPosition` forces the first deployment to be the King, so
+ * even one random ply places both Kings where no tier would put them and `kingWallDistance` is
+ * never consulted. Worse, the stretch used to end mid-doctrine — deployments three and four fell
+ * past it and followed `openingWallStones`, so the exam scored a random King wrapped in a
+ * doctrinal wall, a board neither the old sampler nor the tiers ever produce. The doctrine now
+ * owns the first five deployments the way `probe-special-doctrine.mjs` does, and the random
+ * stretch that follows is where the corpus gets its variety: the top tiers are deterministic, so
+ * without it a pairing produces the same game every time.
  */
 function* sampledPositions(random, options) {
-  const { games, openingPlies, maxPlies, soldiersOnly, endings } = options;
+  const { games, randomPlies, maxPlies, soldiersOnly, endings } = options;
   for (let game = 0; game < games; game += 1) {
     const state = createGameState("pve", { aiRank: "grandmaster" });
     if (soldiersOnly) stripSpecials(state);
@@ -414,14 +427,19 @@ function* sampledPositions(random, options) {
       red: TIERS[Math.floor(random() * TIERS.length)],
       blue: TIERS[Math.floor(random() * TIERS.length)],
     };
+    const randomLeft = { red: randomPlies, blue: randomPlies };
     let ply = 0;
     for (; ply < maxPlies && !state.winner; ply += 1) {
       const player = state.turn;
+      const placed = state.deploymentCount?.[player] ?? 0;
+      const phase = placed < DOCTRINE_DEPLOYMENTS ? "doctrine"
+        : randomLeft[player] > 0 ? "random" : "play";
       const quiet = !state.pendingSpecial && !state.teleporting && !state.pendingKingSwap;
-      if (ply >= openingPlies && quiet && state.firstDeployDone[player]) yield structuredClone(state);
+      if (phase === "play" && quiet && state.firstDeployDone[player]) yield structuredClone(state);
 
       let action = null;
-      if (ply < openingPlies) {
+      if (phase === "random") {
+        randomLeft[player] -= 1;
         const choices = legalDeployments(state, player);
         action = choices.length ? choices[Math.floor(random() * choices.length)] : null;
       } else {
@@ -512,7 +530,10 @@ function main() {
   const target = Number(optionValue("--positions", "60"));
   const maxPlies = Number(optionValue("--max-plies", "80"));
   const games = Number(optionValue("--games", "12"));
-  const openingPlies = Number(optionValue("--opening", "6"));
+  // Plies each side plays at random after its opening doctrine, which is where the corpus gets
+  // its variety. `--opening` used to mean random plies from move one; the doctrine now owns the
+  // first five deployments, so the knob only covers what comes after it.
+  const randomPlies = Number(optionValue("--random-plies", "3"));
   const perCategory = Number(optionValue("--per-category", "0"));
   const soldiersOnly = hasFlag("--soldiers-only");
   const dump = hasFlag("--dump-positions");
@@ -557,7 +578,7 @@ function main() {
     endings.push(...(prior.gameEndings || []));
   }
 
-  for (const position of examPath ? [] : sampledPositions(random, { games, openingPlies, maxPlies, soldiersOnly, endings })) {
+  for (const position of examPath ? [] : sampledPositions(random, { games, randomPlies, maxPlies, soldiersOnly, endings })) {
     if (exam.length >= target) break;
     scanned += 1;
     const player = position.turn;

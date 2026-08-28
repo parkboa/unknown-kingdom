@@ -11,7 +11,13 @@ import { AI_RANK_SETTINGS, findAiDeployMove } from "../js/ai.js";
 import { neighbors } from "../js/board.js";
 import { kingSafetyProfile } from "../js/strategic-analysis.js";
 
-const outputPath = resolve("experiments/objective-model-tactical-validation.json");
+// Overridable so a read-only sweep can park its report outside the repository. Without it every
+// run rewrites the tracked report, and an analysis pass leaves the working tree dirty for
+// whichever agent holds the editing turn.
+const outputArgIndex = process.argv.indexOf("--output");
+const outputPath = resolve(outputArgIndex >= 0 && outputArgIndex + 1 < process.argv.length
+  ? process.argv[outputArgIndex + 1]
+  : "experiments/objective-model-tactical-validation.json");
 const soldiersOnlyExam = JSON.parse(readFileSync(
   resolve("experiments/ai-tactics-soldiers-only.json"),
   "utf8",
