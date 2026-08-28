@@ -11,7 +11,7 @@
  * an adjacent King outright. Every key below follows from that one sentence and is computed from
  * the position, never asserted.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
   applyAction,
@@ -249,16 +249,23 @@ function forcedKingRescue(state, player) {
 }
 
 const CLASSIFIERS = [
-  classifyConversionCapture,
-  classifyBreachSquare,
-  classifyMinePlacement,
-  classifyMineDiscipline,
+  ["conversion_capture", classifyConversionCapture],
+  ["breach_square", classifyBreachSquare],
+  ["mine_placement", classifyMinePlacement],
+  ["mine_discipline", classifyMineDiscipline],
 ];
+
+/**
+ * Settings merged into every tier before it answers, so one knob can be swept across a saved
+ * exam without regenerating the sample it was measured on.
+ */
+let tierOverride = null;
 
 function askTier(position, tier, choices) {
   const state = structuredClone(position);
   state.aiRank = tier;
   delete state.aiSettings;
+  if (tierOverride) state.aiSettings = { ...AI_RANK_SETTINGS[tier], ...tierOverride };
   const player = state.turn;
   const allowed = choices ? new Set(choices) : null;
   return findAiDeployMove(state, {
@@ -271,21 +278,36 @@ function askTier(position, tier, choices) {
   });
 }
 
-/** Tier-versus-tier games, sampled every ply, same as the tactics exam. */
-function* sampledPositions(random, { games, openingPlies, maxPlies }) {
+/** The King and the four squares beside it — the tier's own opening doctrine. */
+const DOCTRINE_DEPLOYMENTS = 5;
+
+/**
+ * Tier-versus-tier games, sampled every ply.
+ *
+ * The opening is played by the tier rather than at random, or the King band and the four stones
+ * beside it never reach the exam and every position is scored on a board no tier would have
+ * built. The random stretch that follows is where the corpus gets its variety: the top tiers are
+ * deterministic, so without it a pairing produces the same game every time.
+ */
+function* sampledPositions(random, { games, randomPlies, maxPlies }) {
   for (let game = 0; game < games; game += 1) {
     const state = createGameState("pve", { aiRank: "grandmaster" });
     const sides = {
       red: TIERS[Math.floor(random() * TIERS.length)],
       blue: TIERS[Math.floor(random() * TIERS.length)],
     };
+    const randomLeft = { red: randomPlies, blue: randomPlies };
     for (let ply = 0; ply < maxPlies && !state.winner; ply += 1) {
       const player = state.turn;
+      const placed = state.deploymentCount?.[player] ?? 0;
+      const phase = placed < DOCTRINE_DEPLOYMENTS ? "doctrine"
+        : randomLeft[player] > 0 ? "random" : "play";
       const quiet = !state.pendingSpecial && !state.teleporting && !state.pendingKingSwap;
-      if (ply >= openingPlies && quiet && state.firstDeployDone[player]) yield structuredClone(state);
+      if (phase === "play" && quiet && state.firstDeployDone[player]) yield structuredClone(state);
 
       let action = null;
-      if (ply < openingPlies) {
+      if (phase === "random") {
+        randomLeft[player] -= 1;
         const options = legalDeployments(state, player);
         action = options.length ? options[Math.floor(random() * options.length)] : null;
       } else {
@@ -305,9 +327,27 @@ function main() {
   const target = Number(optionValue("--positions", "60"));
   const games = Number(optionValue("--games", "40"));
   const maxPlies = Number(optionValue("--max-plies", "80"));
-  const openingPlies = Number(optionValue("--opening", "6"));
+  // Plies each side plays at random after its opening doctrine, which is where the corpus gets
+  // its variety. `--opening` used to mean random plies from move one; the doctrine now owns the
+  // first five deployments, so the knob only covers what comes after it.
+  const randomPlies = Number(optionValue("--random-plies", "3"));
   const perCategory = Number(optionValue("--per-category", "20"));
   const outputPath = optionValue("--output", "experiments/special-doctrine-probe.json");
+  // Generating the exam plays hundreds of AI games; scoring it is cheap. A sweep over tier
+  // settings pays that cost once and replays a finished report as the exam, the same way
+  // `ai-tactics-suite.mjs` does — otherwise every variant is measured on a different paper.
+  const examPath = optionValue("--load-exam");
+  const overridePath = optionValue("--tier-override");
+  tierOverride = overridePath ? JSON.parse(readFileSync(resolve(overridePath), "utf8")) : null;
+  // A category whose quota is full stops the whole classifier chain for that position, so a rare
+  // category cannot be filled by simply raising the target: the common ones consume the sample
+  // first. `--only` narrows the chain instead, which is how a category as rare as breach_square
+  // (five positions in sixteen hundred plies) gets a sample worth reading.
+  const onlyCategory = optionValue("--only", null);
+  if (onlyCategory && !CLASSIFIERS.some(([category]) => category === onlyCategory)) {
+    throw new Error(`--only must be one of ${CLASSIFIERS.map(([category]) => category).join(", ")}`);
+  }
+  const classifiers = CLASSIFIERS.filter(([category]) => !onlyCategory || category === onlyCategory);
 
   const random = seededRandom(seed);
   // `findAiDeployMove` reaches for `Math.random()` when it picks a unit type, so the global RNG
@@ -317,11 +357,31 @@ function main() {
   const exam = [];
   const counts = {};
   let scanned = 0;
-  for (const position of sampledPositions(random, { games, openingPlies, maxPlies })) {
+
+  if (examPath) {
+    const prior = JSON.parse(readFileSync(resolve(examPath), "utf8"));
+    for (const record of prior.answers) {
+      if (!record.position) throw new Error(`${examPath} has no stored positions to replay`);
+      if (onlyCategory && record.category !== onlyCategory) continue;
+      exam.push({
+        id: record.id,
+        position: record.position,
+        category: record.category,
+        choices: record.choices,
+        correct: record.correct,
+        forbidden: record.forbidden,
+        detail: record.detail,
+      });
+      counts[record.category] = (counts[record.category] || 0) + 1;
+    }
+    scanned = prior.sampledPlies ?? 0;
+  }
+
+  for (const position of examPath ? [] : sampledPositions(random, { games, randomPlies, maxPlies })) {
     if (exam.length >= target) break;
     scanned += 1;
     if (forcedKingRescue(position, position.turn)) continue;
-    for (const classify of CLASSIFIERS) {
+    for (const [, classify] of classifiers) {
       const verdict = classify(position, position.turn);
       if (!verdict) continue;
       if ((counts[verdict.category] || 0) >= perCategory) break;
@@ -341,6 +401,10 @@ function main() {
       id: item.id,
       category: item.category,
       detail: item.detail,
+      // The position and the choice set are what make the report replayable; without them a
+      // settings sweep has to regenerate the sample and ends up comparing different papers.
+      position: item.position,
+      choices: item.choices,
       correct: item.correct,
       forbidden: item.forbidden,
       byTier: {},
@@ -375,6 +439,9 @@ function main() {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     seed,
+    replayedFrom: examPath || null,
+    tierOverride,
+    randomPlies,
     positions: exam.length,
     sampledPlies: scanned,
     categoryCounts: counts,
