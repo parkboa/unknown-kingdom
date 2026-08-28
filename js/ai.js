@@ -56,7 +56,7 @@ export const AI_RANK_SETTINGS = {
     // Opening doctrine: how far from its own wall this tier may plant the King,
     // then the four squares beside it.
     kingWallDistance: { min: 0, max: 6 },
-    openingWallStones: 4,
+    openingWallStones: 1,
     searchDepth: 2,
     rootCandidateLimit: 20,
     replyCandidateLimit: 12,
@@ -77,7 +77,7 @@ export const AI_RANK_SETTINGS = {
     // Opening doctrine: how far from its own wall this tier may plant the King,
     // then the four squares beside it.
     kingWallDistance: { min: 0, max: 5 },
-    openingWallStones: 4,
+    openingWallStones: 2,
     searchDepth: 2,
     rootCandidateLimit: 28,
     replyCandidateLimit: 16,
@@ -98,7 +98,7 @@ export const AI_RANK_SETTINGS = {
     // Opening doctrine: how far from its own wall this tier may plant the King,
     // then the four squares beside it.
     kingWallDistance: { min: 0, max: 4 },
-    openingWallStones: 4,
+    openingWallStones: 2,
     searchDepth: 3,
     rootCandidateLimit: 32,
     replyCandidateLimit: 20,
@@ -127,7 +127,7 @@ export const AI_RANK_SETTINGS = {
     // Opening doctrine: how far from its own wall this tier may plant the King,
     // then the four squares beside it.
     kingWallDistance: { min: 0, max: 3 },
-    openingWallStones: 4,
+    openingWallStones: 3,
     searchDepth: 3,
     tacticalExtension: true,
     rootCandidateLimit: 36,
@@ -1326,9 +1326,16 @@ function scoreWithLookahead(
  * sealed against its own wall scores as though it were in danger when soldiers cannot take it at
  * all.
  *
- * The band is the difficulty ladder. A wide one leaves the tier free to wander into the centre; a
- * narrow one holds it to the wall. Only the row is constrained — which column, and which of the
- * four squares to fill first, stay the tier's own judgement.
+ * The band is one half of the difficulty ladder. A wide one leaves the tier free to wander into
+ * the centre; a narrow one holds it to the wall. Only the row is constrained — which column, and
+ * which square to fill first, stay the tier's own judgement.
+ *
+ * `openingWallStones` is the other half, and it has to be graded too. Left at four for everyone it
+ * quietly cancelled the band: Novice's 0-6 band is wide enough to keep the centre, but a full ring
+ * is a full ring wherever it stands, so Novice opened with the same textbook shape as Grandmaster
+ * and only the King's row differed. `variance` does not rescue it either — the plan filters the
+ * candidates down to the ring, so variance only shuffles the order inside it. Novice now lays one
+ * stone and plays on, and the ring closes a square at a time up the ladder.
  */
 function wallDistanceRow(player, distance) {
   return player === "red" ? distance : SIZE - 1 - distance;

@@ -278,7 +278,14 @@ function askTier(position, tier, choices) {
   });
 }
 
-/** The King and the four squares beside it — the tier's own opening doctrine. */
+/**
+ * How many deployments to hand to the tier before the random stretch starts.
+ *
+ * The King plus the longest wall ring any tier builds, which is Grandmaster's four.
+ * `openingWallStones` is graded (Novice 1 … Grandmaster 4), so a lower tier runs out of doctrine
+ * before this count and simply plays its ordinary policy for the remainder — still its own moves,
+ * which is the point. Sizing this to the longest doctrine keeps every tier's opening intact.
+ */
 const DOCTRINE_DEPLOYMENTS = 5;
 
 /**
