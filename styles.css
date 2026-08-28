@@ -3281,6 +3281,18 @@ body.iphone-preview .action-bar-button:has(svg:only-child) {
   color: rgb(247 239 224 / 88%);
 }
 
+#modeInfo {
+  grid-column: 1;
+}
+
+#connectionInfo {
+  grid-column: 2;
+}
+
+#rankInfo {
+  grid-column: 3;
+}
+
 .game-status-bar {
   padding: 0;
   border: 0;
@@ -3321,6 +3333,8 @@ body.iphone-preview .game-status-bar {
 
 .game-status-bar.guide-active {
   display: block;
+  height: 102px;
+  min-height: 102px;
   padding: 0;
 }
 
@@ -3376,7 +3390,7 @@ body.iphone-preview .game-status-bar {
   text-align: left;
   white-space: pre-line;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
 }
 
 .game-status-bar > .tutorial-panel .tutorial-actions {
@@ -3463,6 +3477,8 @@ body.iphone-preview .game-status-bar {
 
   .game-status-bar.guide-active,
   body.iphone-preview .game-status-bar.guide-active {
+    height: 102px;
+    min-height: 102px;
     padding: 0;
   }
 }

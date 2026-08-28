@@ -155,7 +155,11 @@ function renderDeployPicker(context) {
     if (exhausted) {
       status.textContent = context.text("used");
     } else if (specialLocked || (firstMoveLocked && isSpecial)) {
-      status.innerHTML = '<span class="lock-icon" aria-label="잠김">🔒</span>';
+      const lockIcon = document.createElement("span");
+      lockIcon.className = "lock-icon";
+      lockIcon.setAttribute("aria-label", context.text("rankLocked"));
+      lockIcon.textContent = "🔒";
+      status.replaceChildren(lockIcon);
     } else if (input.value === "king") {
       status.textContent = context.text("available");
     } else {
