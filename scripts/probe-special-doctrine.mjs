@@ -22,6 +22,7 @@ import {
   findKingPosition,
   getLegalActions,
   groupHasLiberty,
+  kingLibertyCount,
   opponent,
   orthogonalPositions,
   SIZE,
@@ -166,13 +167,22 @@ function forceTrigger(state, player, enemy, action) {
   return working;
 }
 
-/** Placements where turning the King's own guards closes the net around it. */
+/**
+ * Placements where turning the King's own guards closes the net around it.
+ *
+ * Squares beside the King are excluded even though the conversion takes it there: a reaction
+ * captures an adjacent King whatever fired it, so a General or Wizard on that square is just as
+ * winning and marking only the Diplomat correct would score a preference, not a rule.
+ */
 function classifyConversionCapture(state, player) {
   const enemy = opponent(player);
+  const king = findKingPosition(state, enemy);
+  if (!king) return null;
   const choices = specialPlacements(state, player);
   if (choices.length < 2) return null;
   const correct = choices
     .filter((action) => action.unitType === "diplomat"
+      && Math.abs(action.row - king.row) + Math.abs(action.col - king.col) > 1
       && diplomatConversionCapturesKing(state, player, enemy, action.row, action.col))
     .map(moveKey);
   if (!correct.length || correct.length === choices.length) return null;
@@ -224,6 +234,18 @@ function classifyMineDiscipline(state, player) {
     forbidden: banned,
     detail: { mines: mines.length, forbiddenSquares: forbidden.size },
   };
+}
+
+/**
+ * With our own King on its last liberty the answer is already settled: rescue it.
+ *
+ * Every category below scores a preference among placements, and none of them is worth asking
+ * while a forced move is on the board — a tier that answers the key there loses the King before
+ * the reaction it was promised ever fires. Found by tracing a conversion the exam marked wrong:
+ * the position had our King in atari, and the move the exam wanted left it there.
+ */
+function forcedKingRescue(state, player) {
+  return kingLibertyCount(state, player) === 1;
 }
 
 const CLASSIFIERS = [
@@ -298,6 +320,7 @@ function main() {
   for (const position of sampledPositions(random, { games, openingPlies, maxPlies })) {
     if (exam.length >= target) break;
     scanned += 1;
+    if (forcedKingRescue(position, position.turn)) continue;
     for (const classify of CLASSIFIERS) {
       const verdict = classify(position, position.turn);
       if (!verdict) continue;
