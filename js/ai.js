@@ -53,6 +53,10 @@ export const AI_RANK_SETTINGS = {
     specialBoost: 16,
     variance: 1.5,
     considerAllTypes: true,
+    // Opening doctrine: how far from its own wall this tier may plant the King,
+    // then the four squares beside it.
+    kingWallDistance: { min: 0, max: 6 },
+    openingWallStones: 4,
     searchDepth: 2,
     rootCandidateLimit: 20,
     replyCandidateLimit: 12,
@@ -70,6 +74,10 @@ export const AI_RANK_SETTINGS = {
     specialBoost: 20,
     variance: 0.5,
     considerAllTypes: true,
+    // Opening doctrine: how far from its own wall this tier may plant the King,
+    // then the four squares beside it.
+    kingWallDistance: { min: 0, max: 5 },
+    openingWallStones: 4,
     searchDepth: 2,
     rootCandidateLimit: 28,
     replyCandidateLimit: 16,
@@ -87,6 +95,10 @@ export const AI_RANK_SETTINGS = {
     specialBoost: 22,
     variance: 0,
     considerAllTypes: true,
+    // Opening doctrine: how far from its own wall this tier may plant the King,
+    // then the four squares beside it.
+    kingWallDistance: { min: 0, max: 4 },
+    openingWallStones: 4,
     searchDepth: 3,
     rootCandidateLimit: 32,
     replyCandidateLimit: 20,
@@ -112,6 +124,10 @@ export const AI_RANK_SETTINGS = {
     specialBoost: 26,
     variance: 0,
     considerAllTypes: true,
+    // Opening doctrine: how far from its own wall this tier may plant the King,
+    // then the four squares beside it.
+    kingWallDistance: { min: 0, max: 3 },
+    openingWallStones: 4,
     searchDepth: 3,
     tacticalExtension: true,
     rootCandidateLimit: 36,
@@ -161,6 +177,10 @@ export const AI_RANK_SETTINGS = {
     specialBoost: 30,
     variance: 0,
     considerAllTypes: true,
+    // Opening doctrine: how far from its own wall this tier may plant the King,
+    // then the four squares beside it.
+    kingWallDistance: { min: 1, max: 1 },
+    openingWallStones: 4,
     searchDepth: 3,
     localSearchDepth: 4,
     localFourPlyCandidateLimit: 6,
@@ -1295,27 +1315,78 @@ function scoreWithLookahead(
   return worldValue;
 }
 
+/**
+ * Opening doctrine — the King stands near its own wall, and its four orthogonal squares are the
+ * first stones played.
+ *
+ * Two things argue for it. Measured over recorded games the squares beside a King are 39% own
+ * stones, so protecting them is already the dominant pattern, and Stage 3's breach play assumes a
+ * King that has to be broken open before it can be reached. And a King in the open centre reads as
+ * safer than it is: `kingLibertyCount` adds wall liberties and board liberties together, so a King
+ * sealed against its own wall scores as though it were in danger when soldiers cannot take it at
+ * all.
+ *
+ * The band is the difficulty ladder. A wide one leaves the tier free to wander into the centre; a
+ * narrow one holds it to the wall. Only the row is constrained — which column, and which of the
+ * four squares to fill first, stay the tier's own judgement.
+ */
+function wallDistanceRow(player, distance) {
+  return player === "red" ? distance : SIZE - 1 - distance;
+}
+
+function openingWallPlan(state, player, settings) {
+  const band = settings.kingWallDistance;
+  if (band && !state.firstDeployDone?.[player]) {
+    const rows = new Set();
+    for (let distance = band.min; distance <= band.max; distance += 1) {
+      rows.add(wallDistanceRow(player, distance));
+    }
+    return (type, row) => type === "king" && rows.has(row);
+  }
+  const stones = settings.openingWallStones || 0;
+  const placed = state.deploymentCount?.[player] ?? 0;
+  if (!stones || placed < 1 || placed > stones) return null;
+  const king = findKing(state, player);
+  if (!king) return null;
+  const ring = new Set(orthogonalPositions(king.row, king.col)
+    .filter(([row, col]) => row >= 0 && row < SIZE && col >= 0 && col < SIZE)
+    .filter(([row, col]) => !state.board[row][col])
+    .map(([row, col]) => `${row}:${col}`));
+  // Nothing left to wall in — an edge column, or the opponent took the square first.
+  if (!ring.size) return null;
+  return (_type, row, col) => ring.has(`${row}:${col}`);
+}
+
 export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, countPieces, neighbors }) {
   const settings = difficultySettings(state);
   const types = availableDeployTypes(state, aiPlayer, countPieces, humanPlayer);
   const publicState = stateForPlayer(state, aiPlayer);
-  const candidates = [];
-  for (const type of types) {
-    for (let row = 0; row < SIZE; row += 1) {
-      for (let col = 0; col < SIZE; col += 1) {
-        if (!canDeploy(aiPlayer, type, row, col)) continue;
-        if (isPointlessSuicide(publicState, aiPlayer, type, row, col, neighbors)) continue;
-        candidates.push({
-          row,
-          col,
-          type,
-          score: scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer, true)
-            + scoreDeployType(state, type, row, col, neighbors, aiPlayer, humanPlayer)
-            + (settings.variance > 0 ? Math.random() * positionVariance(state) : 0),
-        });
+  const collectCandidates = (allows) => {
+    const collected = [];
+    for (const type of types) {
+      for (let row = 0; row < SIZE; row += 1) {
+        for (let col = 0; col < SIZE; col += 1) {
+          if (!canDeploy(aiPlayer, type, row, col)) continue;
+          if (allows && !allows(type, row, col)) continue;
+          if (isPointlessSuicide(publicState, aiPlayer, type, row, col, neighbors)) continue;
+          collected.push({
+            row,
+            col,
+            type,
+            score: scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer, true)
+              + scoreDeployType(state, type, row, col, neighbors, aiPlayer, humanPlayer)
+              + (settings.variance > 0 ? Math.random() * positionVariance(state) : 0),
+          });
+        }
       }
     }
-  }
+    return collected;
+  };
+  const openingPlan = openingWallPlan(state, aiPlayer, settings);
+  // The doctrine narrows the choice; it must never empty it. If nothing legal is left inside the
+  // band, the tier plays on as it would without one.
+  let candidates = openingPlan ? collectCandidates(openingPlan) : [];
+  if (!candidates.length) candidates = collectCandidates(null);
   candidates.sort((a, b) => compareCandidates(a, b, aiPlayer));
   if (!candidates.length) return null;
   const criticalWorldCache = new Map();
