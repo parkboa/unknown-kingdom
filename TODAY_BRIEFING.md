@@ -226,9 +226,10 @@ render.js:65 createTauntOverlay → 이미지 + 말풍선
 
 요지는 셋이다.
 
-- **버릴 것 4개** — `ironcladKingDefense`(마스터에 `true`인데 **읽는 곳이 0곳**),
-  `terminalObjectiveModel`(1a·1b·1c 별칭), `specialAnchorThreat` 최상위 노출,
+- **버릴 것 3개** — `terminalObjectiveModel`(1a·1b·1c 별칭), `specialAnchorThreat` 최상위 노출,
   `searchAlgorithm` 티어 노출. 운영 동작 변화 0.
+  (`ironcladKingDefense`도 처음엔 여기 있었으나 **철회했다** — 읽는 곳이 0곳인 건 사실이지만
+  보정 스택의 틀에서는 죽은 설정이 아니라 **배선이 빠진 보정**이다.)
 - **축은 다섯이 아니라 둘** — A축(왕 위험 측정: 1a + 2단계) · B축(결합: 1b + 1c를 하나로).
   조합이 7에서 4로 줄고 퇴화 셀이 사라진다.
 - **정정** — 초판에 "4단계 교리와 평가함수가 모순"이라고 썼는데 **내 측정 착오였고 철회했다.**
