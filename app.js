@@ -38,6 +38,7 @@ import {
 } from "./js/state.js?v=resume-turn-1";
 import {
   renderGame,
+  setCoinDesign,
   teleportUiState,
   updateTurnTimerPill,
 } from "./js/render.js?v=release-20260824-1";
@@ -122,6 +123,10 @@ let undoStack = [];
 let aiTimer = null;
 let tauntTimer = null;
 let visibleTaunt = null;
+let cutsceneTimer = null;
+let visibleCutscene = null;
+let activeSkillEffect = null;
+let skillEffectTimer = null;
 let lastTauntEventId = 0;
 let networkSession = createNetworkSession();
 let onlineTurnDeadline = null;
@@ -159,6 +164,13 @@ const AI_WIZARD_TELEPORT_DELAY_MS = 900;
 const TUTORIAL_SPECIAL_SURROUND_DELAY_MS = 1200;
 const TUTORIAL_SPECIAL_ACTIVATE_DELAY_MS = 1600;
 const TAUNT_DISPLAY_MS = 3000;
+const CUTSCENE_DISPLAY_MS = 2000;
+const GENERAL_CUTIN_MS = 2000;
+const GENERAL_SKILL_EFFECT_MS = 500;
+const DIPLOMAT_CUTIN_MS = 2000;
+const DIPLOMAT_SKILL_EFFECT_MS = 600;
+const WIZARD_CUTIN_MS = 2000;
+const WIZARD_SKILL_EFFECT_MS = 600;
 const SPLASH_MIN_DURATION_MS = 2500;
 const SPLASH_SERVER_TIMEOUT_MS = 2000;
 const PVE_TURN_LIMIT_MS = 30000;
@@ -1375,6 +1387,22 @@ function downloadPveJournal() {
 window.getDaegukPveJournalJsonl = currentPveJournalJsonl;
 
 function presentSharedLocalEvents(events) {
+  const generalActivation = events.find((e) => e.type === "special_activated" && e.unitType === "general");
+  if (generalActivation) {
+    const removedEvents = events.filter((e) => e.type === "piece_removed" && e.reason === "general_reaction");
+    triggerGeneralSkillSequence(generalActivation, removedEvents);
+  }
+  const diplomatActivation = events.find((e) => e.type === "special_activated" && e.unitType === "diplomat");
+  if (diplomatActivation) {
+    const convertedEvent = events.find((e) => e.type === "pieces_converted");
+    triggerDiplomatSkillSequence(diplomatActivation, convertedEvent?.pieces || []);
+  }
+  const wizardActivation = events.find((e) => e.type === "special_activated" && e.unitType === "wizard");
+  if (wizardActivation) {
+    const removedEvents = events.filter((e) => e.type === "piece_removed" && e.reason === "wizard_reaction");
+    triggerWizardSkillSequence(wizardActivation, removedEvents);
+  }
+
   for (const event of events) {
     if (event.type === "piece_deployed") {
       playPlacementSound();
@@ -1389,6 +1417,9 @@ function presentSharedLocalEvents(events) {
     } else if (event.type === "special_revealed") {
       addLog(`${sideName(event.owner)} ${UNIT_LABELS[event.unitType]} was surrounded. Ability activation is pending.`);
     } else if (event.type === "special_activated") {
+      if (event.unitType !== "general" && event.unitType !== "diplomat" && event.unitType !== "wizard") {
+        showSpecialCutscene(event);
+      }
       addLog(`${sideName(event.owner)} ${UNIT_LABELS[event.unitType]} ability activated while surrounded.`);
     } else if (event.type === "piece_removed") {
       const ability = event.reason === "general_reaction" ? UNIT_LABELS.general : UNIT_LABELS.wizard;
@@ -1467,6 +1498,179 @@ function dismissPassNotification() {
 confirmPassNoticeBtn?.addEventListener("click", () => {
   dismissPassNotification();
 });
+
+function triggerGeneralSkillSequence(event, removedEvents = []) {
+  if (cutsceneTimer !== null) window.clearTimeout(cutsceneTimer);
+  if (skillEffectTimer !== null) window.clearTimeout(skillEffectTimer);
+  cutsceneTimer = null;
+  skillEffectTimer = null;
+
+  const targets = (removedEvents || []).map((e) => {
+    let direction = "north";
+    if (e.row < event.row) direction = "north";
+    else if (e.row > event.row) direction = "south";
+    else if (e.col < event.col) direction = "west";
+    else if (e.col > event.col) direction = "east";
+    return {
+      row: e.row,
+      col: e.col,
+      owner: e.owner,
+      unitType: e.unitType,
+      pieceId: e.pieceId,
+      revealed: e.revealed,
+      direction,
+    };
+  });
+
+  visibleCutscene = {
+    owner: event.owner,
+    unitType: "general",
+    row: event.row,
+    col: event.col,
+    durationMs: GENERAL_CUTIN_MS,
+  };
+  activeSkillEffect = {
+    type: "general_strike",
+    phase: "cutin",
+    source: { row: event.row, col: event.col, owner: event.owner },
+    targets,
+  };
+  render();
+
+  cutsceneTimer = window.setTimeout(() => {
+    cutsceneTimer = null;
+    visibleCutscene = null;
+    if (activeSkillEffect) {
+      activeSkillEffect.phase = "slash";
+    }
+    render();
+
+    skillEffectTimer = window.setTimeout(() => {
+      skillEffectTimer = null;
+      activeSkillEffect = null;
+      render();
+      if (state.mode === "pve" && isAiTurn()) {
+        scheduleAiTurn();
+      }
+    }, GENERAL_SKILL_EFFECT_MS);
+  }, GENERAL_CUTIN_MS);
+}
+
+function triggerDiplomatSkillSequence(event, convertedPieces) {
+  if (cutsceneTimer !== null) window.clearTimeout(cutsceneTimer);
+  if (skillEffectTimer !== null) window.clearTimeout(skillEffectTimer);
+
+  const targets = (convertedPieces || []).map((e) => {
+    return {
+      row: e.row,
+      col: e.col,
+      fromOwner: e.fromOwner,
+      toOwner: event.owner,
+      pieceId: e.pieceId,
+    };
+  });
+
+  visibleCutscene = {
+    owner: event.owner,
+    unitType: "diplomat",
+    row: event.row,
+    col: event.col,
+    durationMs: DIPLOMAT_CUTIN_MS,
+  };
+  activeSkillEffect = {
+    type: "diplomat_conversion",
+    phase: "cutin",
+    source: { row: event.row, col: event.col, owner: event.owner },
+    targets,
+  };
+  render();
+
+  cutsceneTimer = window.setTimeout(() => {
+    cutsceneTimer = null;
+    visibleCutscene = null;
+    if (activeSkillEffect) {
+      activeSkillEffect.phase = "bribe";
+    }
+    render();
+
+    skillEffectTimer = window.setTimeout(() => {
+      skillEffectTimer = null;
+      activeSkillEffect = null;
+      render();
+      if (state.mode === "pve" && isAiTurn()) {
+        scheduleAiTurn();
+      }
+    }, DIPLOMAT_SKILL_EFFECT_MS);
+  }, DIPLOMAT_CUTIN_MS);
+}
+
+function triggerWizardSkillSequence(event, removedEvents) {
+  if (cutsceneTimer !== null) window.clearTimeout(cutsceneTimer);
+  if (skillEffectTimer !== null) window.clearTimeout(skillEffectTimer);
+
+  const targets = (removedEvents || []).map((e) => {
+    return {
+      row: e.row,
+      col: e.col,
+      owner: e.owner,
+      unitType: e.unitType,
+      pieceId: e.pieceId,
+      revealed: e.revealed,
+    };
+  });
+
+  visibleCutscene = {
+    owner: event.owner,
+    unitType: "wizard",
+    row: event.row,
+    col: event.col,
+    durationMs: WIZARD_CUTIN_MS,
+  };
+  activeSkillEffect = {
+    type: "wizard_vanish",
+    phase: "cutin",
+    source: { row: event.row, col: event.col, owner: event.owner },
+    targets,
+  };
+  render();
+
+  cutsceneTimer = window.setTimeout(() => {
+    cutsceneTimer = null;
+    visibleCutscene = null;
+    if (activeSkillEffect) {
+      activeSkillEffect.phase = "rune";
+    }
+    render();
+
+    skillEffectTimer = window.setTimeout(() => {
+      skillEffectTimer = null;
+      activeSkillEffect = null;
+      render();
+      if (state.mode === "pve" && isAiTurn()) {
+        scheduleAiTurn();
+      }
+    }, WIZARD_SKILL_EFFECT_MS);
+  }, WIZARD_CUTIN_MS);
+}
+
+function showSpecialCutscene(event) {
+  if (!event || !event.unitType) return;
+  const durationMs = CUTSCENE_DISPLAY_MS;
+  visibleCutscene = {
+    owner: event.owner,
+    unitType: event.unitType,
+    row: event.row,
+    col: event.col,
+    durationMs,
+  };
+  if (cutsceneTimer !== null) window.clearTimeout(cutsceneTimer);
+  render();
+  cutsceneTimer = window.setTimeout(() => {
+    cutsceneTimer = null;
+    visibleCutscene = null;
+    render();
+  }, durationMs);
+}
 
 function showTauntBubble(event) {
   if (!event || event.id === lastTauntEventId) return;
@@ -1671,6 +1875,8 @@ function render() {
     viewerSide,
     wizardMovePromptDismissed,
     visibleTaunt,
+    visibleCutscene,
+    activeSkillEffect,
     undoCount: undoStack.length,
     unitLabels: UNIT_LABELS,
     text,
@@ -1683,7 +1889,7 @@ function render() {
     countPieces,
     localizeResultReason,
   });
-  const matchResultVisible = Boolean(state.winner && (state.mode === "pve" || state.mode === "pvp"));
+  const matchResultVisible = Boolean(state.winner && (state.mode === "pve" || state.mode === "pvp") && !activeSkillEffect);
   if (matchResultVisible) {
     if (state.mode === "pvp") {
       if (networkSession.opponentDisconnected) {
@@ -1982,11 +2188,17 @@ suicideConfirmModal.addEventListener("keydown", (event) => {
 function resetGame() {
   if (aiTimer !== null) window.clearTimeout(aiTimer);
   if (tauntTimer !== null) window.clearTimeout(tauntTimer);
+  if (cutsceneTimer !== null) window.clearTimeout(cutsceneTimer);
+  if (skillEffectTimer !== null) window.clearTimeout(skillEffectTimer);
   if (tutorialTimer !== null) window.clearTimeout(tutorialTimer);
   aiTimer = null;
   tauntTimer = null;
+  cutsceneTimer = null;
+  skillEffectTimer = null;
   tutorialTimer = null;
   visibleTaunt = null;
+  visibleCutscene = null;
+  activeSkillEffect = null;
   lastTauntEventId = 0;
   rematchRequested = false;
   undoStack = [];
@@ -2010,11 +2222,17 @@ function resetGame() {
 function startNewGame() {
   if (aiTimer !== null) window.clearTimeout(aiTimer);
   if (tauntTimer !== null) window.clearTimeout(tauntTimer);
+  if (cutsceneTimer !== null) window.clearTimeout(cutsceneTimer);
+  if (skillEffectTimer !== null) window.clearTimeout(skillEffectTimer);
   if (tutorialTimer !== null) window.clearTimeout(tutorialTimer);
   tutorialTimer = null;
   aiTimer = null;
   tauntTimer = null;
+  cutsceneTimer = null;
+  skillEffectTimer = null;
   visibleTaunt = null;
+  visibleCutscene = null;
+  activeSkillEffect = null;
   lastTauntEventId = 0;
   rematchRequested = false;
   undoStack = [];
@@ -2266,6 +2484,8 @@ function handleNetworkMessage(message) {
     const previousTeleportKey = state?.teleporting
       ? `${state.teleporting.owner}:${state.teleporting.row}:${state.teleporting.col}`
       : "";
+    const previousPendingSpecial = state?.pendingSpecial;
+    const previousBoard = state?.board;
     networkSession.roomCode = message.roomCode || networkSession.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
     networkSession.player = message.player || networkSession.player;
@@ -2280,6 +2500,16 @@ function handleNetworkMessage(message) {
     if (nextTeleportKey && nextTeleportKey !== previousTeleportKey) wizardMovePromptDismissed = false;
     if (message.type === "match_start") {
       lastTauntEventId = 0;
+      if (cutsceneTimer !== null) {
+        window.clearTimeout(cutsceneTimer);
+        cutsceneTimer = null;
+      }
+      if (skillEffectTimer !== null) {
+        window.clearTimeout(skillEffectTimer);
+        skillEffectTimer = null;
+      }
+      visibleCutscene = null;
+      activeSkillEffect = null;
       rematchRequested = false;
       rematchOfferedBy = null;
       hideRematchToast();
@@ -2292,6 +2522,37 @@ function handleNetworkMessage(message) {
     networkModal.hidden = true;
     setNetworkStatus(text("roomPlayer", { room: currentBoardLabel(), side: sideName(networkSession.player) }));
     if (state.tauntEvent?.id !== lastTauntEventId) showTauntBubble(state.tauntEvent);
+    if (previousPendingSpecial && !state.pendingSpecial) {
+      const specialType = previousPendingSpecial.type || previousPendingSpecial.unitType;
+      if (specialType === "general") {
+        const removedPieces = [];
+        const pRow = previousPendingSpecial.row;
+        const pCol = previousPendingSpecial.col;
+        const adjacentCoords = [[pRow - 1, pCol], [pRow + 1, pCol], [pRow, pCol - 1], [pRow, pCol + 1]];
+        for (const [ar, ac] of adjacentCoords) {
+          if (ar >= 0 && ar < 9 && ac >= 0 && ac < 9) {
+            const prevP = previousBoard?.[ar]?.[ac];
+            const currP = state.board?.[ar]?.[ac];
+            if (prevP && !currP && prevP.owner !== previousPendingSpecial.owner) {
+              removedPieces.push({ row: ar, col: ac, owner: prevP.owner, unitType: prevP.type, revealed: prevP.revealed });
+            }
+          }
+        }
+        triggerGeneralSkillSequence({
+          owner: previousPendingSpecial.owner,
+          unitType: "general",
+          row: previousPendingSpecial.row,
+          col: previousPendingSpecial.col,
+        }, removedPieces);
+      } else {
+        showSpecialCutscene({
+          owner: previousPendingSpecial.owner,
+          unitType: specialType,
+          row: previousPendingSpecial.row,
+          col: previousPendingSpecial.col,
+        });
+      }
+    }
     render();
     return;
   }
@@ -2541,3 +2802,225 @@ window.setInterval(() => {
 render();
 if (showingDemo) scheduleAiTurn();
 enterLobbyAfterSplash(showingDemo);
+
+// FX Preview Toolbar Controller
+const fxPreviewBar = document.querySelector("#fxPreviewBar");
+const toggleFxBarBtn = document.querySelector("#toggleFxBarBtn");
+const fxGeneralBtn = document.querySelector("#fxGeneralBtn");
+const fxDiplomatBtn = document.querySelector("#fxDiplomatBtn");
+const fxGeneralCutinBtn = document.querySelector("#fxGeneralCutinBtn");
+const fxDiplomatCutinBtn = document.querySelector("#fxDiplomatCutinBtn");
+const fxWizardCutinBtn = document.querySelector("#fxWizardCutinBtn");
+const fxKingTauntBtn = document.querySelector("#fxKingTauntBtn");
+const fxSideToggleBtn = document.querySelector("#fxSideToggleBtn");
+const fxLoopToggleBtn = document.querySelector("#fxLoopToggleBtn");
+
+let fxPreviewSide = "red";
+let fxLoopActive = false;
+let fxLoopInterval = null;
+
+function setupGeneralDemoBoard(side = "red", shouldRender = true) {
+  const opponent = side === "red" ? "blue" : "red";
+  if (modeModal) modeModal.hidden = true;
+  state.mode = "pve";
+  state.board = Array.from({ length: 9 }, () => Array(9).fill(null));
+  state.board[4][4] = { id: "demo-general", type: "general", owner: side, revealed: true, abilityUsed: false };
+  state.board[3][4] = { id: "demo-enemy-1", type: "soldier", owner: opponent, revealed: false };
+  state.board[5][4] = { id: "demo-enemy-2", type: "soldier", owner: opponent, revealed: false };
+  state.board[4][3] = { id: "demo-enemy-3", type: "soldier", owner: opponent, revealed: false };
+  state.board[4][5] = { id: "demo-enemy-4", type: "soldier", owner: opponent, revealed: false };
+  state.winner = null;
+  state.selected = null;
+  if (shouldRender) render();
+}
+
+function playGeneralDemo() {
+  setupGeneralDemoBoard(fxPreviewSide, false);
+  const opponent = fxPreviewSide === "red" ? "blue" : "red";
+  const removedEvents = [
+    { row: 3, col: 4, owner: opponent, unitType: "soldier", pieceId: "demo-enemy-1", reason: "general_reaction" },
+    { row: 5, col: 4, owner: opponent, unitType: "soldier", pieceId: "demo-enemy-2", reason: "general_reaction" },
+    { row: 4, col: 3, owner: opponent, unitType: "soldier", pieceId: "demo-enemy-3", reason: "general_reaction" },
+    { row: 4, col: 5, owner: opponent, unitType: "soldier", pieceId: "demo-enemy-4", reason: "general_reaction" },
+  ];
+  state.board[3][4] = null;
+  state.board[5][4] = null;
+  state.board[4][3] = null;
+  state.board[4][5] = null;
+  if (state.board[4][4]) state.board[4][4].abilityUsed = true;
+  triggerGeneralSkillSequence({
+    owner: fxPreviewSide,
+    unitType: "general",
+    row: 4,
+    col: 4,
+  }, removedEvents);
+}
+
+function setupDiplomatDemoBoard(side = "red", shouldRender = true) {
+  const opponent = side === "red" ? "blue" : "red";
+  if (modeModal) modeModal.hidden = true;
+  state.mode = "pve";
+  state.board = Array.from({ length: 9 }, () => Array(9).fill(null));
+  state.board[4][4] = { id: "demo-diplomat", type: "diplomat", owner: side, revealed: true, abilityUsed: false };
+  state.board[3][4] = { id: "demo-enemy-1", type: "soldier", owner: opponent, revealed: false };
+  state.board[5][4] = { id: "demo-enemy-2", type: "soldier", owner: opponent, revealed: false };
+  state.board[4][3] = { id: "demo-enemy-3", type: "soldier", owner: opponent, revealed: false };
+  state.board[4][5] = { id: "demo-enemy-4", type: "soldier", owner: opponent, revealed: false };
+  state.winner = null;
+  state.selected = null;
+  if (shouldRender) render();
+}
+
+function playDiplomatDemo() {
+  setupDiplomatDemoBoard(fxPreviewSide, false);
+  const opponent = fxPreviewSide === "red" ? "blue" : "red";
+  const convertedPieces = [
+    { row: 3, col: 4, fromOwner: opponent, toOwner: fxPreviewSide, pieceId: "demo-enemy-1" },
+    { row: 5, col: 4, fromOwner: opponent, toOwner: fxPreviewSide, pieceId: "demo-enemy-2" },
+    { row: 4, col: 3, fromOwner: opponent, toOwner: fxPreviewSide, pieceId: "demo-enemy-3" },
+    { row: 4, col: 5, fromOwner: opponent, toOwner: fxPreviewSide, pieceId: "demo-enemy-4" },
+  ];
+  state.board[3][4] = { id: "demo-enemy-1", type: "soldier", owner: fxPreviewSide, revealed: false, abilityUsed: true };
+  state.board[5][4] = { id: "demo-enemy-2", type: "soldier", owner: fxPreviewSide, revealed: false, abilityUsed: true };
+  state.board[4][3] = { id: "demo-enemy-3", type: "soldier", owner: fxPreviewSide, revealed: false, abilityUsed: true };
+  state.board[4][5] = { id: "demo-enemy-4", type: "soldier", owner: fxPreviewSide, revealed: false, abilityUsed: true };
+  if (state.board[4][4]) state.board[4][4].abilityUsed = true;
+  triggerDiplomatSkillSequence({
+    owner: fxPreviewSide,
+    unitType: "diplomat",
+    row: 4,
+    col: 4,
+  }, convertedPieces);
+}
+
+function setupWizardDemoBoard(side = "red", shouldRender = true) {
+  const opponent = side === "red" ? "blue" : "red";
+  if (modeModal) modeModal.hidden = true;
+  state.mode = "pve";
+  state.board = Array.from({ length: 9 }, () => Array(9).fill(null));
+  state.board[4][4] = { id: "demo-wizard", type: "wizard", owner: side, revealed: true, abilityUsed: false };
+  state.board[3][4] = { id: "demo-enemy-1", type: "soldier", owner: opponent, revealed: false };
+  state.board[5][4] = { id: "demo-enemy-2", type: "soldier", owner: opponent, revealed: false };
+  state.board[4][3] = { id: "demo-enemy-3", type: "soldier", owner: opponent, revealed: false };
+  state.board[4][5] = { id: "demo-enemy-4", type: "soldier", owner: opponent, revealed: false };
+  state.winner = null;
+  state.selected = null;
+  if (shouldRender) render();
+}
+
+function playWizardDemo() {
+  setupWizardDemoBoard(fxPreviewSide, false);
+  const opponent = fxPreviewSide === "red" ? "blue" : "red";
+  const removedEvents = [
+    { row: 3, col: 4, owner: opponent, unitType: "soldier", pieceId: "demo-enemy-1", reason: "wizard_reaction" },
+    { row: 5, col: 4, owner: opponent, unitType: "soldier", pieceId: "demo-enemy-2", reason: "wizard_reaction" },
+    { row: 4, col: 3, owner: opponent, unitType: "soldier", pieceId: "demo-enemy-3", reason: "wizard_reaction" },
+    { row: 4, col: 5, owner: opponent, unitType: "soldier", pieceId: "demo-enemy-4", reason: "wizard_reaction" },
+  ];
+  state.board[3][4] = null;
+  state.board[5][4] = null;
+  state.board[4][3] = null;
+  state.board[4][5] = null;
+  if (state.board[4][4]) state.board[4][4].abilityUsed = true;
+  triggerWizardSkillSequence({
+    owner: fxPreviewSide,
+    unitType: "wizard",
+    row: 4,
+    col: 4,
+  }, removedEvents);
+}
+
+toggleFxBarBtn?.addEventListener("click", () => {
+  fxPreviewBar?.classList.toggle("collapsed");
+  if (toggleFxBarBtn && fxPreviewBar) {
+    toggleFxBarBtn.textContent = fxPreviewBar.classList.contains("collapsed") ? "열기" : "최소화";
+  }
+});
+
+fxGeneralBtn?.addEventListener("click", () => {
+  playGeneralDemo();
+});
+
+fxDiplomatBtn?.addEventListener("click", () => {
+  setCoinDesign("a");
+  playDiplomatDemo();
+});
+
+const fxWizardBtn = document.querySelector("#fxWizardBtn");
+fxWizardBtn?.addEventListener("click", () => {
+  playWizardDemo();
+});
+
+fxGeneralCutinBtn?.addEventListener("click", () => {
+  if (modeModal) modeModal.hidden = true;
+  showSpecialCutscene({ owner: fxPreviewSide, unitType: "general", row: 4, col: 4, durationMs: 2000 });
+});
+
+fxDiplomatCutinBtn?.addEventListener("click", () => {
+  if (modeModal) modeModal.hidden = true;
+  showSpecialCutscene({ owner: fxPreviewSide, unitType: "diplomat", row: 4, col: 4, durationMs: 2000 });
+});
+
+fxWizardCutinBtn?.addEventListener("click", () => {
+  if (modeModal) modeModal.hidden = true;
+  showSpecialCutscene({ owner: fxPreviewSide, unitType: "wizard", row: 4, col: 4, durationMs: 2000 });
+});
+
+fxKingTauntBtn?.addEventListener("click", () => {
+  if (modeModal) modeModal.hidden = true;
+  showTauntBubble({ speakerOwner: fxPreviewSide, id: Date.now() });
+});
+
+fxSideToggleBtn?.addEventListener("click", () => {
+  fxPreviewSide = fxPreviewSide === "red" ? "blue" : "red";
+  fxSideToggleBtn.textContent = fxPreviewSide === "red" ? "진영: 흑 (Black)" : "진영: 백 (White)";
+  if (fxPreviewSide === "blue") {
+    fxSideToggleBtn.classList.add("fx-btn-active");
+  } else {
+    fxSideToggleBtn.classList.remove("fx-btn-active");
+  }
+});
+
+fxLoopToggleBtn?.addEventListener("click", () => {
+  fxLoopActive = !fxLoopActive;
+  if (fxLoopActive) {
+    fxLoopToggleBtn.textContent = "🔁 반복 재생: ON";
+    fxLoopToggleBtn.classList.add("fx-btn-active");
+    playWizardDemo();
+    fxLoopInterval = window.setInterval(() => {
+      playWizardDemo();
+    }, 3100);
+  } else {
+    fxLoopToggleBtn.textContent = "🔁 반복 재생: OFF";
+    fxLoopToggleBtn.classList.remove("fx-btn-active");
+    if (fxLoopInterval) {
+      window.clearInterval(fxLoopInterval);
+      fxLoopInterval = null;
+    }
+  }
+});
+
+window.playGeneralDemo = playGeneralDemo;
+window.setupGeneralDemoBoard = setupGeneralDemoBoard;
+window.playDiplomatDemo = playDiplomatDemo;
+window.setupDiplomatDemoBoard = setupDiplomatDemoBoard;
+window.playWizardDemo = playWizardDemo;
+window.setupWizardDemoBoard = setupWizardDemoBoard;
+
+const urlParams = new URLSearchParams(location.search);
+if (urlParams.has("coin")) {
+  setCoinDesign(urlParams.get("coin"));
+}
+if (urlParams.has("fx") || urlParams.get("demo") === "fx") {
+  if (splashModal) splashModal.hidden = true;
+  if (modeModal) modeModal.hidden = true;
+  window.setTimeout(() => {
+    if (urlParams.get("fx") === "wizard") {
+      playWizardDemo();
+    } else if (urlParams.get("fx") === "diplomat") {
+      playDiplomatDemo();
+    } else {
+      playGeneralDemo();
+    }
+  }, 400);
+}

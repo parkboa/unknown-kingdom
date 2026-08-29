@@ -41,7 +41,7 @@ function createPieceIcon(type) {
   return icon;
 }
 
-function pieceElement(piece, row, col, context) {
+function pieceElement(piece, row, col, context, options = {}) {
   const element = document.createElement("div");
   const canSeeIdentity = viewerOwnsPiece(context.state, context.networkPlayer, piece, context.pveHumanPlayer);
   const specialIdentityVisible = SPECIALS.has(piece.type) && !piece.abilityUsed && (canSeeIdentity || piece.revealed);
@@ -50,6 +50,16 @@ function pieceElement(piece, row, col, context) {
     : "soldier";
   element.className = `piece ${piece.owner} ${visibleType}`;
   if (specialIdentityVisible) element.classList.add("special");
+
+  if (options.isSliced) {
+    element.classList.add("slash-sliced", `dir-${options.direction || "north"}`);
+  }
+  if (options.isConverting) {
+    element.classList.add("diplomat-converting");
+  }
+  if (options.isVanishing) {
+    element.classList.add("wizard-vanishing");
+  }
 
   const visibleIconType = piece.type === "king"
     ? "king"
@@ -62,21 +72,88 @@ function pieceElement(piece, row, col, context) {
   return element;
 }
 
-function createTauntOverlay(context) {
-  if (!context.visibleTaunt) return null;
+export const CUTSCENE_IMAGES = {
+  king: {
+    red: "./assets/taunts/kingb_zzol.png",
+    blue: "./assets/taunts/kingw_zzol.png",
+  },
+  general: {
+    red: "./assets/taunts/generalb.png",
+    blue: "./assets/taunts/generalw.png",
+  },
+  diplomat: {
+    red: "./assets/taunts/diplomatb.png",
+    blue: "./assets/taunts/diplomatw.png",
+  },
+  wizard: {
+    red: "./assets/taunts/wizardb.png",
+    blue: "./assets/taunts/wizardw.png",
+  },
+};
+
+export const COIN_DESIGNS = {
+  a: '<svg viewBox="0 0 48 48" fill="none"><defs><radialGradient id="coinGradA" cx="35%" cy="30%" r="70%"><stop offset="0%" stop-color="#ffffff"/><stop offset="25%" stop-color="#fff9a6"/><stop offset="65%" stop-color="#ffd700"/><stop offset="100%" stop-color="#d49b00"/></radialGradient></defs><circle cx="24" cy="24" r="20" fill="url(#coinGradA)" stroke="#c99000" stroke-width="1.5"/><circle cx="24" cy="24" r="16" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.75"/><path d="M 17 28 L 31 28 L 32 20 L 27 24 L 24 17 L 21 24 L 16 20 Z" fill="#9e7000" stroke="#fff176" stroke-width="0.9" stroke-linejoin="round"/></svg>',
+  b: '<svg viewBox="0 0 48 48" fill="none"><defs><radialGradient id="coinGradB" cx="35%" cy="30%" r="70%"><stop offset="0%" stop-color="#ffffff"/><stop offset="25%" stop-color="#ffecb3"/><stop offset="70%" stop-color="#ffa000"/><stop offset="100%" stop-color="#ff6f00"/></radialGradient></defs><circle cx="24" cy="24" r="20" fill="url(#coinGradB)" stroke="#b24c00" stroke-width="1.5"/><circle cx="24" cy="24" r="17" fill="none" stroke="#ffe082" stroke-width="1" opacity="0.8"/><rect x="18" y="18" width="12" height="12" rx="1" fill="#3e2723" stroke="#ffd54f" stroke-width="1.2"/><rect x="19.5" y="19.5" width="9" height="9" fill="#1b120c"/></svg>',
+  c: '<svg viewBox="0 0 48 48" fill="none"><defs><radialGradient id="coinGradC" cx="30%" cy="25%" r="75%"><stop offset="0%" stop-color="#ffffff"/><stop offset="30%" stop-color="#ffff72"/><stop offset="70%" stop-color="#ffd600"/><stop offset="100%" stop-color="#f57f17"/></radialGradient></defs><circle cx="24" cy="24" r="20" fill="url(#coinGradC)" stroke="#e65100" stroke-width="1.5"/><path d="M 24 10 L 38 24 L 24 38 L 10 24 Z" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.85"/><circle cx="24" cy="24" r="5" fill="#ffffff" opacity="0.9"/><path d="M 24 14 L 24 34 M 14 24 L 34 24" stroke="#ffeb3b" stroke-width="1.5" stroke-linecap="round"/></svg>',
+};
+
+export let selectedCoinDesign = "a";
+export function setCoinDesign(type) {
+  if (COIN_DESIGNS[type]) selectedCoinDesign = type;
+}
+
+let cachedOverlayKey = "";
+let cachedOverlayEl = null;
+
+export function createTauntOverlay(context) {
+  const item = context.visibleTaunt || context.visibleCutscene;
+  if (!item) {
+    cachedOverlayKey = "";
+    cachedOverlayEl = null;
+    return null;
+  }
+  const owner = item.speakerOwner || item.owner || "red";
+  const unitType = item.unitType || "king";
+  const itemKey = `${unitType}_${owner}_${item.id || item.durationMs || ""}`;
+
+  if (cachedOverlayEl && cachedOverlayKey === itemKey) {
+    return cachedOverlayEl;
+  }
+
+  cachedOverlayKey = itemKey;
   const overlay = document.createElement("div");
-  overlay.className = `taunt-overlay ${context.visibleTaunt.speakerOwner === "red" ? "black-taunt" : "white-taunt"}`;
-  if (context.visibleTaunt.durationMs) overlay.style.setProperty("--taunt-duration", `${context.visibleTaunt.durationMs}ms`);
+  overlay.className = `taunt-overlay ${owner === "red" ? "black-taunt" : "white-taunt"} cutscene-${unitType}`;
+  if (item.durationMs) overlay.style.setProperty("--taunt-duration", `${item.durationMs}ms`);
   const image = document.createElement("img");
   image.className = "taunt-character";
   image.alt = "";
-  image.src = context.visibleTaunt.speakerOwner === "red"
-    ? "./assets/taunts/kingb_zzol.png"
-    : "./assets/taunts/kingw_zzol.png";
-  const callout = document.createElement("span");
-  callout.className = "taunt-callout";
-  callout.textContent = context.text("tauntBubble");
-  overlay.append(image, callout);
+  image.src = CUTSCENE_IMAGES[unitType]?.[owner]
+    || (owner === "red" ? "./assets/taunts/kingb_zzol.png" : "./assets/taunts/kingw_zzol.png");
+  const dialogueBox = document.createElement("div");
+  dialogueBox.className = "taunt-dialogue-box";
+
+  const nameplate = document.createElement("div");
+  nameplate.className = "taunt-nameplate";
+  nameplate.textContent = context.unitLabels[unitType] || unitType.toUpperCase();
+
+  const dialogueText = document.createElement("div");
+  dialogueText.className = "taunt-dialogue-text";
+
+  if (unitType === "king") {
+    dialogueText.textContent = context.text("tauntBubble");
+  } else if (unitType === "general") {
+    dialogueText.textContent = context.text("generalTauntBubble");
+  } else if (unitType === "diplomat") {
+    dialogueText.textContent = context.text("diplomatTauntBubble");
+  } else if (unitType === "wizard") {
+    dialogueText.textContent = context.text("wizardTauntBubble");
+  } else {
+    dialogueText.textContent = context.unitLabels[unitType] || unitType;
+  }
+
+  dialogueBox.append(nameplate, dialogueText);
+  overlay.append(image, dialogueBox);
+  cachedOverlayEl = overlay;
   return overlay;
 }
 
@@ -118,8 +195,94 @@ function renderBoard(context) {
       if (context.state.selected?.row === row && context.state.selected?.col === col) button.classList.add("selected");
       if (context.canDeploy(context.state.turn, context.currentUnitChoice(), row, col, { forHint: true })) button.classList.add("valid");
       if (canControlTeleport && !context.state.board[row][col]) button.classList.add("teleport");
-      const piece = context.state.board[row][col];
-      if (piece) button.append(pieceElement(piece, row, col, context));
+
+      let piece = context.state.board[row][col];
+      let pieceOptions = {};
+      const skillEffect = context.activeSkillEffect;
+      if (skillEffect?.type === "general_strike") {
+        if (skillEffect.source.row === row && skillEffect.source.col === col && skillEffect.phase === "slash") {
+          const emitter = document.createElement("div");
+          emitter.className = "general-slash-emitter";
+          const activeDirections = new Set(
+            (skillEffect.targets || []).map((t) => t.direction).filter(Boolean),
+          );
+          const dirsToRender = activeDirections.size > 0 ? activeDirections : ["north", "south", "west", "east"];
+          for (const dir of dirsToRender) {
+            const flash = document.createElement("span");
+            flash.className = `slash-flash slash-${dir}`;
+            emitter.append(flash);
+          }
+          button.append(emitter);
+        }
+        const target = skillEffect.targets?.find((t) => t.row === row && t.col === col);
+        if (target) {
+          if (!piece) {
+            piece = {
+              id: target.pieceId || `target-${row}-${col}`,
+              owner: target.owner,
+              type: target.unitType || "soldier",
+              revealed: Boolean(target.revealed),
+              abilityUsed: false,
+            };
+          }
+          if (skillEffect.phase === "slash") {
+            pieceOptions = { isSliced: true, direction: target.direction };
+          }
+        }
+      } else if (skillEffect?.type === "diplomat_conversion") {
+        const target = skillEffect.targets?.find((t) => t.row === row && t.col === col);
+        if (target) {
+          if (skillEffect.phase === "cutin") {
+            piece = {
+              id: target.pieceId || `target-${row}-${col}`,
+              owner: target.fromOwner,
+              type: "soldier",
+              revealed: true,
+              abilityUsed: false,
+            };
+          } else if (skillEffect.phase === "bribe") {
+            piece = {
+              id: target.pieceId || `target-${row}-${col}`,
+              owner: target.toOwner,
+              type: "soldier",
+              revealed: true,
+              abilityUsed: false,
+            };
+            pieceOptions = { isConverting: true };
+
+            const coin = document.createElement("span");
+            coin.className = "diplomat-gold-coin";
+            coin.innerHTML = COIN_DESIGNS[context.coinDesign || selectedCoinDesign || "a"] || COIN_DESIGNS.a;
+            button.append(coin);
+
+            const gleam = document.createElement("span");
+            gleam.className = "diplomat-gold-gleam";
+            button.append(gleam);
+          }
+        }
+      } else if (skillEffect?.type === "wizard_vanish") {
+        const target = skillEffect.targets?.find((t) => t.row === row && t.col === col);
+        if (target) {
+          if (!piece) {
+            piece = {
+              id: target.pieceId || `target-${row}-${col}`,
+              owner: target.owner,
+              type: target.unitType || "soldier",
+              revealed: Boolean(target.revealed),
+              abilityUsed: false,
+            };
+          }
+          if (skillEffect.phase === "rune") {
+            pieceOptions = { isVanishing: true };
+            const rune = document.createElement("span");
+            rune.className = "wizard-magic-rune";
+            rune.innerHTML = '<svg viewBox="0 0 48 48" fill="none"><defs><radialGradient id="runeGlowGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f0abfc" stop-opacity="0.3"/><stop offset="70%" stop-color="#c084fc" stop-opacity="0.15"/><stop offset="100%" stop-color="#a855f7" stop-opacity="0"/></radialGradient></defs><circle cx="24" cy="24" r="22" fill="url(#runeGlowGrad)"/><circle cx="24" cy="24" r="21" stroke="#e879f9" stroke-width="1.2" stroke-dasharray="3 1.5"/><circle cx="24" cy="24" r="18" stroke="#c084fc" stroke-width="0.8"/><polygon points="24,6 39,33 9,33" fill="none" stroke="#f0abfc" stroke-width="0.8" opacity="0.85"/><polygon points="24,42 9,15 39,15" fill="none" stroke="#e879f9" stroke-width="0.8" opacity="0.85"/><circle cx="24" cy="24" r="9" stroke="#ffffff" stroke-width="1" opacity="0.9"/><circle cx="24" cy="6" r="1.5" fill="#ffffff"/><circle cx="24" cy="42" r="1.5" fill="#ffffff"/><circle cx="6" cy="24" r="1.5" fill="#ffffff"/><circle cx="42" cy="24" r="1.5" fill="#ffffff"/><circle cx="24" cy="24" r="3" fill="#ffffff" opacity="0.95"/></svg>';
+            button.append(rune);
+          }
+        }
+      }
+
+      if (piece) button.append(pieceElement(piece, row, col, context, pieceOptions));
       button.addEventListener("click", () => context.selectCell(row, col));
       context.boardEl.append(button);
     }
