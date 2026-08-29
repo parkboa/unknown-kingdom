@@ -40,7 +40,7 @@ function randomLegalDeploy(state, player) {
   return { type: pick.unitType, row: pick.row, col: pick.col };
 }
 
-function chooseDeployMove(state, player, tier, settings) {
+function chooseDeployMove(state, player, tier, settings, collectDecisionDiagnostics = false) {
   if (tier === RANDOM_TIER) return randomLegalDeploy(state, player);
   const enemy = player === "red" ? "blue" : "red";
   const playerView = stateForPlayer(state, player);
@@ -87,6 +87,7 @@ function chooseDeployMove(state, player, tier, settings) {
     canDeploy: (owner, type, row, col) => canDeploy(state, owner, type, row, col),
     countPieces: (owner) => countPieces(state, owner),
     neighbors,
+    collectDecisionDiagnostics,
   });
 }
 
@@ -172,6 +173,7 @@ export function playDeterministicAiMatch({
   redSettings = null,
   blueSettings = null,
   onDecision = null,
+  collectDecisionDiagnostics = false,
   randomOpeningPlies = 0,
   handicapPlayer = null,
   handicapStones = 0,
@@ -222,7 +224,13 @@ export function playDeterministicAiMatch({
       const openingPly = deployments < randomOpeningPlies;
       const move = openingPly
         ? randomOpeningMove(state, player)
-        : chooseDeployMove(state, player, tiers[player], settings[player]);
+        : chooseDeployMove(
+          state,
+          player,
+          tiers[player],
+          settings[player],
+          collectDecisionDiagnostics,
+        );
       if (!move) {
         const pass = getLegalActions(state, player).find((action) => action.type === "pass");
         if (!pass || !dispatch(player, pass).accepted) {
@@ -233,12 +241,26 @@ export function playDeterministicAiMatch({
 
       const action = { type: "deploy", unitType: move.type, row: move.row, col: move.col };
       if (onDecision) {
+        const enemy = player === "red" ? "blue" : "red";
         onDecision({
           deployments,
           player,
           tier: tiers[player],
           action: structuredClone(action),
-          diagnostics: move.mctsDiagnostics ? structuredClone(move.mctsDiagnostics) : null,
+          decisionContext: {
+            ownDeploymentCount: state.deploymentCount?.[player] ?? 0,
+            enemyDeploymentCount: state.deploymentCount?.[enemy] ?? 0,
+            occupiedCount: countPieces(state, "red") + countPieces(state, "blue"),
+            remainingSpecials: Object.fromEntries(
+              ["general", "wizard", "diplomat"].map((type) => [type, state.stock[player][type] || 0]),
+            ),
+          },
+          diagnostics: move.decisionDiagnostics
+            ? structuredClone(move.decisionDiagnostics)
+            : move.mctsDiagnostics ? structuredClone(move.mctsDiagnostics) : null,
+          decisionStage: move.decisionStage || null,
+          catalog: move.decisionCatalog ? structuredClone(move.decisionCatalog) : null,
+          decisionPath: move.decisionPath ? structuredClone(move.decisionPath) : null,
         });
       }
       if (!dispatch(player, action).accepted) {

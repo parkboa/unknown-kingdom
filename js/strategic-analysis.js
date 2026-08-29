@@ -424,7 +424,9 @@ export function classifyMidgameCandidate(policy, candidate) {
   // the guard it turns need only belong to the King's group.
   const conversionCapture = candidate.type === "diplomat"
     && Boolean(policy.conversionCells?.has(key));
-  const specialAttack = conversionCapture || (policy.kingAssault && special && kingDistance <= 3);
+  const reactiveReplant = special && Boolean(candidate.reactiveSpecialReplant);
+  const specialAttack = conversionCapture || reactiveReplant
+    || (policy.kingAssault && special && kingDistance <= 3);
   // The type order is a real preference and not one the positional score carries: beside the
   // King the table scores a Diplomat two points above a General, so with the order gone the
   // stone-clearing doctrine loses those squares to an accident of the base values. What the
@@ -436,6 +438,7 @@ export function classifyMidgameCandidate(policy, candidate) {
   return {
     forcedSoldierLiberty: candidate.type === "soldier" && policy.forcedSoldierLiberties.has(key),
     specialAttack,
+    reactiveReplant,
     conversionCapture,
     specialOrder,
     kingDistance,

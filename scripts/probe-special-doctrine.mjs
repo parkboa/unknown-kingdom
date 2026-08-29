@@ -30,6 +30,12 @@ import {
 import { AI_RANK_SETTINGS, findAiDeployMove } from "../js/ai.js";
 import { neighbors } from "../js/board.js";
 import { diplomatConversionCapturesKing } from "../js/strategic-analysis.js";
+import {
+  chooseMixedTierAction,
+  parsePerturbationPolicy,
+} from "./lib/human-like-perturbation.mjs";
+import { loadPveJournalPositions } from "./lib/pve-journal-positions.mjs";
+import { parseOverrideTiers, settingsWithTierOverride } from "./lib/tier-overrides.mjs";
 
 const TIERS = ["novice", "intermediate", "advanced", "expert", "grandmaster"];
 const SPECIALS = ["general", "diplomat", "wizard"];
@@ -256,16 +262,24 @@ const CLASSIFIERS = [
 ];
 
 /**
- * Settings merged into every tier before it answers, so one knob can be swept across a saved
- * exam without regenerating the sample it was measured on.
+ * Settings merged into the selected tiers before they answer, so one knob can be swept across
+ * part of the ladder without regenerating the sample or changing the control tiers.
  */
 let tierOverride = null;
+let tierOverrideTiers = new Set();
 
 function askTier(position, tier, choices) {
   const state = structuredClone(position);
   state.aiRank = tier;
   delete state.aiSettings;
-  if (tierOverride) state.aiSettings = { ...AI_RANK_SETTINGS[tier], ...tierOverride };
+  if (tierOverride && tierOverrideTiers.has(tier)) {
+    state.aiSettings = settingsWithTierOverride(
+      AI_RANK_SETTINGS[tier],
+      tier,
+      tierOverride,
+      tierOverrideTiers,
+    );
+  }
   const player = state.turn;
   const allowed = choices ? new Set(choices) : null;
   return findAiDeployMove(state, {
@@ -293,30 +307,39 @@ const DOCTRINE_DEPLOYMENTS = 5;
  *
  * The opening is played by the tier rather than at random, or the King band and the four stones
  * beside it never reach the exam and every position is scored on a board no tier would have
- * built. The random stretch that follows is where the corpus gets its variety: the top tiers are
- * deterministic, so without it a pairing produces the same game every time.
+ * built. A perturbation stretch follows to give the corpus variety: `uniform` preserves the
+ * historical sampler, while `mixed-tier` chooses among distinct recommendations from all five
+ * tiers. Without either, a deterministic pairing produces the same game every time.
  */
-function* sampledPositions(random, { games, randomPlies, maxPlies }) {
+function mixedTierAction(state, random) {
+  return chooseMixedTierAction(TIERS.map((tier) => askTier(state, tier, null)), random);
+}
+
+function* sampledPositions(random, { games, randomPlies, maxPlies, perturbationPolicy }) {
   for (let game = 0; game < games; game += 1) {
     const state = createGameState("pve", { aiRank: "grandmaster" });
     const sides = {
       red: TIERS[Math.floor(random() * TIERS.length)],
       blue: TIERS[Math.floor(random() * TIERS.length)],
     };
-    const randomLeft = { red: randomPlies, blue: randomPlies };
+    const perturbationsLeft = { red: randomPlies, blue: randomPlies };
     for (let ply = 0; ply < maxPlies && !state.winner; ply += 1) {
       const player = state.turn;
       const placed = state.deploymentCount?.[player] ?? 0;
       const phase = placed < DOCTRINE_DEPLOYMENTS ? "doctrine"
-        : randomLeft[player] > 0 ? "random" : "play";
+        : perturbationsLeft[player] > 0 ? "perturbation" : "play";
       const quiet = !state.pendingSpecial && !state.teleporting && !state.pendingKingSwap;
       if (phase === "play" && quiet && state.firstDeployDone[player]) yield structuredClone(state);
 
       let action = null;
-      if (phase === "random") {
-        randomLeft[player] -= 1;
-        const options = legalDeployments(state, player);
-        action = options.length ? options[Math.floor(random() * options.length)] : null;
+      if (phase === "perturbation") {
+        perturbationsLeft[player] -= 1;
+        if (perturbationPolicy === "mixed-tier") {
+          action = mixedTierAction(state, random);
+        } else {
+          const options = legalDeployments(state, player);
+          action = options.length ? options[Math.floor(random() * options.length)] : null;
+        }
       } else {
         const move = askTier(state, sides[player], null);
         action = move ? { type: "deploy", unitType: move.type, row: move.row, col: move.col } : null;
@@ -334,18 +357,39 @@ function main() {
   const target = Number(optionValue("--positions", "60"));
   const games = Number(optionValue("--games", "40"));
   const maxPlies = Number(optionValue("--max-plies", "80"));
-  // Plies each side plays at random after its opening doctrine, which is where the corpus gets
-  // its variety. `--opening` used to mean random plies from move one; the doctrine now owns the
-  // first five deployments, so the knob only covers what comes after it.
+  // Perturbation plies after each side's opening doctrine. The option keeps its historical name,
+  // but `--perturbation-policy mixed-tier` makes these plausible tier-recommended moves instead
+  // of uniform legal moves.
   const randomPlies = Number(optionValue("--random-plies", "3"));
+  const perturbationPolicy = parsePerturbationPolicy(optionValue("--perturbation-policy", "uniform"));
   const perCategory = Number(optionValue("--per-category", "20"));
   const outputPath = optionValue("--output", "experiments/special-doctrine-probe.json");
   // Generating the exam plays hundreds of AI games; scoring it is cheap. A sweep over tier
   // settings pays that cost once and replays a finished report as the exam, the same way
   // `ai-tactics-suite.mjs` does — otherwise every variant is measured on a different paper.
   const examPath = optionValue("--load-exam");
+  const pveJournalsPath = optionValue("--pve-journals");
+  if (process.argv.includes("--pve-journals") && pveJournalsPath == null) {
+    throw new Error("--pve-journals requires a JSONL file or directory");
+  }
+  if (examPath && pveJournalsPath) {
+    throw new Error("--load-exam and --pve-journals are mutually exclusive corpus sources");
+  }
+  if (pveJournalsPath && process.argv.includes("--perturbation-policy")) {
+    throw new Error("--perturbation-policy does not apply to actual PvE journals");
+  }
   const overridePath = optionValue("--tier-override");
-  tierOverride = overridePath ? JSON.parse(readFileSync(resolve(overridePath), "utf8")) : null;
+  const pendingOverride = overridePath ? JSON.parse(readFileSync(resolve(overridePath), "utf8")) : null;
+  const overrideTiersValue = optionValue("--override-tiers");
+  if (process.argv.includes("--override-tiers") && overrideTiersValue == null) {
+    throw new Error("--override-tiers requires a comma-separated tier list");
+  }
+  if (overrideTiersValue && !pendingOverride) {
+    throw new Error("--override-tiers requires --tier-override");
+  }
+  const pendingOverrideTiers = pendingOverride
+    ? parseOverrideTiers(overrideTiersValue, TIERS)
+    : new Set();
   // A category whose quota is full stops the whole classifier chain for that position, so a rare
   // category cannot be filled by simply raising the target: the common ones consume the sample
   // first. `--only` narrows the chain instead, which is how a category as rare as breach_square
@@ -363,10 +407,14 @@ function main() {
 
   const exam = [];
   const counts = {};
+  let corpusSource = pveJournalsPath ? "pve-journal" : "synthetic";
+  let corpusPerturbationPolicy = pveJournalsPath ? "actual-pve" : perturbationPolicy;
   let scanned = 0;
 
   if (examPath) {
     const prior = JSON.parse(readFileSync(resolve(examPath), "utf8"));
+    corpusSource = prior.corpusSource ?? "replayed-exam";
+    corpusPerturbationPolicy = prior.perturbationPolicy ?? "legacy-unknown";
     for (const record of prior.answers) {
       if (!record.position) throw new Error(`${examPath} has no stored positions to replay`);
       if (onlyCategory && record.category !== onlyCategory) continue;
@@ -378,27 +426,43 @@ function main() {
         correct: record.correct,
         forbidden: record.forbidden,
         detail: record.detail,
+        source: record.source ?? null,
       });
       counts[record.category] = (counts[record.category] || 0) + 1;
     }
     scanned = prior.sampledPlies ?? 0;
   }
 
-  for (const position of examPath ? [] : sampledPositions(random, { games, randomPlies, maxPlies })) {
+  const sampled = examPath ? [] : pveJournalsPath
+    ? loadPveJournalPositions(pveJournalsPath)
+    : sampledPositions(random, {
+      games,
+      randomPlies,
+      maxPlies,
+      perturbationPolicy,
+    });
+  for (const sample of sampled) {
     if (exam.length >= target) break;
     scanned += 1;
+    const position = sample.position ?? sample;
+    const source = sample.source ?? null;
     if (forcedKingRescue(position, position.turn)) continue;
     for (const [, classify] of classifiers) {
       const verdict = classify(position, position.turn);
       if (!verdict) continue;
       if ((counts[verdict.category] || 0) >= perCategory) break;
       counts[verdict.category] = (counts[verdict.category] || 0) + 1;
-      exam.push({ id: `s${exam.length + 1}`, position, ...verdict });
+      exam.push({ id: `s${exam.length + 1}`, position, source, ...verdict });
       break;
     }
   }
 
   process.stderr.write(`${exam.length} positions from ${scanned} sampled plies ${JSON.stringify(counts)}\n`);
+
+  // An experiment must answer the same saved or generated paper as its baseline. Applying the
+  // override only after corpus construction prevents a variant from manufacturing its own exam.
+  tierOverride = pendingOverride;
+  tierOverrideTiers = pendingOverrideTiers;
 
   const scores = {};
   for (const tier of TIERS) scores[tier] = {};
@@ -411,6 +475,7 @@ function main() {
       // The position and the choice set are what make the report replayable; without them a
       // settings sweep has to regenerate the sample and ends up comparing different papers.
       position: item.position,
+      source: item.source,
       choices: item.choices,
       correct: item.correct,
       forbidden: item.forbidden,
@@ -447,7 +512,10 @@ function main() {
     generatedAt: new Date().toISOString(),
     seed,
     replayedFrom: examPath || null,
+    corpusSource,
+    perturbationPolicy: corpusPerturbationPolicy,
     tierOverride,
+    overrideTiers: tierOverride ? [...tierOverrideTiers] : null,
     randomPlies,
     positions: exam.length,
     sampledPlies: scanned,

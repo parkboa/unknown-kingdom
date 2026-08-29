@@ -1,0 +1,7 @@
+{
+  "kingDangerModel": true,
+  "territoryVerdictModel": true,
+  "additiveObjectiveModel": true,
+  "specialAnchorThreat": true,
+  "terminalObjectiveModel": false
+}

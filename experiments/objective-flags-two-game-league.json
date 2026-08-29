@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28",
+  "purpose": "Short observational league with all objective-model experiment flags ON versus OFF",
+  "config": {
+    "gamesPerColor": 1,
+    "gamesPerUnorderedTierPair": 2,
+    "gamesPerCondition": 20,
+    "maxDeployments": 180,
+    "seed": 20260828,
+    "startingPlayer": "red",
+    "onSettings": "experiments/all-objective-flags-on.json",
+    "offSettings": "experiments/all-objective-flags-off.json"
+  },
+  "summary": {
+    "winnerChangedGames": 11,
+    "comparedGames": 20,
+    "on": {
+      "averageDeployments": 62.15,
+      "kingCaptureFinishes": 12,
+      "territoryFinishes": 8,
+      "nearDrawTerritoryFinishes": 3,
+      "cappedGames": 0
+    },
+    "off": {
+      "averageDeployments": 52.1,
+      "kingCaptureFinishes": 16,
+      "territoryFinishes": 4,
+      "nearDrawTerritoryFinishes": 0,
+      "cappedGames": 0
+    }
+  },
+  "territoryMarginReview": {
+    "nearDrawDefinition": "territory finish with an absolute final piece margin of 1 to 3",
+    "on": [
+      { "gameNumber": 11, "red": "intermediate", "blue": "expert", "winner": "intermediate", "deployments": 90, "finalPieces": { "red": 41, "blue": 40 }, "pieceMargin": 1 },
+      { "gameNumber": 12, "red": "expert", "blue": "intermediate", "winner": "expert", "deployments": 85, "finalPieces": { "red": 41, "blue": 39 }, "pieceMargin": 2 },
+      { "gameNumber": 17, "red": "advanced", "blue": "grandmaster", "winner": "grandmaster", "deployments": 91, "finalPieces": { "red": 40, "blue": 41 }, "pieceMargin": 1 }
+    ],
+    "off": []
+  },
+  "standings": {
+    "on": [
+      { "tier": "intermediate", "wins": 6, "losses": 2, "scoreRate": 75 },
+      { "tier": "advanced", "wins": 6, "losses": 2, "scoreRate": 75 },
+      { "tier": "expert", "wins": 4, "losses": 4, "scoreRate": 50 },
+      { "tier": "grandmaster", "wins": 4, "losses": 4, "scoreRate": 50 },
+      { "tier": "novice", "wins": 0, "losses": 8, "scoreRate": 0 }
+    ],
+    "off": [
+      { "tier": "advanced", "wins": 5, "losses": 3, "scoreRate": 62.5 },
+      { "tier": "expert", "wins": 5, "losses": 3, "scoreRate": 62.5 },
+      { "tier": "novice", "wins": 4, "losses": 4, "scoreRate": 50 },
+      { "tier": "intermediate", "wins": 4, "losses": 4, "scoreRate": 50 },
+      { "tier": "grandmaster", "wins": 2, "losses": 6, "scoreRate": 25 }
+    ]
+  },
+  "matches": [
+    { "red": "novice", "blue": "intermediate", "onWinner": "intermediate", "offWinner": "novice", "onDeployments": 33, "offDeployments": 81 },
+    { "red": "intermediate", "blue": "novice", "onWinner": "intermediate", "offWinner": "intermediate", "onDeployments": 30, "offDeployments": 16 },
+    { "red": "novice", "blue": "advanced", "onWinner": "advanced", "offWinner": "advanced", "onDeployments": 21, "offDeployments": 47 },
+    { "red": "advanced", "blue": "novice", "onWinner": "advanced", "offWinner": "advanced", "onDeployments": 72, "offDeployments": 80 },
+    { "red": "novice", "blue": "expert", "onWinner": "expert", "offWinner": "expert", "onDeployments": 67, "offDeployments": 41 },
+    { "red": "expert", "blue": "novice", "onWinner": "expert", "offWinner": "novice", "onDeployments": 32, "offDeployments": 87 },
+    { "red": "novice", "blue": "grandmaster", "onWinner": "grandmaster", "offWinner": "novice", "onDeployments": 27, "offDeployments": 85 },
+    { "red": "grandmaster", "blue": "novice", "onWinner": "grandmaster", "offWinner": "novice", "onDeployments": 32, "offDeployments": 33 },
+    { "red": "intermediate", "blue": "advanced", "onWinner": "intermediate", "offWinner": "advanced", "onDeployments": 77, "offDeployments": 35 },
+    { "red": "advanced", "blue": "intermediate", "onWinner": "advanced", "offWinner": "advanced", "onDeployments": 28, "offDeployments": 85 },
+    { "red": "intermediate", "blue": "expert", "onWinner": "intermediate", "offWinner": "expert", "onDeployments": 90, "offDeployments": 63 },
+    { "red": "expert", "blue": "intermediate", "onWinner": "expert", "offWinner": "intermediate", "onDeployments": 85, "offDeployments": 43 },
+    { "red": "intermediate", "blue": "grandmaster", "onWinner": "intermediate", "offWinner": "intermediate", "onDeployments": 90, "offDeployments": 31 },
+    { "red": "grandmaster", "blue": "intermediate", "onWinner": "intermediate", "offWinner": "intermediate", "onDeployments": 47, "offDeployments": 24 },
+    { "red": "advanced", "blue": "expert", "onWinner": "advanced", "offWinner": "expert", "onDeployments": 88, "offDeployments": 41 },
+    { "red": "expert", "blue": "advanced", "onWinner": "advanced", "offWinner": "expert", "onDeployments": 84, "offDeployments": 56 },
+    { "red": "advanced", "blue": "grandmaster", "onWinner": "grandmaster", "offWinner": "grandmaster", "onDeployments": 91, "offDeployments": 33 },
+    { "red": "grandmaster", "blue": "advanced", "onWinner": "advanced", "offWinner": "advanced", "onDeployments": 86, "offDeployments": 34 },
+    { "red": "expert", "blue": "grandmaster", "onWinner": "grandmaster", "offWinner": "expert", "onDeployments": 95, "offDeployments": 81 },
+    { "red": "grandmaster", "blue": "expert", "onWinner": "expert", "offWinner": "grandmaster", "onDeployments": 68, "offDeployments": 46 }
+  ],
+  "interpretation": [
+    "This is an observational two-game-per-pair run, not a promotion or strength estimate.",
+    "Applying all flags uniformly flattens the intended tier ladder and is deliberately outside the final product design.",
+    "The 11/20 winner changes show that the combined flags materially alter play paths.",
+    "Novice falling from 4/8 to 0/8 is evidence against applying the correction stack to the raw tier."
+  ]
+}

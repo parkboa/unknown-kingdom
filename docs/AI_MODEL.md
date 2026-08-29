@@ -19,6 +19,7 @@
 | 3단계 — 전환 포획이 결정에 닿게 | **게임에 반영됨** | `diplomatConversionSight` (마스터) |
 | 3단계 — 왕은 성벽 옆, 인접 칸 선축성 | **게임에 반영됨** | `kingWallDistance`·`openingWallStones` (둘 다 티어별 사다리) |
 | 1·2단계 시험지 교리 오프닝 | **측정 도구에 반영됨 (08-28)** | `ai-tactics-suite.mjs --random-plies` |
+| 사람형 검증 분포 | **혼합 추천·실제 PvE 저널 입력 구현됨** | `--perturbation-policy mixed-tier` · `--pve-journals` |
 
 ## 왜 시작했나
 
@@ -318,6 +319,12 @@ p값은 최소 0.39.
 채점할 수 있다. 기존 `terminalObjectiveModel`은 세 플래그를 모두 켠 것과 평가 결과가 정확히
 같아 과거 실험과 호환된다. 재현용 소형 override는 `experiments/stage1*.json`과
 `experiments/stage2-*.json`에 저장한다.
+
+이 플래그들은 영구적인 난이도 설정이 아니라 **실험 장치**다. 독립 채점은 원인 분리를 위한
+것이며, 운영 승격은 전제조건과 티어 범위를 포함한 유효 조합으로 판단한다. 보정이 안정화되면
+해당 티어의 기본 로직에 흡수하고 플래그와 `terminalObjectiveModel` 호환 별칭을 제거한다.
+결정론적인 티어 간 리그 승률은 보조 회귀 지표로만 사용하고, 주된 판단은 결정 단위 시험과
+사람이 만들 법한 비정형 국면에서 티어별 행동 정체성이 유지되는지로 내린다.
 
 ## 3단계 — 특수 공격 숙련 (착수, 2026-08-27)
 

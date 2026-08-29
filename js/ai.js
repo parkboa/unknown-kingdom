@@ -13,6 +13,11 @@ import {
 } from "../packages/game-engine/src/index.js";
 import { evaluateStateTransition } from "./state-evaluation.js";
 import {
+  candidateActionKey,
+  classifyAiCandidate,
+  createAiCatalogContext,
+} from "./ai-catalog.js";
+import {
   KING_ADJACENT_SPECIAL_ODDS_FACTOR,
   KING_ADJACENT_SPECIAL_PROBABILITY,
   KING_TACTIC_PRIORITY,
@@ -57,6 +62,12 @@ export const AI_RANK_SETTINGS = {
     // then the four squares beside it.
     kingWallDistance: { min: 0, max: 6 },
     openingWallStones: 1,
+    specialDeploymentPolicy: {
+      earliestFirstDeployment: 9,
+      firstDeploymentDeadline: null,
+      maxConsecutive: 1,
+      rescueAtariSpecial: true,
+    },
     searchDepth: 2,
     rootCandidateLimit: 20,
     replyCandidateLimit: 12,
@@ -78,6 +89,12 @@ export const AI_RANK_SETTINGS = {
     // then the four squares beside it.
     kingWallDistance: { min: 0, max: 5 },
     openingWallStones: 2,
+    specialDeploymentPolicy: {
+      earliestFirstDeployment: 7,
+      firstDeploymentDeadline: 8,
+      maxConsecutive: 1,
+      rescueAtariSpecial: true,
+    },
     searchDepth: 2,
     rootCandidateLimit: 28,
     replyCandidateLimit: 16,
@@ -99,6 +116,12 @@ export const AI_RANK_SETTINGS = {
     // then the four squares beside it.
     kingWallDistance: { min: 0, max: 4 },
     openingWallStones: 2,
+    specialDeploymentPolicy: {
+      earliestFirstDeployment: 6,
+      firstDeploymentDeadline: 8,
+      maxConsecutive: 2,
+      rescueAtariSpecial: true,
+    },
     searchDepth: 3,
     rootCandidateLimit: 32,
     replyCandidateLimit: 20,
@@ -128,6 +151,12 @@ export const AI_RANK_SETTINGS = {
     // then the four squares beside it.
     kingWallDistance: { min: 0, max: 3 },
     openingWallStones: 3,
+    specialDeploymentPolicy: {
+      earliestFirstDeployment: 6,
+      firstDeploymentDeadline: 8,
+      maxConsecutive: 3,
+      rescueAtariSpecial: false,
+    },
     searchDepth: 3,
     tacticalExtension: true,
     rootCandidateLimit: 36,
@@ -181,6 +210,13 @@ export const AI_RANK_SETTINGS = {
     // then the four squares beside it.
     kingWallDistance: { min: 1, max: 1 },
     openingWallStones: 4,
+    specialDeploymentPolicy: {
+      earliestFirstDeployment: 6,
+      firstDeploymentDeadline: 8,
+      maxConsecutive: 3,
+      rescueAtariSpecial: false,
+      reactiveReplantAfterActivation: true,
+    },
     searchDepth: 3,
     localSearchDepth: 4,
     localFourPlyCandidateLimit: 6,
@@ -1053,11 +1089,36 @@ function generateSearchCandidates(state, player, enemy, neighbors) {
 }
 
 function prioritizeMidgameCandidates(state, candidates, player, enemy, settings, limit) {
-  if (!settings.midgameCandidatePolicy || !candidates.length) return candidates.slice(0, limit);
+  const finishPool = (selected, keptReason, stoppedReason) => {
+    const selectedByKey = new Map(selected.map(
+      (candidate) => [candidateActionKey(candidate), candidate],
+    ));
+    for (const candidate of candidates) {
+      const selectedCandidate = selectedByKey.get(candidateActionKey(candidate));
+      const kept = Boolean(selectedCandidate);
+      candidate.searchPoolDiagnostic = {
+        outcome: kept ? "kept" : "stopped",
+        reason: kept
+          ? (typeof keptReason === "function" ? keptReason(selectedCandidate) : keptReason)
+          : stoppedReason,
+      };
+    }
+    for (const candidate of selected) {
+      candidate.searchPoolDiagnostic = candidates.find(
+        (source) => candidateActionKey(source) === candidateActionKey(candidate),
+      )?.searchPoolDiagnostic || { outcome: "kept", reason: keptReason };
+    }
+    return selected;
+  };
+  if (!settings.midgameCandidatePolicy || !candidates.length) {
+    return finishPool(candidates.slice(0, limit), "score_limit_survivor", "outside_score_limit");
+  }
   const policy = buildMidgameTacticalPolicy(state, player, enemy, {
     conversionSight: settings.diplomatConversionSight,
   });
-  if (!policy.active) return candidates.slice(0, limit);
+  if (!policy.active) {
+    return finishPool(candidates.slice(0, limit), "inactive_policy_score_survivor", "outside_score_limit");
+  }
   const classified = candidates.map((candidate) => ({
     candidate,
     tactics: classifyMidgameCandidate(policy, candidate),
@@ -1068,7 +1129,8 @@ function prioritizeMidgameCandidates(state, candidates, player, enemy, settings,
     const attacks = specialAttacks
       .filter(({ tactics }) => tactics.specialOrder === bestSpecialOrder
         || (bestSpecialOrder === 3 && tactics.specialOrder === 2))
-      .sort((a, b) => b.tactics.specialOrder - a.tactics.specialOrder
+      .sort((a, b) => Number(b.tactics.reactiveReplant) - Number(a.tactics.reactiveReplant)
+        || b.tactics.specialOrder - a.tactics.specialOrder
         || a.tactics.kingDistance - b.tactics.kingDistance
         || compareCandidates(a.candidate, b.candidate, player))
       .slice(0, Math.min(limit, settings.midgameSpecialAttackLimit || 4));
@@ -1079,21 +1141,33 @@ function prioritizeMidgameCandidates(state, candidates, player, enemy, settings,
         limit - attacks.length,
         settings.kingAssaultSafetyCandidateLimit || 0,
       )));
-    return [...attacks, ...safetyReserve]
+    const selected = [...attacks, ...safetyReserve]
       .map(({ candidate, tactics }) => ({ ...candidate, midgameTactics: tactics }));
+    return finishPool(
+      selected,
+      (candidate) => candidate.midgameTactics?.specialAttack
+        ? "midgame_special_attack" : "king_assault_safety_reserve",
+      "midgame_special_attack_filter",
+    );
   }
 
   const forced = classified.filter(({ tactics }) => tactics.forcedSoldierLiberty);
   if (forced.length) {
-    return forced.map(({ candidate, tactics }) => ({ ...candidate, midgameTactics: tactics })).slice(0, limit);
+    return finishPool(
+      forced.map(({ candidate, tactics }) => ({ ...candidate, midgameTactics: tactics })).slice(0, limit),
+      "midgame_forced_soldier_liberty",
+      "midgame_forced_soldier_filter",
+    );
   }
 
   const captures = classified.filter(({ tactics }) => tactics.capture);
   if (captures.length) {
-    return captures
+    return finishPool(captures
       .sort((a, b) => compareCandidates(a.candidate, b.candidate, player))
       .slice(0, limit)
-      .map(({ candidate, tactics }) => ({ ...candidate, midgameTactics: tactics }));
+      .map(({ candidate, tactics }) => ({ ...candidate, midgameTactics: tactics })),
+    "midgame_capture",
+    "midgame_capture_filter");
   }
 
   const positional = classified
@@ -1102,11 +1176,17 @@ function prioritizeMidgameCandidates(state, candidates, player, enemy, settings,
       || Number(b.tactics.wallBridge) - Number(a.tactics.wallBridge)
       || compareCandidates(a.candidate, b.candidate, player));
   if (positional.length) {
-    return positional
+    return finishPool(positional
       .slice(0, Math.min(limit, settings.midgameTacticalCandidateLimit || 8))
-      .map(({ candidate, tactics }) => ({ ...candidate, midgameTactics: tactics }));
+      .map(({ candidate, tactics }) => ({ ...candidate, midgameTactics: tactics })),
+    "midgame_position",
+    "midgame_position_filter");
   }
-  return candidates.slice(0, Math.min(limit, settings.midgameTacticalCandidateLimit || 8));
+  return finishPool(
+    candidates.slice(0, Math.min(limit, settings.midgameTacticalCandidateLimit || 8)),
+    "midgame_fallback_score_survivor",
+    "outside_midgame_fallback_limit",
+  );
 }
 
 function isLocalStrategicCandidate(state, candidate, player, enemy) {
@@ -1341,33 +1421,382 @@ function wallDistanceRow(player, distance) {
   return player === "red" ? distance : SIZE - 1 - distance;
 }
 
-function openingWallPlan(state, player, settings) {
+export const AI_DECISION_STAGE = Object.freeze({
+  OPENING_KING: "opening_king",
+  OPENING_SANCTUARY: "opening_sanctuary",
+  OPENING_FREE_PLAY: "opening_free_play",
+  CATALOG: "catalog",
+});
+
+/**
+ * The opening contract sits above terminal checks and every scoring catalog.
+ *
+ * The rules engine always requires the King first and protects its sanctuary through the
+ * owner's fifth deployment. This contract adds the tier's policy inside that protected window:
+ * the King row band, then the configured number of adjacent wall stones. Once that tier-specific
+ * construction is complete, the remaining sanctuary turns are deliberately free play, but they
+ * are still identified as opening so later catalog arbitration cannot silently take precedence.
+ */
+export function openingDecisionContract(state, player, settings) {
   const band = settings.kingWallDistance;
-  if (band && !state.firstDeployDone?.[player]) {
+  if (!state.firstDeployDone?.[player]) {
     const rows = new Set();
-    for (let distance = band.min; distance <= band.max; distance += 1) {
-      rows.add(wallDistanceRow(player, distance));
+    if (band) {
+      for (let distance = band.min; distance <= band.max; distance += 1) {
+        rows.add(wallDistanceRow(player, distance));
+      }
     }
-    return (type, row) => type === "king" && rows.has(row);
+    return {
+      stage: AI_DECISION_STAGE.OPENING_KING,
+      sanctuaryActive: false,
+      allows: (type, row) => type === "king" && (!rows.size || rows.has(row)),
+    };
   }
+
+  const placed = state.deploymentCount?.[player] ?? 1;
+  const sanctuaryActive = placed > 0 && placed < 5;
+  if (!sanctuaryActive) {
+    return {
+      stage: AI_DECISION_STAGE.CATALOG,
+      sanctuaryActive: false,
+      allows: null,
+    };
+  }
+
   const stones = settings.openingWallStones || 0;
-  const placed = state.deploymentCount?.[player] ?? 0;
-  if (!stones || placed < 1 || placed > stones) return null;
+  if (!stones || placed > stones) {
+    return {
+      stage: AI_DECISION_STAGE.OPENING_FREE_PLAY,
+      sanctuaryActive: true,
+      allows: null,
+    };
+  }
   const king = findKing(state, player);
-  if (!king) return null;
+  if (!king) {
+    return {
+      stage: AI_DECISION_STAGE.OPENING_FREE_PLAY,
+      sanctuaryActive: true,
+      allows: null,
+    };
+  }
   const ring = new Set(orthogonalPositions(king.row, king.col)
     .filter(([row, col]) => row >= 0 && row < SIZE && col >= 0 && col < SIZE)
     .filter(([row, col]) => !state.board[row][col])
     .map(([row, col]) => `${row}:${col}`));
   // Nothing left to wall in — an edge column, or the opponent took the square first.
-  if (!ring.size) return null;
-  return (_type, row, col) => ring.has(`${row}:${col}`);
+  if (!ring.size) {
+    return {
+      stage: AI_DECISION_STAGE.OPENING_FREE_PLAY,
+      sanctuaryActive: true,
+      allows: null,
+    };
+  }
+  return {
+    stage: AI_DECISION_STAGE.OPENING_SANCTUARY,
+    sanctuaryActive: true,
+    allows: (_type, row, col) => ring.has(`${row}:${col}`),
+  };
 }
 
-export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, countPieces, neighbors }) {
+function recentOwnSpecialDeploymentStreak(state, player) {
+  const history = state.informationHistory?.[player];
+  if (!Array.isArray(history)) return 0;
+  let streak = 0;
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const transition = history[index];
+    const action = transition?.actor === player ? transition.ownAction : null;
+    if (action?.type !== "deploy") continue;
+    if (!SPECIAL_UNIT_TYPES.has(action.unitType)) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+function activeSpecialAtariLiberties(state, player) {
+  const liberties = new Set();
+  const visited = new Set();
+  for (let row = 0; row < SIZE; row += 1) {
+    for (let col = 0; col < SIZE; col += 1) {
+      const key = `${row}:${col}`;
+      const piece = state.board[row][col];
+      if (piece?.owner !== player || visited.has(key)) continue;
+      const group = collectGroup(state, row, col);
+      group.forEach(([groupRow, groupCol]) => visited.add(`${groupRow}:${groupCol}`));
+      const pieces = group.map(([groupRow, groupCol]) => state.board[groupRow][groupCol]);
+      if (pieces.some((groupPiece) => groupPiece.type === "king")) continue;
+      if (!pieces.some((groupPiece) =>
+        SPECIAL_UNIT_TYPES.has(groupPiece.type) && !groupPiece.abilityUsed)) continue;
+      const groupLiberties = new Set();
+      for (const [groupRow, groupCol] of group) {
+        for (const [nextRow, nextCol] of orthogonalPositions(groupRow, groupCol)) {
+          if (nextRow < 0 || nextRow >= SIZE || nextCol < 0 || nextCol >= SIZE) continue;
+          if (!state.board[nextRow][nextCol]) groupLiberties.add(`${nextRow}:${nextCol}`);
+        }
+      }
+      if (groupLiberties.size === 1) liberties.add([...groupLiberties][0]);
+    }
+  }
+  return liberties;
+}
+
+/** Empty cells created by the player's latest special activation, before another own deploy. */
+export function recentOwnSpecialActivationVacancies(state, player) {
+  const history = state.informationHistory?.[player];
+  if (!Array.isArray(history)) return new Set();
+  const laterWizardMoves = [];
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const transition = history[index];
+    if (transition?.actor === player && transition.ownAction?.type === "deploy") return new Set();
+    const events = Array.isArray(transition?.events) ? transition.events : [];
+    for (const event of events) {
+      if (event.type === "wizard_moved" && event.owner === player
+        && Number.isInteger(event.fromRow) && Number.isInteger(event.fromCol)) {
+        laterWizardMoves.push(event);
+      }
+    }
+    const activation = events.find((event) =>
+      event.type === "special_activated" && event.owner === player);
+    if (!activation) continue;
+
+    const vacancies = new Set();
+    const removalReason = activation.unitType === "general"
+      ? "general_reaction"
+      : activation.unitType === "wizard" ? "wizard_reaction" : null;
+    if (removalReason) {
+      for (const event of events) {
+        if (event.type === "piece_removed" && event.captor === player
+          && event.reason === removalReason
+          && Number.isInteger(event.row) && Number.isInteger(event.col)) {
+          vacancies.add(`${event.row}:${event.col}`);
+        }
+      }
+    }
+    if (activation.unitType === "wizard") {
+      for (const event of laterWizardMoves) {
+        if (!activation.pieceId || !event.pieceId || event.pieceId === activation.pieceId) {
+          vacancies.add(`${event.fromRow}:${event.fromCol}`);
+        }
+      }
+    }
+    return new Set([...vacancies].filter((key) => {
+      const [row, col] = key.split(":").map(Number);
+      return !state.board[row]?.[col];
+    }));
+  }
+  return new Set();
+}
+
+/**
+ * Tier identity for special deployment, below verified wins and King rescue but above scoring.
+ * Deployment numbers are the player's own turns: the first rules-legal special is number six.
+ */
+export function specialDeploymentContract(state, player, settings) {
+  const policy = settings.specialDeploymentPolicy || null;
+  const ownDeployments = state.deploymentCount?.[player] ?? 0;
+  const ownDeploymentNumber = ownDeployments + 1;
+  const remainingSpecials = [...SPECIAL_UNIT_TYPES]
+    .reduce((total, type) => total + Math.max(0, state.stock?.[player]?.[type] || 0), 0);
+  const specialsDeployed = Math.max(0, SPECIAL_UNIT_TYPES.size - remainingSpecials);
+  const firstSpecialPending = specialsDeployed === 0 && remainingSpecials > 0;
+  const reactiveReplantCells = policy?.reactiveReplantAfterActivation
+    && specialsDeployed === 2 && remainingSpecials === 1
+    ? recentOwnSpecialActivationVacancies(state, player)
+    : new Set();
+  return {
+    policy,
+    ownDeploymentNumber,
+    remainingSpecials,
+    specialsDeployed,
+    firstSpecialPending,
+    consecutiveSpecials: recentOwnSpecialDeploymentStreak(state, player),
+    atariSpecialLiberties: activeSpecialAtariLiberties(state, player),
+    reactiveReplantCells,
+  };
+}
+
+function applySpecialDeploymentContract(state, candidates, player, settings, recordDecision) {
+  const contract = specialDeploymentContract(state, player, settings);
+  const policy = contract.policy;
+  if (!policy || !candidates.length) return candidates;
+
+  const isSpecial = (candidate) => SPECIAL_UNIT_TYPES.has(candidate.type);
+  const atari = contract.atariSpecialLiberties;
+  for (const candidate of candidates) {
+    candidate.reactiveSpecialReplant = isSpecial(candidate)
+      && contract.reactiveReplantCells.has(`${candidate.row}:${candidate.col}`);
+  }
+  let allowed = candidates;
+  let reasonFor = () => "special_contract_available";
+
+  if (atari.size && policy.rescueAtariSpecial) {
+    allowed = candidates.filter((candidate) =>
+      candidate.type === "soldier" && atari.has(`${candidate.row}:${candidate.col}`));
+    reasonFor = (candidate) => allowed.includes(candidate)
+      ? "lower_tier_special_group_rescue"
+      : "special_group_rescue_selected";
+  } else {
+    allowed = candidates.filter((candidate) => {
+      if (atari.size && !policy.rescueAtariSpecial
+        && atari.has(`${candidate.row}:${candidate.col}`)) return false;
+      if (!isSpecial(candidate)) return true;
+      if (contract.firstSpecialPending
+        && contract.ownDeploymentNumber < policy.earliestFirstDeployment) return false;
+      if (contract.consecutiveSpecials >= policy.maxConsecutive) return false;
+      return true;
+    });
+    reasonFor = (candidate) => {
+      if (atari.size && !policy.rescueAtariSpecial
+        && atari.has(`${candidate.row}:${candidate.col}`)) return "high_tier_special_group_sacrifice";
+      if (isSpecial(candidate) && contract.firstSpecialPending
+        && contract.ownDeploymentNumber < policy.earliestFirstDeployment) {
+        return "before_tier_special_window";
+      }
+      if (isSpecial(candidate) && contract.consecutiveSpecials >= policy.maxConsecutive) {
+        return "special_consecutive_limit";
+      }
+      if (candidate.reactiveSpecialReplant) return "grandmaster_reactive_special_replant";
+      return "special_contract_available";
+    };
+
+    const deadline = policy.firstDeploymentDeadline;
+    if (contract.firstSpecialPending && deadline
+      && contract.ownDeploymentNumber >= deadline) {
+      const dueSpecials = allowed.filter(isSpecial);
+      if (dueSpecials.length) {
+        allowed = dueSpecials;
+        reasonFor = (candidate) => allowed.includes(candidate)
+          ? "first_special_deadline"
+          : "first_special_due";
+      }
+    }
+  }
+
+  // A malformed fixture or exhausted board must not turn a legal AI position into no move.
+  if (!allowed.length) allowed = candidates;
+  const allowedKeys = new Set(allowed.map(candidateActionKey));
+  for (const candidate of candidates) {
+    const kept = allowedKeys.has(candidateActionKey(candidate));
+    recordDecision(
+      candidate,
+      "special_contract",
+      kept ? "kept" : "stopped",
+      reasonFor(candidate),
+    );
+  }
+  return allowed;
+}
+
+function chooseVerifiedImmediateWin({
+  candidates,
+  settings,
+  publicState,
+  aiPlayer,
+  humanPlayer,
+  neighbors,
+  criticalWorldsFor,
+}) {
+  if (!settings.instantKillCheck && settings.searchDepth < 2) return null;
+  for (const candidate of candidates) {
+    const quickAction = {
+      type: "deploy",
+      unitType: candidate.type,
+      row: candidate.row,
+      col: candidate.col,
+    };
+    const publicResult = simulateEngineTransition(publicState, aiPlayer, quickAction, neighbors);
+    if (publicResult?.winner !== aiPlayer) continue;
+
+    const criticalWorlds = criticalWorldsFor(candidate);
+    const failingWorlds = criticalWorlds.filter((hypothesis) => {
+      const simulated = simulateEngineTransition(hypothesis.state, aiPlayer, quickAction, neighbors);
+      return simulated?.winner !== aiPlayer;
+    });
+    // `instantWinRiskTolerance` is the share of the hidden pool a tier will bet against. Left
+    // unset the odds must be a flat 1, which is the old "wins in every hypothesised world"
+    // rule exactly — any failing world drops the odds below 1 and the win is passed over.
+    const requiredOdds = 1 - Math.max(0, Math.min(
+      1,
+      Number(settings.instantWinRiskTolerance || 0),
+    ));
+    const survivalOdds = failingWorlds.length
+      ? instantWinSurvivalOdds(publicState, humanPlayer, failingWorlds)
+      : 1;
+    if (survivalOdds >= requiredOdds) return candidate;
+  }
+  return null;
+}
+
+function prioritizeKingCrisisRescues(
+  state,
+  candidates,
+  aiPlayer,
+  neighbors,
+) {
+  const ownKingLibs = kingLibertyCount(state, aiPlayer);
+  if (ownKingLibs !== 1) return ownKingLibs;
+  for (const candidate of candidates) {
+    const quickAction = {
+      type: "deploy",
+      unitType: candidate.type,
+      row: candidate.row,
+      col: candidate.col,
+    };
+    const simulated = simulateEngineTransition(state, aiPlayer, quickAction, neighbors);
+    if (simulated && kingLibertyCount(simulated, aiPlayer) > 1) candidate.score += 5000;
+  }
+  candidates.sort((a, b) => compareCandidates(a, b, aiPlayer));
+  return ownKingLibs;
+}
+
+export function findAiDeployMove(state, {
+  aiPlayer,
+  humanPlayer,
+  canDeploy,
+  countPieces,
+  neighbors,
+  collectDecisionDiagnostics = false,
+}) {
   const settings = difficultySettings(state);
   const types = availableDeployTypes(state, aiPlayer, countPieces, humanPlayer);
   const publicState = stateForPlayer(state, aiPlayer);
+  const openingContract = openingDecisionContract(state, aiPlayer, settings);
+  const catalogContext = createAiCatalogContext(
+    state,
+    aiPlayer,
+    humanPlayer,
+    openingContract.stage,
+  );
+  const decisionRecords = new Map();
+  const recordDecision = (candidate, stage, outcome, reason) => {
+    const key = candidateActionKey(candidate);
+    let record = decisionRecords.get(key);
+    if (!record) {
+      record = {
+        action: { unitType: candidate.type, row: candidate.row, col: candidate.col },
+        catalog: candidate.decisionCatalog || classifyAiCandidate(catalogContext, candidate),
+        path: [],
+        scores: {},
+      };
+      decisionRecords.set(key, record);
+    }
+    candidate.decisionCatalog = record.catalog;
+    candidate.decisionPath = record.path;
+    record.path.push({ stage, outcome, reason });
+    if (Number.isFinite(candidate.score)) record.scores.static = candidate.score;
+    if (Number.isFinite(candidate.deepScore)) record.scores.search = candidate.deepScore;
+    return candidate;
+  };
+  const finishDecision = (candidate, reason) => {
+    recordDecision(candidate, "selection", "selected", reason);
+    candidate.decisionStage = openingContract.stage;
+    if (collectDecisionDiagnostics) {
+      candidate.decisionDiagnostics = {
+        decisionStage: openingContract.stage,
+        candidates: [...decisionRecords.values()].map((record) => structuredClone(record)),
+      };
+    }
+    return candidate;
+  };
   const collectCandidates = (allows) => {
     const collected = [];
     for (const type of types) {
@@ -1376,23 +1805,28 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
           if (!canDeploy(aiPlayer, type, row, col)) continue;
           if (allows && !allows(type, row, col)) continue;
           if (isPointlessSuicide(publicState, aiPlayer, type, row, col, neighbors)) continue;
-          collected.push({
+          const candidate = {
             row,
             col,
             type,
             score: scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer, true)
               + scoreDeployType(state, type, row, col, neighbors, aiPlayer, humanPlayer)
               + (settings.variance > 0 ? Math.random() * positionVariance(state) : 0),
-          });
+          };
+          collected.push(recordDecision(
+            candidate,
+            "candidate_collection",
+            "kept",
+            openingContract.allows ? openingContract.stage : "general_legal_candidate",
+          ));
         }
       }
     }
     return collected;
   };
-  const openingPlan = openingWallPlan(state, aiPlayer, settings);
   // The doctrine narrows the choice; it must never empty it. If nothing legal is left inside the
   // band, the tier plays on as it would without one.
-  let candidates = openingPlan ? collectCandidates(openingPlan) : [];
+  let candidates = openingContract?.allows ? collectCandidates(openingContract.allows) : [];
   if (!candidates.length) candidates = collectCandidates(null);
   candidates.sort((a, b) => compareCandidates(a, b, aiPlayer));
   if (!candidates.length) return null;
@@ -1408,51 +1842,51 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
     return criticalWorldCache.get(key);
   };
 
-  // 1. Fast Instant-Win check: If ANY candidate immediately wins the game, play it immediately
-  if (settings.instantKillCheck || settings.searchDepth >= 2) {
-    for (const cand of candidates) {
-      const quickAction = { type: "deploy", unitType: cand.type, row: cand.row, col: cand.col };
-      const publicResult = simulateEngineTransition(publicState, aiPlayer, quickAction, neighbors);
-      if (publicResult?.winner !== aiPlayer) continue;
-
-      const criticalWorlds = criticalWorldsFor(cand);
-      const failingWorlds = criticalWorlds.filter((hypothesis) => {
-        const simulated = simulateEngineTransition(hypothesis.state, aiPlayer, quickAction, neighbors);
-        return simulated?.winner !== aiPlayer;
-      });
-      // `instantWinRiskTolerance` is the share of the hidden pool a tier will bet against. Left
-      // unset the odds must be a flat 1, which is the old "wins in every hypothesised world"
-      // rule exactly — any failing world drops the odds below 1 and the win is passed over.
-      const requiredOdds = 1 - Math.max(0, Math.min(1, Number(settings.instantWinRiskTolerance || 0)));
-      const survivalOdds = failingWorlds.length
-        ? instantWinSurvivalOdds(publicState, humanPlayer, failingWorlds)
-        : 1;
-      if (survivalOdds >= requiredOdds) {
-        return cand;
-      }
+  // Opening constraints already narrowed `candidates`, so they remain above terminal checks.
+  const immediateWin = chooseVerifiedImmediateWin({
+    candidates,
+    settings,
+    publicState,
+    aiPlayer,
+    humanPlayer,
+    neighbors,
+    criticalWorldsFor,
+  });
+  if (immediateWin) {
+    for (const candidate of candidates) {
+      recordDecision(
+        candidate,
+        "terminal_priority",
+        candidate === immediateWin ? "kept" : "stopped",
+        candidate === immediateWin ? "verified_immediate_win" : "verified_win_selected_first",
+      );
     }
+    return finishDecision(immediateWin, "verified_immediate_win");
   }
 
-  // 2. King Crisis Rescue: If own King has only 1 liberty (단수 / Atari), boost rescue moves
-  const ownKingLibs = kingLibertyCount(state, aiPlayer);
-  if (ownKingLibs === 1) {
-    for (const cand of candidates) {
-      const quickAction = { type: "deploy", unitType: cand.type, row: cand.row, col: cand.col };
-      const simulated = simulateEngineTransition(state, aiPlayer, quickAction, neighbors);
-      if (simulated) {
-        const afterLibs = kingLibertyCount(simulated, aiPlayer);
-        if (afterLibs > 1) {
-          cand.score += 5000;
-        }
-      }
-    }
-    candidates.sort((a, b) => compareCandidates(a, b, aiPlayer));
-  }
+  // King rescue is the last rule-level priority before catalog scoring and search take over.
+  const ownKingLibs = prioritizeKingCrisisRescues(state, candidates, aiPlayer, neighbors);
+  const contractCandidates = ownKingLibs === 1
+    ? candidates
+    : applySpecialDeploymentContract(state, candidates, aiPlayer, settings, recordDecision);
 
-  const limit = settings.searchDepth > 1 ? (settings.rootCandidateLimit || 20) : candidates.length;
+  const limit = settings.searchDepth > 1
+    ? (settings.rootCandidateLimit || 20)
+    : contractCandidates.length;
   const searchedCandidates = ownKingLibs === 1
-    ? candidates.slice(0, limit)
-    : prioritizeMidgameCandidates(state, candidates, aiPlayer, humanPlayer, settings, limit);
+    ? contractCandidates.slice(0, limit)
+    : prioritizeMidgameCandidates(state, contractCandidates, aiPlayer, humanPlayer, settings, limit);
+  const searchedByKey = new Map(searchedCandidates.map(
+    (candidate) => [candidateActionKey(candidate), candidate],
+  ));
+  for (const candidate of contractCandidates) {
+    const searched = searchedByKey.get(candidateActionKey(candidate));
+    const kept = Boolean(searched);
+    const tacticalReason = candidate.searchPoolDiagnostic?.reason
+      || searched?.searchPoolDiagnostic?.reason
+      || (ownKingLibs === 1 ? "king_crisis_root_limit" : "unclassified_search_limit");
+    recordDecision(candidate, "search_pool", kept ? "kept" : "stopped", tacticalReason);
+  }
   let bestScore = -Infinity;
 
   for (const [candidateIndex, candidate] of searchedCandidates.entries()) {
@@ -1481,6 +1915,12 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
     candidate.deepScore = deepScore + conversionThreat(candidate);
     candidate.publicDeepScore = candidate.deepScore;
     candidate.searchDepthUsed = candidateSettings.searchDepth;
+    recordDecision(
+      candidate,
+      "lookahead",
+      "kept",
+      candidateSettings.searchDepth >= 4 ? "local_four_ply" : `depth_${candidateSettings.searchDepth}`,
+    );
     // `bestScore` is the search window the remaining candidates prune against, so it stays on the
     // score the search actually returned.
     if (deepScore > bestScore) bestScore = deepScore;
@@ -1488,6 +1928,17 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
 
   searchedCandidates.sort((a, b) => compareCandidates(a, b, aiPlayer));
   const riskCandidates = searchedCandidates.slice(0, settings.riskCandidateLimit || 0);
+  if (riskCandidates.length) {
+    const riskKeys = new Set(riskCandidates.map(candidateActionKey));
+    for (const candidate of searchedCandidates) {
+      recordDecision(
+        candidate,
+        "risk_pool",
+        riskKeys.has(candidateActionKey(candidate)) ? "kept" : "stopped",
+        riskKeys.has(candidateActionKey(candidate)) ? "within_risk_candidate_limit" : "outside_risk_candidate_limit",
+      );
+    }
+  }
   const riskByCandidate = new Map();
   const applyRiskToCandidate = (candidate) => {
     const criticalWorlds = criticalWorldsFor(candidate)
@@ -1502,7 +1953,10 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
       neighbors,
     );
     candidate.riskEvaluated = true;
-    if (!risk) return;
+    if (!risk) {
+      recordDecision(candidate, "hidden_special_risk", "kept", "no_critical_hypothesis");
+      return;
+    }
     riskByCandidate.set(candidate, risk);
     candidate.riskAdjustment = risk.adjustment;
     candidate.specialRiskProbability = risk.specialProbability;
@@ -1511,6 +1965,12 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
     candidate.deepScore = risk.fatal && settings.hiddenKingRiskVeto
       ? -100000
       : candidate.deepScore + risk.adjustment;
+    recordDecision(
+      candidate,
+      "hidden_special_risk",
+      risk.fatal && settings.hiddenKingRiskVeto ? "vetoed" : "kept",
+      risk.fatal && settings.hiddenKingRiskVeto ? "fatal_hidden_king_world" : "probability_adjusted",
+    );
   };
   for (const candidate of riskCandidates) {
     applyRiskToCandidate(candidate);
@@ -1527,11 +1987,12 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
     const searchedKeys = new Set(searchedCandidates.map(
       (candidate) => `${candidate.type}:${candidate.row}:${candidate.col}`,
     ));
-    const reserves = candidates
+    const reserves = contractCandidates
       .filter((candidate) => !searchedKeys.has(`${candidate.type}:${candidate.row}:${candidate.col}`))
       .slice(0, Math.max(1, settings.riskCandidateLimit || 4));
     for (const reserve of reserves) {
       reserve.deepScore = reserve.score;
+      recordDecision(reserve, "risk_reserve", "kept", "all_primary_risk_candidates_vetoed");
       applyRiskToCandidate(reserve);
     }
     const survivors = reserves.filter((candidate) => !isVetoed(candidate));
@@ -1546,6 +2007,9 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
   const deepRiskCandidates = selectionPool
     .filter((candidate) => riskByCandidate.get(candidate)?.worstWorld && candidate.deepScore > -100000)
     .slice(0, settings.deepRiskCandidateLimit || 0);
+  for (const candidate of deepRiskCandidates) {
+    recordDecision(candidate, "deep_risk_pool", "kept", "worst_hidden_world_available");
+  }
   const boundedRiskSettings = {
     ...settings,
     searchDepth: Math.min(settings.searchDepth, 2),
@@ -1570,6 +2034,7 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
     // the blend has nothing to average away — otherwise the fact is halved for being examined.
     candidate.deepScore = candidate.deepScore * (1 - weight)
       + (worstDeepScore + conversionThreat(candidate)) * weight;
+    recordDecision(candidate, "deep_risk_lookahead", "kept", `weight_${weight}`);
   }
   selectionPool.sort((a, b) => compareCandidates(a, b, aiPlayer));
   const selected = selectionPool[0] || null;
@@ -1591,7 +2056,7 @@ export function findAiDeployMove(state, { aiPlayer, humanPlayer, canDeploy, coun
       selected.kingWallConnection = kingWallConnectionValue(state, selected.row, selected.col, aiPlayer);
     }
   }
-  return selected;
+  return selected ? finishDecision(selected, "highest_surviving_search_score") : null;
 }
 
 export function chooseAiTeleportDestination(state, neighbors, aiPlayer, humanPlayer) {

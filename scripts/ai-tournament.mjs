@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
   canDeploy,
@@ -31,6 +31,10 @@ const startingPlayerFlagIndex = process.argv.indexOf("--starting-player");
 const startingPlayer = startingPlayerFlagIndex >= 0 ? process.argv[startingPlayerFlagIndex + 1] : "red";
 const outputFlagIndex = process.argv.indexOf("--output");
 const outputPath = outputFlagIndex >= 0 ? resolve(process.argv[outputFlagIndex + 1]) : null;
+const settingsOverrideFlagIndex = process.argv.indexOf("--settings-override");
+const settingsOverridePath = settingsOverrideFlagIndex >= 0
+  ? resolve(process.argv[settingsOverrideFlagIndex + 1])
+  : null;
 const traceGamesFlagIndex = process.argv.indexOf("--trace-games");
 const traceGames = new Set(traceGamesFlagIndex >= 0
   ? (process.argv[traceGamesFlagIndex + 1] || "")
@@ -66,6 +70,23 @@ for (const scoreAblation of scoreAblations) {
     AI_RANK_SETTINGS[tier].score[scoreAblation] = scoreProfiles.intermediate[scoreAblation];
   }
 }
+const settingsOverride = settingsOverridePath
+  ? JSON.parse(readFileSync(settingsOverridePath, "utf8"))
+  : null;
+if (settingsOverride && (typeof settingsOverride !== "object" || Array.isArray(settingsOverride))) {
+  throw new Error("--settings-override must contain a JSON object");
+}
+if (settingsOverride) {
+  for (const tier of AI_TIER_ORDER) {
+    const base = AI_RANK_SETTINGS[tier];
+    AI_RANK_SETTINGS[tier] = {
+      ...base,
+      ...settingsOverride,
+      typeWeights: { ...base.typeWeights, ...(settingsOverride.typeWeights || {}) },
+      score: { ...base.score, ...(settingsOverride.score || {}) },
+    };
+  }
+}
 const puzzleOutputPath = collectFlagIndex >= 0
   ? resolve(process.argv[collectFlagIndex + 1] || `artifacts/ai-puzzle-candidates-${seed}.jsonl`)
   : null;
@@ -85,7 +106,7 @@ function seededRandom(initialSeed) {
 
 Math.random = seededRandom(seed);
 
-function deployMove(state, player, tier) {
+function deployMove(state, player, tier, collectDecisionDiagnostics = false) {
   const enemy = player === "red" ? "blue" : "red";
   const playerView = stateForPlayer(state, player);
   playerView.aiRank = tier;
@@ -95,6 +116,7 @@ function deployMove(state, player, tier) {
     canDeploy: (owner, type, row, col) => canDeploy(state, owner, type, row, col),
     countPieces: (owner) => countPieces(state, owner),
     neighbors,
+    collectDecisionDiagnostics,
   });
 }
 
@@ -236,7 +258,7 @@ function playGame(redTier, blueTier, gameNumber) {
     const player = state.turn;
     const enemy = player === "red" ? "blue" : "red";
     const positionBeforeMove = puzzleOutputPath || tracing ? structuredClone(state) : null;
-    const move = deployMove(state, player, tiers[player]);
+    const move = deployMove(state, player, tiers[player], tracing);
     if (!move) {
       const pass = getLegalActions(state, player).find((action) => action.type === "pass");
       if (!pass || !dispatchRecordedAction(state, journal, player, pass).accepted) {
@@ -269,6 +291,10 @@ function playGame(redTier, blueTier, gameNumber) {
             col: move.col,
             staticScore: move.score,
             searchScore: move.deepScore ?? null,
+            decisionStage: move.decisionStage,
+            catalog: move.decisionCatalog,
+            decisionPath: move.decisionPath,
+            decisionDiagnostics: move.decisionDiagnostics,
           },
           tags: tactical.tags,
           metrics: tactical.metrics,
@@ -298,6 +324,9 @@ function playGame(redTier, blueTier, gameNumber) {
             col: move.col,
             staticScore: move.score,
             searchScore: move.deepScore ?? null,
+            decisionStage: move.decisionStage,
+            catalog: move.decisionCatalog,
+            decisionPath: move.decisionPath,
           },
           position: positionBeforeMove,
         });
@@ -343,6 +372,7 @@ function playGame(redTier, blueTier, gameNumber) {
     });
   }
   return {
+    gameNumber,
     redTier,
     blueTier,
     startingPlayer,
@@ -426,6 +456,8 @@ const output = {
     totalGames,
     startingPlayer,
     commonScoreProfile,
+    settingsOverridePath,
+    settingsOverride,
     scoreAblations: scoreAblations.map((scoreAblation) => ({
         key: scoreAblation,
         from: scoreProfiles.advanced[scoreAblation],
@@ -463,6 +495,18 @@ const output = {
   },
   averageGameMs: Math.round(results.reduce((sum, result) => sum + result.durationMs, 0) / results.length),
   traces: collectedGameTraces,
+  gameSummaries: results.map((result) => ({
+    gameNumber: result.gameNumber,
+    redTier: result.redTier,
+    blueTier: result.blueTier,
+    winner: result.winner,
+    deployments: result.deployments,
+    capped: result.capped,
+    finishType: result.finishType,
+    reason: result.reason,
+    finalPieces: result.finalPieces,
+    pieceMargin: Math.abs(result.finalPieces.red - result.finalPieces.blue),
+  })),
   ...(summaryOnly ? {} : { results }),
 };
 

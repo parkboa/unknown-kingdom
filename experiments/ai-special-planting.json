@@ -1,0 +1,2759 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T22:54:04.963Z",
+  "config": {
+    "pairs": [
+      [
+        "novice",
+        "intermediate"
+      ],
+      [
+        "advanced",
+        "expert"
+      ],
+      [
+        "grandmaster",
+        "intermediate"
+      ]
+    ],
+    "games": 6,
+    "maxDeployments": 50,
+    "baseSeed": 20260828
+  },
+  "interpretation": {
+    "earliestFirstSpecialOwnDeployment": 6,
+    "delayBeyondEarliest": "own deployment number minus (5 + special ordinal)",
+    "opportunityOffset": "own deployments already made minus 5; 0 is the first legal special turn"
+  },
+  "byTier": {
+    "novice": {
+      "runs": 2,
+      "runsWithFirstSpecial": 2,
+      "immediateFirstSpecialRuns": 0,
+      "plantedAllThreeRuns": 2,
+      "averageFirstSpecialDelay": 3,
+      "averagePlacementDelay": 5,
+      "eligibleDecisions": 21,
+      "candidateDecisionRate": 100,
+      "selectedSpecials": 6,
+      "selectedTypes": {
+        "general": 2,
+        "wizard": 2,
+        "diplomat": 2
+      },
+      "selectedSignals": {
+        "king.enemy_king_liberty": 4,
+        "special.special_unit:general": 2,
+        "board.enemy_contact": 6,
+        "special.special_unit:wizard": 2,
+        "board.group_connection": 2,
+        "special.special_unit:diplomat": 2,
+        "board.enemy_wall": 1,
+        "board.own_wall": 1,
+        "king.own_king_liberty": 1,
+        "king.enemy_king_pressure": 1
+      },
+      "opportunities": {
+        "0": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 423,
+          "searchObserved": 0,
+          "searchKept": 0,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 0,
+          "stopReasons": {},
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": null,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": 0
+        },
+        "1": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 411,
+          "searchObserved": 0,
+          "searchKept": 0,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 0,
+          "stopReasons": {},
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": null,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": 0
+        },
+        "2": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 399,
+          "searchObserved": 0,
+          "searchKept": 0,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 0,
+          "stopReasons": {},
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": null,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": 0
+        },
+        "3": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 387,
+          "searchObserved": 387,
+          "searchKept": 31,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 2,
+          "stopReasons": {
+            "outside_score_limit": 356
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 8,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": 100
+        },
+        "4": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 250,
+          "searchObserved": 0,
+          "searchKept": 0,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 0,
+          "stopReasons": {},
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": null,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": 0
+        },
+        "5+": {
+          "decisions": 11,
+          "candidateDecisions": 11,
+          "collected": 795,
+          "searchObserved": 680,
+          "searchKept": 103,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 4,
+          "stopReasons": {
+            "outside_score_limit": 577
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 15.1,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": 36.4
+        }
+      }
+    },
+    "intermediate": {
+      "runs": 4,
+      "runsWithFirstSpecial": 4,
+      "immediateFirstSpecialRuns": 0,
+      "plantedAllThreeRuns": 3,
+      "averageFirstSpecialDelay": 1.25,
+      "averagePlacementDelay": 2.27,
+      "eligibleDecisions": 26,
+      "candidateDecisionRate": 100,
+      "selectedSpecials": 11,
+      "selectedTypes": {
+        "general": 4,
+        "wizard": 4,
+        "diplomat": 3
+      },
+      "selectedSignals": {
+        "king.enemy_king_liberty": 8,
+        "special.special_unit:general": 4,
+        "board.group_connection": 7,
+        "board.enemy_contact": 9,
+        "king.enemy_king_pressure": 10,
+        "special.special_unit:wizard": 4,
+        "king.own_king_liberty": 3,
+        "special.special_unit:diplomat": 3,
+        "board.enemy_wall": 3,
+        "king.own_king_proximity": 1
+      },
+      "opportunities": {
+        "0": {
+          "decisions": 4,
+          "candidateDecisions": 4,
+          "collected": 846,
+          "searchObserved": 0,
+          "searchKept": 0,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 0,
+          "stopReasons": {},
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": null,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": 0
+        },
+        "1": {
+          "decisions": 4,
+          "candidateDecisions": 4,
+          "collected": 822,
+          "searchObserved": 822,
+          "searchKept": 87,
+          "riskObserved": 87,
+          "riskKept": 10,
+          "selected": 3,
+          "stopReasons": {
+            "outside_score_limit": 735,
+            "outside_risk_candidate_limit": 77
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 10.6,
+          "riskSurvivalRate": 11.5,
+          "specialSelectionRate": 75
+        },
+        "2": {
+          "decisions": 4,
+          "candidateDecisions": 4,
+          "collected": 599,
+          "searchObserved": 201,
+          "searchKept": 28,
+          "riskObserved": 28,
+          "riskKept": 3,
+          "selected": 1,
+          "stopReasons": {
+            "outside_score_limit": 173,
+            "outside_risk_candidate_limit": 25
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 13.9,
+          "riskSurvivalRate": 10.7,
+          "specialSelectionRate": 25
+        },
+        "3": {
+          "decisions": 4,
+          "candidateDecisions": 4,
+          "collected": 516,
+          "searchObserved": 386,
+          "searchKept": 57,
+          "riskObserved": 57,
+          "riskKept": 7,
+          "selected": 3,
+          "stopReasons": {
+            "outside_score_limit": 329,
+            "outside_risk_candidate_limit": 50
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 14.8,
+          "riskSurvivalRate": 12.3,
+          "specialSelectionRate": 75
+        },
+        "4": {
+          "decisions": 4,
+          "candidateDecisions": 4,
+          "collected": 313,
+          "searchObserved": 126,
+          "searchKept": 20,
+          "riskObserved": 20,
+          "riskKept": 2,
+          "selected": 1,
+          "stopReasons": {
+            "outside_score_limit": 106,
+            "outside_risk_candidate_limit": 18
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 15.9,
+          "riskSurvivalRate": 10,
+          "specialSelectionRate": 25
+        },
+        "5+": {
+          "decisions": 6,
+          "candidateDecisions": 6,
+          "collected": 358,
+          "searchObserved": 297,
+          "searchKept": 64,
+          "riskObserved": 64,
+          "riskKept": 7,
+          "selected": 3,
+          "stopReasons": {
+            "outside_score_limit": 233,
+            "outside_risk_candidate_limit": 57
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 21.5,
+          "riskSurvivalRate": 10.9,
+          "specialSelectionRate": 50
+        }
+      }
+    },
+    "advanced": {
+      "runs": 2,
+      "runsWithFirstSpecial": 2,
+      "immediateFirstSpecialRuns": 1,
+      "plantedAllThreeRuns": 2,
+      "averageFirstSpecialDelay": 0.5,
+      "averagePlacementDelay": 0.83,
+      "eligibleDecisions": 9,
+      "candidateDecisionRate": 100,
+      "selectedSpecials": 6,
+      "selectedTypes": {
+        "wizard": 2,
+        "diplomat": 2,
+        "general": 2
+      },
+      "selectedSignals": {
+        "king.enemy_king_liberty": 6,
+        "king.enemy_king_pressure": 6,
+        "special.special_unit:wizard": 2,
+        "board.enemy_contact": 6,
+        "king.own_king_liberty": 1,
+        "special.special_unit:diplomat": 2,
+        "board.group_connection": 3,
+        "special.special_unit:general": 2,
+        "board.enemy_wall": 1
+      },
+      "opportunities": {
+        "0": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 423,
+          "searchObserved": 423,
+          "searchKept": 47,
+          "riskObserved": 47,
+          "riskKept": 4,
+          "selected": 1,
+          "stopReasons": {
+            "outside_score_limit": 376,
+            "outside_risk_candidate_limit": 43
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 11.1,
+          "riskSurvivalRate": 8.5,
+          "specialSelectionRate": 50
+        },
+        "1": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 342,
+          "searchObserved": 342,
+          "searchKept": 46,
+          "riskObserved": 46,
+          "riskKept": 5,
+          "selected": 2,
+          "stopReasons": {
+            "outside_score_limit": 296,
+            "outside_risk_candidate_limit": 41
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 13.5,
+          "riskSurvivalRate": 10.9,
+          "specialSelectionRate": 100
+        },
+        "2": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 199,
+          "searchObserved": 132,
+          "searchKept": 23,
+          "riskObserved": 23,
+          "riskKept": 2,
+          "selected": 1,
+          "stopReasons": {
+            "outside_score_limit": 109,
+            "outside_risk_candidate_limit": 21
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 17.4,
+          "riskSurvivalRate": 8.7,
+          "specialSelectionRate": 50
+        },
+        "3": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 129,
+          "searchObserved": 65,
+          "searchKept": 16,
+          "riskObserved": 16,
+          "riskKept": 1,
+          "selected": 1,
+          "stopReasons": {
+            "outside_score_limit": 49,
+            "outside_risk_candidate_limit": 15
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 24.6,
+          "riskSurvivalRate": 6.3,
+          "specialSelectionRate": 50
+        },
+        "4": {
+          "decisions": 1,
+          "candidateDecisions": 1,
+          "collected": 62,
+          "searchObserved": 62,
+          "searchKept": 14,
+          "riskObserved": 14,
+          "riskKept": 2,
+          "selected": 1,
+          "stopReasons": {
+            "outside_score_limit": 48,
+            "outside_risk_candidate_limit": 12
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 22.6,
+          "riskSurvivalRate": 14.3,
+          "specialSelectionRate": 100
+        },
+        "5+": {
+          "decisions": 0,
+          "candidateDecisions": 0,
+          "collected": 0,
+          "searchObserved": 0,
+          "searchKept": 0,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 0,
+          "stopReasons": {},
+          "candidateDecisionRate": null,
+          "searchSurvivalRate": null,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": null
+        }
+      }
+    },
+    "expert": {
+      "runs": 2,
+      "runsWithFirstSpecial": 2,
+      "immediateFirstSpecialRuns": 2,
+      "plantedAllThreeRuns": 2,
+      "averageFirstSpecialDelay": 0,
+      "averagePlacementDelay": 0.17,
+      "eligibleDecisions": 7,
+      "candidateDecisionRate": 100,
+      "selectedSpecials": 6,
+      "selectedTypes": {
+        "diplomat": 2,
+        "general": 2,
+        "wizard": 2
+      },
+      "selectedSignals": {
+        "king.enemy_king_liberty": 5,
+        "king.enemy_king_pressure": 4,
+        "special.special_unit:diplomat": 2,
+        "board.enemy_contact": 6,
+        "special.special_unit:general": 2,
+        "special.special_unit:wizard": 2,
+        "board.group_connection": 2,
+        "king.own_king_liberty": 1
+      },
+      "opportunities": {
+        "0": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 423,
+          "searchObserved": 423,
+          "searchKept": 53,
+          "riskObserved": 53,
+          "riskKept": 8,
+          "selected": 2,
+          "stopReasons": {
+            "outside_score_limit": 370,
+            "outside_risk_candidate_limit": 45
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 12.5,
+          "riskSurvivalRate": 15.1,
+          "specialSelectionRate": 100
+        },
+        "1": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 274,
+          "searchObserved": 274,
+          "searchKept": 42,
+          "riskObserved": 42,
+          "riskKept": 6,
+          "selected": 2,
+          "stopReasons": {
+            "outside_score_limit": 232,
+            "outside_risk_candidate_limit": 36
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 15.3,
+          "riskSurvivalRate": 14.3,
+          "specialSelectionRate": 100
+        },
+        "2": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 133,
+          "searchObserved": 133,
+          "searchKept": 28,
+          "riskObserved": 28,
+          "riskKept": 3,
+          "selected": 1,
+          "stopReasons": {
+            "outside_score_limit": 105,
+            "outside_risk_candidate_limit": 25
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 21.1,
+          "riskSurvivalRate": 10.7,
+          "specialSelectionRate": 50
+        },
+        "3": {
+          "decisions": 1,
+          "candidateDecisions": 1,
+          "collected": 65,
+          "searchObserved": 65,
+          "searchKept": 12,
+          "riskObserved": 12,
+          "riskKept": 2,
+          "selected": 1,
+          "stopReasons": {
+            "outside_score_limit": 53,
+            "outside_risk_candidate_limit": 10
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 18.5,
+          "riskSurvivalRate": 16.7,
+          "specialSelectionRate": 100
+        },
+        "4": {
+          "decisions": 0,
+          "candidateDecisions": 0,
+          "collected": 0,
+          "searchObserved": 0,
+          "searchKept": 0,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 0,
+          "stopReasons": {},
+          "candidateDecisionRate": null,
+          "searchSurvivalRate": null,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": null
+        },
+        "5+": {
+          "decisions": 0,
+          "candidateDecisions": 0,
+          "collected": 0,
+          "searchObserved": 0,
+          "searchKept": 0,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 0,
+          "stopReasons": {},
+          "candidateDecisionRate": null,
+          "searchSurvivalRate": null,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": null
+        }
+      }
+    },
+    "grandmaster": {
+      "runs": 2,
+      "runsWithFirstSpecial": 2,
+      "immediateFirstSpecialRuns": 2,
+      "plantedAllThreeRuns": 2,
+      "averageFirstSpecialDelay": 0,
+      "averagePlacementDelay": 0,
+      "eligibleDecisions": 6,
+      "candidateDecisionRate": 100,
+      "selectedSpecials": 6,
+      "selectedTypes": {
+        "general": 2,
+        "wizard": 2,
+        "diplomat": 2
+      },
+      "selectedSignals": {
+        "king.enemy_king_liberty": 4,
+        "king.enemy_king_pressure": 4,
+        "special.special_unit:general": 2,
+        "board.enemy_contact": 6,
+        "special.special_unit:wizard": 2,
+        "special.special_unit:diplomat": 2
+      },
+      "opportunities": {
+        "0": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 423,
+          "searchObserved": 423,
+          "searchKept": 8,
+          "riskObserved": 8,
+          "riskKept": 8,
+          "selected": 2,
+          "stopReasons": {
+            "midgame_special_attack_filter": 415
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 1.9,
+          "riskSurvivalRate": 100,
+          "specialSelectionRate": 100
+        },
+        "1": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 274,
+          "searchObserved": 274,
+          "searchKept": 12,
+          "riskObserved": 12,
+          "riskKept": 12,
+          "selected": 2,
+          "stopReasons": {
+            "midgame_special_attack_filter": 262
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 4.4,
+          "riskSurvivalRate": 100,
+          "specialSelectionRate": 100
+        },
+        "2": {
+          "decisions": 2,
+          "candidateDecisions": 2,
+          "collected": 133,
+          "searchObserved": 133,
+          "searchKept": 11,
+          "riskObserved": 11,
+          "riskKept": 11,
+          "selected": 2,
+          "stopReasons": {
+            "midgame_special_attack_filter": 122
+          },
+          "candidateDecisionRate": 100,
+          "searchSurvivalRate": 8.3,
+          "riskSurvivalRate": 100,
+          "specialSelectionRate": 100
+        },
+        "3": {
+          "decisions": 0,
+          "candidateDecisions": 0,
+          "collected": 0,
+          "searchObserved": 0,
+          "searchKept": 0,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 0,
+          "stopReasons": {},
+          "candidateDecisionRate": null,
+          "searchSurvivalRate": null,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": null
+        },
+        "4": {
+          "decisions": 0,
+          "candidateDecisions": 0,
+          "collected": 0,
+          "searchObserved": 0,
+          "searchKept": 0,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 0,
+          "stopReasons": {},
+          "candidateDecisionRate": null,
+          "searchSurvivalRate": null,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": null
+        },
+        "5+": {
+          "decisions": 0,
+          "candidateDecisions": 0,
+          "collected": 0,
+          "searchObserved": 0,
+          "searchKept": 0,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "selected": 0,
+          "stopReasons": {},
+          "candidateDecisionRate": null,
+          "searchSurvivalRate": null,
+          "riskSurvivalRate": null,
+          "specialSelectionRate": null
+        }
+      }
+    }
+  },
+  "runs": [
+    {
+      "gameId": "special-planting-1",
+      "player": "red",
+      "tier": "novice",
+      "placements": [
+        {
+          "gameId": "special-planting-1",
+          "player": "red",
+          "tier": "novice",
+          "type": "general",
+          "row": 7,
+          "col": 2,
+          "globalDeploymentNumber": 17,
+          "ownDeploymentNumber": 9,
+          "specialOrdinal": 1,
+          "delayBeyondEarliest": 3,
+          "occupiedBefore": 16,
+          "boardFillPercent": 19.8,
+          "signals": {
+            "king": [
+              "enemy_king_liberty"
+            ],
+            "special": [
+              "special_unit:general"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-1",
+          "player": "red",
+          "tier": "novice",
+          "type": "wizard",
+          "row": 5,
+          "col": 2,
+          "globalDeploymentNumber": 23,
+          "ownDeploymentNumber": 12,
+          "specialOrdinal": 2,
+          "delayBeyondEarliest": 5,
+          "occupiedBefore": 22,
+          "boardFillPercent": 27.2,
+          "signals": {
+            "king": [
+              "enemy_king_liberty"
+            ],
+            "special": [
+              "special_unit:wizard"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-1",
+          "player": "red",
+          "tier": "novice",
+          "type": "diplomat",
+          "row": 7,
+          "col": 8,
+          "globalDeploymentNumber": 29,
+          "ownDeploymentNumber": 15,
+          "specialOrdinal": 3,
+          "delayBeyondEarliest": 7,
+          "occupiedBefore": 28,
+          "boardFillPercent": 34.6,
+          "signals": {
+            "king": [
+              "enemy_king_liberty"
+            ],
+            "special": [
+              "special_unit:diplomat"
+            ],
+            "board": [
+              "enemy_contact",
+              "enemy_wall"
+            ]
+          }
+        }
+      ],
+      "firstSpecialOwnDeployment": 9,
+      "firstSpecialDelay": 3,
+      "plantedAllThree": true
+    },
+    {
+      "gameId": "special-planting-1",
+      "player": "blue",
+      "tier": "intermediate",
+      "placements": [
+        {
+          "gameId": "special-planting-1",
+          "player": "blue",
+          "tier": "intermediate",
+          "type": "general",
+          "row": 7,
+          "col": 3,
+          "globalDeploymentNumber": 14,
+          "ownDeploymentNumber": 7,
+          "specialOrdinal": 1,
+          "delayBeyondEarliest": 1,
+          "occupiedBefore": 13,
+          "boardFillPercent": 16,
+          "signals": {
+            "king": [
+              "enemy_king_liberty"
+            ],
+            "special": [
+              "special_unit:general"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-1",
+          "player": "blue",
+          "tier": "intermediate",
+          "type": "wizard",
+          "row": 4,
+          "col": 3,
+          "globalDeploymentNumber": 18,
+          "ownDeploymentNumber": 9,
+          "specialOrdinal": 2,
+          "delayBeyondEarliest": 2,
+          "occupiedBefore": 17,
+          "boardFillPercent": 21,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:wizard"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-1",
+          "player": "blue",
+          "tier": "intermediate",
+          "type": "diplomat",
+          "row": 5,
+          "col": 5,
+          "globalDeploymentNumber": 22,
+          "ownDeploymentNumber": 11,
+          "specialOrdinal": 3,
+          "delayBeyondEarliest": 3,
+          "occupiedBefore": 21,
+          "boardFillPercent": 25.9,
+          "signals": {
+            "king": [
+              "own_king_liberty",
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:diplomat"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_contact"
+            ]
+          }
+        }
+      ],
+      "firstSpecialOwnDeployment": 7,
+      "firstSpecialDelay": 1,
+      "plantedAllThree": true
+    },
+    {
+      "gameId": "special-planting-2",
+      "player": "red",
+      "tier": "intermediate",
+      "placements": [
+        {
+          "gameId": "special-planting-2",
+          "player": "red",
+          "tier": "intermediate",
+          "type": "wizard",
+          "row": 8,
+          "col": 4,
+          "globalDeploymentNumber": 13,
+          "ownDeploymentNumber": 7,
+          "specialOrdinal": 1,
+          "delayBeyondEarliest": 1,
+          "occupiedBefore": 12,
+          "boardFillPercent": 14.8,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:wizard"
+            ],
+            "board": [
+              "enemy_contact",
+              "enemy_wall"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-2",
+          "player": "red",
+          "tier": "intermediate",
+          "type": "general",
+          "row": 7,
+          "col": 3,
+          "globalDeploymentNumber": 17,
+          "ownDeploymentNumber": 9,
+          "specialOrdinal": 2,
+          "delayBeyondEarliest": 2,
+          "occupiedBefore": 16,
+          "boardFillPercent": 19.8,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:general"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-2",
+          "player": "red",
+          "tier": "intermediate",
+          "type": "diplomat",
+          "row": 8,
+          "col": 8,
+          "globalDeploymentNumber": 25,
+          "ownDeploymentNumber": 13,
+          "specialOrdinal": 3,
+          "delayBeyondEarliest": 5,
+          "occupiedBefore": 24,
+          "boardFillPercent": 29.6,
+          "signals": {
+            "king": [
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:diplomat"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_wall"
+            ]
+          }
+        }
+      ],
+      "firstSpecialOwnDeployment": 7,
+      "firstSpecialDelay": 1,
+      "plantedAllThree": true
+    },
+    {
+      "gameId": "special-planting-2",
+      "player": "blue",
+      "tier": "novice",
+      "placements": [
+        {
+          "gameId": "special-planting-2",
+          "player": "blue",
+          "tier": "novice",
+          "type": "wizard",
+          "row": 8,
+          "col": 2,
+          "globalDeploymentNumber": 18,
+          "ownDeploymentNumber": 9,
+          "specialOrdinal": 1,
+          "delayBeyondEarliest": 3,
+          "occupiedBefore": 17,
+          "boardFillPercent": 21,
+          "signals": {
+            "king": [],
+            "special": [
+              "special_unit:wizard"
+            ],
+            "board": [
+              "enemy_contact",
+              "own_wall"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-2",
+          "player": "blue",
+          "tier": "novice",
+          "type": "diplomat",
+          "row": 5,
+          "col": 5,
+          "globalDeploymentNumber": 22,
+          "ownDeploymentNumber": 11,
+          "specialOrdinal": 2,
+          "delayBeyondEarliest": 4,
+          "occupiedBefore": 21,
+          "boardFillPercent": 25.9,
+          "signals": {
+            "king": [
+              "own_king_liberty",
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:diplomat"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-2",
+          "player": "blue",
+          "tier": "novice",
+          "type": "general",
+          "row": 5,
+          "col": 7,
+          "globalDeploymentNumber": 32,
+          "ownDeploymentNumber": 16,
+          "specialOrdinal": 3,
+          "delayBeyondEarliest": 8,
+          "occupiedBefore": 31,
+          "boardFillPercent": 38.3,
+          "signals": {
+            "king": [],
+            "special": [
+              "special_unit:general"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        }
+      ],
+      "firstSpecialOwnDeployment": 9,
+      "firstSpecialDelay": 3,
+      "plantedAllThree": true
+    },
+    {
+      "gameId": "special-planting-3",
+      "player": "red",
+      "tier": "advanced",
+      "placements": [
+        {
+          "gameId": "special-planting-3",
+          "player": "red",
+          "tier": "advanced",
+          "type": "wizard",
+          "row": 7,
+          "col": 3,
+          "globalDeploymentNumber": 11,
+          "ownDeploymentNumber": 6,
+          "specialOrdinal": 1,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 10,
+          "boardFillPercent": 12.3,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:wizard"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-3",
+          "player": "red",
+          "tier": "advanced",
+          "type": "diplomat",
+          "row": 6,
+          "col": 3,
+          "globalDeploymentNumber": 13,
+          "ownDeploymentNumber": 7,
+          "specialOrdinal": 2,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 12,
+          "boardFillPercent": 14.8,
+          "signals": {
+            "king": [
+              "own_king_liberty",
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:diplomat"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-3",
+          "player": "red",
+          "tier": "advanced",
+          "type": "general",
+          "row": 8,
+          "col": 5,
+          "globalDeploymentNumber": 17,
+          "ownDeploymentNumber": 9,
+          "specialOrdinal": 3,
+          "delayBeyondEarliest": 1,
+          "occupiedBefore": 16,
+          "boardFillPercent": 19.8,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:general"
+            ],
+            "board": [
+              "enemy_contact",
+              "enemy_wall"
+            ]
+          }
+        }
+      ],
+      "firstSpecialOwnDeployment": 6,
+      "firstSpecialDelay": 0,
+      "plantedAllThree": true
+    },
+    {
+      "gameId": "special-planting-3",
+      "player": "blue",
+      "tier": "expert",
+      "placements": [
+        {
+          "gameId": "special-planting-3",
+          "player": "blue",
+          "tier": "expert",
+          "type": "diplomat",
+          "row": 4,
+          "col": 5,
+          "globalDeploymentNumber": 12,
+          "ownDeploymentNumber": 6,
+          "specialOrdinal": 1,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 11,
+          "boardFillPercent": 13.6,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:diplomat"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-3",
+          "player": "blue",
+          "tier": "expert",
+          "type": "general",
+          "row": 6,
+          "col": 2,
+          "globalDeploymentNumber": 14,
+          "ownDeploymentNumber": 7,
+          "specialOrdinal": 2,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 13,
+          "boardFillPercent": 16,
+          "signals": {
+            "king": [
+              "enemy_king_liberty"
+            ],
+            "special": [
+              "special_unit:general"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-3",
+          "player": "blue",
+          "tier": "expert",
+          "type": "wizard",
+          "row": 5,
+          "col": 5,
+          "globalDeploymentNumber": 16,
+          "ownDeploymentNumber": 8,
+          "specialOrdinal": 3,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 15,
+          "boardFillPercent": 18.5,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:wizard"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_contact"
+            ]
+          }
+        }
+      ],
+      "firstSpecialOwnDeployment": 6,
+      "firstSpecialDelay": 0,
+      "plantedAllThree": true
+    },
+    {
+      "gameId": "special-planting-4",
+      "player": "red",
+      "tier": "expert",
+      "placements": [
+        {
+          "gameId": "special-planting-4",
+          "player": "red",
+          "tier": "expert",
+          "type": "wizard",
+          "row": 6,
+          "col": 3,
+          "globalDeploymentNumber": 11,
+          "ownDeploymentNumber": 6,
+          "specialOrdinal": 1,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 10,
+          "boardFillPercent": 12.3,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:wizard"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-4",
+          "player": "red",
+          "tier": "expert",
+          "type": "diplomat",
+          "row": 7,
+          "col": 5,
+          "globalDeploymentNumber": 13,
+          "ownDeploymentNumber": 7,
+          "specialOrdinal": 2,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 12,
+          "boardFillPercent": 14.8,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:diplomat"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-4",
+          "player": "red",
+          "tier": "expert",
+          "type": "general",
+          "row": 1,
+          "col": 5,
+          "globalDeploymentNumber": 17,
+          "ownDeploymentNumber": 9,
+          "specialOrdinal": 3,
+          "delayBeyondEarliest": 1,
+          "occupiedBefore": 16,
+          "boardFillPercent": 19.8,
+          "signals": {
+            "king": [
+              "own_king_liberty"
+            ],
+            "special": [
+              "special_unit:general"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_contact"
+            ]
+          }
+        }
+      ],
+      "firstSpecialOwnDeployment": 6,
+      "firstSpecialDelay": 0,
+      "plantedAllThree": true
+    },
+    {
+      "gameId": "special-planting-4",
+      "player": "blue",
+      "tier": "advanced",
+      "placements": [
+        {
+          "gameId": "special-planting-4",
+          "player": "blue",
+          "tier": "advanced",
+          "type": "wizard",
+          "row": 4,
+          "col": 3,
+          "globalDeploymentNumber": 14,
+          "ownDeploymentNumber": 7,
+          "specialOrdinal": 1,
+          "delayBeyondEarliest": 1,
+          "occupiedBefore": 13,
+          "boardFillPercent": 16,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:wizard"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-4",
+          "player": "blue",
+          "tier": "advanced",
+          "type": "general",
+          "row": 2,
+          "col": 5,
+          "globalDeploymentNumber": 16,
+          "ownDeploymentNumber": 8,
+          "specialOrdinal": 2,
+          "delayBeyondEarliest": 1,
+          "occupiedBefore": 15,
+          "boardFillPercent": 18.5,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:general"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-4",
+          "player": "blue",
+          "tier": "advanced",
+          "type": "diplomat",
+          "row": 2,
+          "col": 3,
+          "globalDeploymentNumber": 20,
+          "ownDeploymentNumber": 10,
+          "specialOrdinal": 3,
+          "delayBeyondEarliest": 2,
+          "occupiedBefore": 19,
+          "boardFillPercent": 23.5,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:diplomat"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_contact"
+            ]
+          }
+        }
+      ],
+      "firstSpecialOwnDeployment": 7,
+      "firstSpecialDelay": 1,
+      "plantedAllThree": true
+    },
+    {
+      "gameId": "special-planting-5",
+      "player": "red",
+      "tier": "grandmaster",
+      "placements": [
+        {
+          "gameId": "special-planting-5",
+          "player": "red",
+          "tier": "grandmaster",
+          "type": "general",
+          "row": 6,
+          "col": 5,
+          "globalDeploymentNumber": 11,
+          "ownDeploymentNumber": 6,
+          "specialOrdinal": 1,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 10,
+          "boardFillPercent": 12.3,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:general"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-5",
+          "player": "red",
+          "tier": "grandmaster",
+          "type": "wizard",
+          "row": 5,
+          "col": 3,
+          "globalDeploymentNumber": 13,
+          "ownDeploymentNumber": 7,
+          "specialOrdinal": 2,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 12,
+          "boardFillPercent": 14.8,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:wizard"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-5",
+          "player": "red",
+          "tier": "grandmaster",
+          "type": "diplomat",
+          "row": 3,
+          "col": 3,
+          "globalDeploymentNumber": 15,
+          "ownDeploymentNumber": 8,
+          "specialOrdinal": 3,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 14,
+          "boardFillPercent": 17.3,
+          "signals": {
+            "king": [],
+            "special": [
+              "special_unit:diplomat"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        }
+      ],
+      "firstSpecialOwnDeployment": 6,
+      "firstSpecialDelay": 0,
+      "plantedAllThree": true
+    },
+    {
+      "gameId": "special-planting-5",
+      "player": "blue",
+      "tier": "intermediate",
+      "placements": [
+        {
+          "gameId": "special-planting-5",
+          "player": "blue",
+          "tier": "intermediate",
+          "type": "general",
+          "row": 2,
+          "col": 3,
+          "globalDeploymentNumber": 14,
+          "ownDeploymentNumber": 7,
+          "specialOrdinal": 1,
+          "delayBeyondEarliest": 1,
+          "occupiedBefore": 13,
+          "boardFillPercent": 16,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:general"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-5",
+          "player": "blue",
+          "tier": "intermediate",
+          "type": "wizard",
+          "row": 3,
+          "col": 5,
+          "globalDeploymentNumber": 18,
+          "ownDeploymentNumber": 9,
+          "specialOrdinal": 2,
+          "delayBeyondEarliest": 2,
+          "occupiedBefore": 17,
+          "boardFillPercent": 21,
+          "signals": {
+            "king": [
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:wizard"
+            ],
+            "board": [
+              "group_connection"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-5",
+          "player": "blue",
+          "tier": "intermediate",
+          "type": "diplomat",
+          "row": 0,
+          "col": 3,
+          "globalDeploymentNumber": 22,
+          "ownDeploymentNumber": 11,
+          "specialOrdinal": 3,
+          "delayBeyondEarliest": 3,
+          "occupiedBefore": 21,
+          "boardFillPercent": 25.9,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:diplomat"
+            ],
+            "board": [
+              "enemy_contact",
+              "enemy_wall"
+            ]
+          }
+        }
+      ],
+      "firstSpecialOwnDeployment": 7,
+      "firstSpecialDelay": 1,
+      "plantedAllThree": true
+    },
+    {
+      "gameId": "special-planting-6",
+      "player": "red",
+      "tier": "intermediate",
+      "placements": [
+        {
+          "gameId": "special-planting-6",
+          "player": "red",
+          "tier": "intermediate",
+          "type": "general",
+          "row": 6,
+          "col": 3,
+          "globalDeploymentNumber": 15,
+          "ownDeploymentNumber": 8,
+          "specialOrdinal": 1,
+          "delayBeyondEarliest": 2,
+          "occupiedBefore": 14,
+          "boardFillPercent": 17.3,
+          "signals": {
+            "king": [
+              "own_king_liberty",
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:general"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-6",
+          "player": "red",
+          "tier": "intermediate",
+          "type": "wizard",
+          "row": 4,
+          "col": 2,
+          "globalDeploymentNumber": 19,
+          "ownDeploymentNumber": 10,
+          "specialOrdinal": 2,
+          "delayBeyondEarliest": 3,
+          "occupiedBefore": 18,
+          "boardFillPercent": 22.2,
+          "signals": {
+            "king": [
+              "own_king_liberty",
+              "own_king_proximity",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:wizard"
+            ],
+            "board": [
+              "group_connection",
+              "enemy_contact"
+            ]
+          }
+        }
+      ],
+      "firstSpecialOwnDeployment": 8,
+      "firstSpecialDelay": 2,
+      "plantedAllThree": false
+    },
+    {
+      "gameId": "special-planting-6",
+      "player": "blue",
+      "tier": "grandmaster",
+      "placements": [
+        {
+          "gameId": "special-planting-6",
+          "player": "blue",
+          "tier": "grandmaster",
+          "type": "general",
+          "row": 4,
+          "col": 3,
+          "globalDeploymentNumber": 12,
+          "ownDeploymentNumber": 6,
+          "specialOrdinal": 1,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 11,
+          "boardFillPercent": 13.6,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:general"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-6",
+          "player": "blue",
+          "tier": "grandmaster",
+          "type": "diplomat",
+          "row": 5,
+          "col": 1,
+          "globalDeploymentNumber": 14,
+          "ownDeploymentNumber": 7,
+          "specialOrdinal": 2,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 13,
+          "boardFillPercent": 16,
+          "signals": {
+            "king": [],
+            "special": [
+              "special_unit:diplomat"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        },
+        {
+          "gameId": "special-planting-6",
+          "player": "blue",
+          "tier": "grandmaster",
+          "type": "wizard",
+          "row": 5,
+          "col": 5,
+          "globalDeploymentNumber": 16,
+          "ownDeploymentNumber": 8,
+          "specialOrdinal": 3,
+          "delayBeyondEarliest": 0,
+          "occupiedBefore": 15,
+          "boardFillPercent": 18.5,
+          "signals": {
+            "king": [
+              "enemy_king_liberty",
+              "enemy_king_pressure"
+            ],
+            "special": [
+              "special_unit:wizard"
+            ],
+            "board": [
+              "enemy_contact"
+            ]
+          }
+        }
+      ],
+      "firstSpecialOwnDeployment": 6,
+      "firstSpecialDelay": 0,
+      "plantedAllThree": true
+    }
+  ],
+  "placements": [
+    {
+      "gameId": "special-planting-1",
+      "player": "blue",
+      "tier": "intermediate",
+      "type": "general",
+      "row": 7,
+      "col": 3,
+      "globalDeploymentNumber": 14,
+      "ownDeploymentNumber": 7,
+      "specialOrdinal": 1,
+      "delayBeyondEarliest": 1,
+      "occupiedBefore": 13,
+      "boardFillPercent": 16,
+      "signals": {
+        "king": [
+          "enemy_king_liberty"
+        ],
+        "special": [
+          "special_unit:general"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-1",
+      "player": "red",
+      "tier": "novice",
+      "type": "general",
+      "row": 7,
+      "col": 2,
+      "globalDeploymentNumber": 17,
+      "ownDeploymentNumber": 9,
+      "specialOrdinal": 1,
+      "delayBeyondEarliest": 3,
+      "occupiedBefore": 16,
+      "boardFillPercent": 19.8,
+      "signals": {
+        "king": [
+          "enemy_king_liberty"
+        ],
+        "special": [
+          "special_unit:general"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-1",
+      "player": "blue",
+      "tier": "intermediate",
+      "type": "wizard",
+      "row": 4,
+      "col": 3,
+      "globalDeploymentNumber": 18,
+      "ownDeploymentNumber": 9,
+      "specialOrdinal": 2,
+      "delayBeyondEarliest": 2,
+      "occupiedBefore": 17,
+      "boardFillPercent": 21,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:wizard"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-1",
+      "player": "blue",
+      "tier": "intermediate",
+      "type": "diplomat",
+      "row": 5,
+      "col": 5,
+      "globalDeploymentNumber": 22,
+      "ownDeploymentNumber": 11,
+      "specialOrdinal": 3,
+      "delayBeyondEarliest": 3,
+      "occupiedBefore": 21,
+      "boardFillPercent": 25.9,
+      "signals": {
+        "king": [
+          "own_king_liberty",
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:diplomat"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-1",
+      "player": "red",
+      "tier": "novice",
+      "type": "wizard",
+      "row": 5,
+      "col": 2,
+      "globalDeploymentNumber": 23,
+      "ownDeploymentNumber": 12,
+      "specialOrdinal": 2,
+      "delayBeyondEarliest": 5,
+      "occupiedBefore": 22,
+      "boardFillPercent": 27.2,
+      "signals": {
+        "king": [
+          "enemy_king_liberty"
+        ],
+        "special": [
+          "special_unit:wizard"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-1",
+      "player": "red",
+      "tier": "novice",
+      "type": "diplomat",
+      "row": 7,
+      "col": 8,
+      "globalDeploymentNumber": 29,
+      "ownDeploymentNumber": 15,
+      "specialOrdinal": 3,
+      "delayBeyondEarliest": 7,
+      "occupiedBefore": 28,
+      "boardFillPercent": 34.6,
+      "signals": {
+        "king": [
+          "enemy_king_liberty"
+        ],
+        "special": [
+          "special_unit:diplomat"
+        ],
+        "board": [
+          "enemy_contact",
+          "enemy_wall"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-2",
+      "player": "red",
+      "tier": "intermediate",
+      "type": "wizard",
+      "row": 8,
+      "col": 4,
+      "globalDeploymentNumber": 13,
+      "ownDeploymentNumber": 7,
+      "specialOrdinal": 1,
+      "delayBeyondEarliest": 1,
+      "occupiedBefore": 12,
+      "boardFillPercent": 14.8,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:wizard"
+        ],
+        "board": [
+          "enemy_contact",
+          "enemy_wall"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-2",
+      "player": "red",
+      "tier": "intermediate",
+      "type": "general",
+      "row": 7,
+      "col": 3,
+      "globalDeploymentNumber": 17,
+      "ownDeploymentNumber": 9,
+      "specialOrdinal": 2,
+      "delayBeyondEarliest": 2,
+      "occupiedBefore": 16,
+      "boardFillPercent": 19.8,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:general"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-2",
+      "player": "blue",
+      "tier": "novice",
+      "type": "wizard",
+      "row": 8,
+      "col": 2,
+      "globalDeploymentNumber": 18,
+      "ownDeploymentNumber": 9,
+      "specialOrdinal": 1,
+      "delayBeyondEarliest": 3,
+      "occupiedBefore": 17,
+      "boardFillPercent": 21,
+      "signals": {
+        "king": [],
+        "special": [
+          "special_unit:wizard"
+        ],
+        "board": [
+          "enemy_contact",
+          "own_wall"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-2",
+      "player": "blue",
+      "tier": "novice",
+      "type": "diplomat",
+      "row": 5,
+      "col": 5,
+      "globalDeploymentNumber": 22,
+      "ownDeploymentNumber": 11,
+      "specialOrdinal": 2,
+      "delayBeyondEarliest": 4,
+      "occupiedBefore": 21,
+      "boardFillPercent": 25.9,
+      "signals": {
+        "king": [
+          "own_king_liberty",
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:diplomat"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-2",
+      "player": "red",
+      "tier": "intermediate",
+      "type": "diplomat",
+      "row": 8,
+      "col": 8,
+      "globalDeploymentNumber": 25,
+      "ownDeploymentNumber": 13,
+      "specialOrdinal": 3,
+      "delayBeyondEarliest": 5,
+      "occupiedBefore": 24,
+      "boardFillPercent": 29.6,
+      "signals": {
+        "king": [
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:diplomat"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_wall"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-2",
+      "player": "blue",
+      "tier": "novice",
+      "type": "general",
+      "row": 5,
+      "col": 7,
+      "globalDeploymentNumber": 32,
+      "ownDeploymentNumber": 16,
+      "specialOrdinal": 3,
+      "delayBeyondEarliest": 8,
+      "occupiedBefore": 31,
+      "boardFillPercent": 38.3,
+      "signals": {
+        "king": [],
+        "special": [
+          "special_unit:general"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-3",
+      "player": "red",
+      "tier": "advanced",
+      "type": "wizard",
+      "row": 7,
+      "col": 3,
+      "globalDeploymentNumber": 11,
+      "ownDeploymentNumber": 6,
+      "specialOrdinal": 1,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 10,
+      "boardFillPercent": 12.3,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:wizard"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-3",
+      "player": "blue",
+      "tier": "expert",
+      "type": "diplomat",
+      "row": 4,
+      "col": 5,
+      "globalDeploymentNumber": 12,
+      "ownDeploymentNumber": 6,
+      "specialOrdinal": 1,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 11,
+      "boardFillPercent": 13.6,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:diplomat"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-3",
+      "player": "red",
+      "tier": "advanced",
+      "type": "diplomat",
+      "row": 6,
+      "col": 3,
+      "globalDeploymentNumber": 13,
+      "ownDeploymentNumber": 7,
+      "specialOrdinal": 2,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 12,
+      "boardFillPercent": 14.8,
+      "signals": {
+        "king": [
+          "own_king_liberty",
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:diplomat"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-3",
+      "player": "blue",
+      "tier": "expert",
+      "type": "general",
+      "row": 6,
+      "col": 2,
+      "globalDeploymentNumber": 14,
+      "ownDeploymentNumber": 7,
+      "specialOrdinal": 2,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 13,
+      "boardFillPercent": 16,
+      "signals": {
+        "king": [
+          "enemy_king_liberty"
+        ],
+        "special": [
+          "special_unit:general"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-3",
+      "player": "blue",
+      "tier": "expert",
+      "type": "wizard",
+      "row": 5,
+      "col": 5,
+      "globalDeploymentNumber": 16,
+      "ownDeploymentNumber": 8,
+      "specialOrdinal": 3,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 15,
+      "boardFillPercent": 18.5,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:wizard"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-3",
+      "player": "red",
+      "tier": "advanced",
+      "type": "general",
+      "row": 8,
+      "col": 5,
+      "globalDeploymentNumber": 17,
+      "ownDeploymentNumber": 9,
+      "specialOrdinal": 3,
+      "delayBeyondEarliest": 1,
+      "occupiedBefore": 16,
+      "boardFillPercent": 19.8,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:general"
+        ],
+        "board": [
+          "enemy_contact",
+          "enemy_wall"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-4",
+      "player": "red",
+      "tier": "expert",
+      "type": "wizard",
+      "row": 6,
+      "col": 3,
+      "globalDeploymentNumber": 11,
+      "ownDeploymentNumber": 6,
+      "specialOrdinal": 1,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 10,
+      "boardFillPercent": 12.3,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:wizard"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-4",
+      "player": "red",
+      "tier": "expert",
+      "type": "diplomat",
+      "row": 7,
+      "col": 5,
+      "globalDeploymentNumber": 13,
+      "ownDeploymentNumber": 7,
+      "specialOrdinal": 2,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 12,
+      "boardFillPercent": 14.8,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:diplomat"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-4",
+      "player": "blue",
+      "tier": "advanced",
+      "type": "wizard",
+      "row": 4,
+      "col": 3,
+      "globalDeploymentNumber": 14,
+      "ownDeploymentNumber": 7,
+      "specialOrdinal": 1,
+      "delayBeyondEarliest": 1,
+      "occupiedBefore": 13,
+      "boardFillPercent": 16,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:wizard"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-4",
+      "player": "blue",
+      "tier": "advanced",
+      "type": "general",
+      "row": 2,
+      "col": 5,
+      "globalDeploymentNumber": 16,
+      "ownDeploymentNumber": 8,
+      "specialOrdinal": 2,
+      "delayBeyondEarliest": 1,
+      "occupiedBefore": 15,
+      "boardFillPercent": 18.5,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:general"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-4",
+      "player": "red",
+      "tier": "expert",
+      "type": "general",
+      "row": 1,
+      "col": 5,
+      "globalDeploymentNumber": 17,
+      "ownDeploymentNumber": 9,
+      "specialOrdinal": 3,
+      "delayBeyondEarliest": 1,
+      "occupiedBefore": 16,
+      "boardFillPercent": 19.8,
+      "signals": {
+        "king": [
+          "own_king_liberty"
+        ],
+        "special": [
+          "special_unit:general"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-4",
+      "player": "blue",
+      "tier": "advanced",
+      "type": "diplomat",
+      "row": 2,
+      "col": 3,
+      "globalDeploymentNumber": 20,
+      "ownDeploymentNumber": 10,
+      "specialOrdinal": 3,
+      "delayBeyondEarliest": 2,
+      "occupiedBefore": 19,
+      "boardFillPercent": 23.5,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:diplomat"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-5",
+      "player": "red",
+      "tier": "grandmaster",
+      "type": "general",
+      "row": 6,
+      "col": 5,
+      "globalDeploymentNumber": 11,
+      "ownDeploymentNumber": 6,
+      "specialOrdinal": 1,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 10,
+      "boardFillPercent": 12.3,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:general"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-5",
+      "player": "red",
+      "tier": "grandmaster",
+      "type": "wizard",
+      "row": 5,
+      "col": 3,
+      "globalDeploymentNumber": 13,
+      "ownDeploymentNumber": 7,
+      "specialOrdinal": 2,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 12,
+      "boardFillPercent": 14.8,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:wizard"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-5",
+      "player": "blue",
+      "tier": "intermediate",
+      "type": "general",
+      "row": 2,
+      "col": 3,
+      "globalDeploymentNumber": 14,
+      "ownDeploymentNumber": 7,
+      "specialOrdinal": 1,
+      "delayBeyondEarliest": 1,
+      "occupiedBefore": 13,
+      "boardFillPercent": 16,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:general"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-5",
+      "player": "red",
+      "tier": "grandmaster",
+      "type": "diplomat",
+      "row": 3,
+      "col": 3,
+      "globalDeploymentNumber": 15,
+      "ownDeploymentNumber": 8,
+      "specialOrdinal": 3,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 14,
+      "boardFillPercent": 17.3,
+      "signals": {
+        "king": [],
+        "special": [
+          "special_unit:diplomat"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-5",
+      "player": "blue",
+      "tier": "intermediate",
+      "type": "wizard",
+      "row": 3,
+      "col": 5,
+      "globalDeploymentNumber": 18,
+      "ownDeploymentNumber": 9,
+      "specialOrdinal": 2,
+      "delayBeyondEarliest": 2,
+      "occupiedBefore": 17,
+      "boardFillPercent": 21,
+      "signals": {
+        "king": [
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:wizard"
+        ],
+        "board": [
+          "group_connection"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-5",
+      "player": "blue",
+      "tier": "intermediate",
+      "type": "diplomat",
+      "row": 0,
+      "col": 3,
+      "globalDeploymentNumber": 22,
+      "ownDeploymentNumber": 11,
+      "specialOrdinal": 3,
+      "delayBeyondEarliest": 3,
+      "occupiedBefore": 21,
+      "boardFillPercent": 25.9,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:diplomat"
+        ],
+        "board": [
+          "enemy_contact",
+          "enemy_wall"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-6",
+      "player": "blue",
+      "tier": "grandmaster",
+      "type": "general",
+      "row": 4,
+      "col": 3,
+      "globalDeploymentNumber": 12,
+      "ownDeploymentNumber": 6,
+      "specialOrdinal": 1,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 11,
+      "boardFillPercent": 13.6,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:general"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-6",
+      "player": "blue",
+      "tier": "grandmaster",
+      "type": "diplomat",
+      "row": 5,
+      "col": 1,
+      "globalDeploymentNumber": 14,
+      "ownDeploymentNumber": 7,
+      "specialOrdinal": 2,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 13,
+      "boardFillPercent": 16,
+      "signals": {
+        "king": [],
+        "special": [
+          "special_unit:diplomat"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-6",
+      "player": "red",
+      "tier": "intermediate",
+      "type": "general",
+      "row": 6,
+      "col": 3,
+      "globalDeploymentNumber": 15,
+      "ownDeploymentNumber": 8,
+      "specialOrdinal": 1,
+      "delayBeyondEarliest": 2,
+      "occupiedBefore": 14,
+      "boardFillPercent": 17.3,
+      "signals": {
+        "king": [
+          "own_king_liberty",
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:general"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-6",
+      "player": "blue",
+      "tier": "grandmaster",
+      "type": "wizard",
+      "row": 5,
+      "col": 5,
+      "globalDeploymentNumber": 16,
+      "ownDeploymentNumber": 8,
+      "specialOrdinal": 3,
+      "delayBeyondEarliest": 0,
+      "occupiedBefore": 15,
+      "boardFillPercent": 18.5,
+      "signals": {
+        "king": [
+          "enemy_king_liberty",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:wizard"
+        ],
+        "board": [
+          "enemy_contact"
+        ]
+      }
+    },
+    {
+      "gameId": "special-planting-6",
+      "player": "red",
+      "tier": "intermediate",
+      "type": "wizard",
+      "row": 4,
+      "col": 2,
+      "globalDeploymentNumber": 19,
+      "ownDeploymentNumber": 10,
+      "specialOrdinal": 2,
+      "delayBeyondEarliest": 3,
+      "occupiedBefore": 18,
+      "boardFillPercent": 22.2,
+      "signals": {
+        "king": [
+          "own_king_liberty",
+          "own_king_proximity",
+          "enemy_king_pressure"
+        ],
+        "special": [
+          "special_unit:wizard"
+        ],
+        "board": [
+          "group_connection",
+          "enemy_contact"
+        ]
+      }
+    }
+  ],
+  "games": [
+    {
+      "gameId": "special-planting-1",
+      "redTier": "novice",
+      "blueTier": "intermediate",
+      "seed": 20260828,
+      "startingPlayer": "red",
+      "randomOpeningPlies": 0,
+      "handicapPlayer": null,
+      "handicapStones": 0,
+      "winner": "blue",
+      "capped": true,
+      "deployments": 50,
+      "reason": "evaluation_cap_territory",
+      "finalPieces": {
+        "red": 18,
+        "blue": 32
+      },
+      "durationMs": 4892,
+      "actionCount": 50,
+      "finalDigest": "fnv1a64:dd489bbf7b352c9c",
+      "journalPath": null
+    },
+    {
+      "gameId": "special-planting-2",
+      "redTier": "intermediate",
+      "blueTier": "novice",
+      "seed": 20260829,
+      "startingPlayer": "red",
+      "randomOpeningPlies": 0,
+      "handicapPlayer": null,
+      "handicapStones": 0,
+      "winner": "blue",
+      "capped": true,
+      "deployments": 50,
+      "reason": "evaluation_cap_territory",
+      "finalPieces": {
+        "red": 23,
+        "blue": 27
+      },
+      "durationMs": 5958,
+      "actionCount": 51,
+      "finalDigest": "fnv1a64:f20726d7d23aa569",
+      "journalPath": null
+    },
+    {
+      "gameId": "special-planting-3",
+      "redTier": "advanced",
+      "blueTier": "expert",
+      "seed": 20260830,
+      "startingPlayer": "red",
+      "randomOpeningPlies": 0,
+      "handicapPlayer": null,
+      "handicapStones": 0,
+      "winner": "red",
+      "capped": true,
+      "deployments": 50,
+      "reason": "evaluation_cap_territory",
+      "finalPieces": {
+        "red": 29,
+        "blue": 21
+      },
+      "durationMs": 62064,
+      "actionCount": 50,
+      "finalDigest": "fnv1a64:27861e0007f106de",
+      "journalPath": null
+    },
+    {
+      "gameId": "special-planting-4",
+      "redTier": "expert",
+      "blueTier": "advanced",
+      "seed": 20260831,
+      "startingPlayer": "red",
+      "randomOpeningPlies": 0,
+      "handicapPlayer": null,
+      "handicapStones": 0,
+      "winner": "red",
+      "capped": true,
+      "deployments": 50,
+      "reason": "evaluation_cap_territory",
+      "finalPieces": {
+        "red": 27,
+        "blue": 23
+      },
+      "durationMs": 32193,
+      "actionCount": 50,
+      "finalDigest": "fnv1a64:576ec058652a2fe6",
+      "journalPath": null
+    },
+    {
+      "gameId": "special-planting-5",
+      "redTier": "grandmaster",
+      "blueTier": "intermediate",
+      "seed": 20260832,
+      "startingPlayer": "red",
+      "randomOpeningPlies": 0,
+      "handicapPlayer": null,
+      "handicapStones": 0,
+      "winner": "red",
+      "capped": true,
+      "deployments": 50,
+      "reason": "evaluation_cap_territory",
+      "finalPieces": {
+        "red": 28,
+        "blue": 22
+      },
+      "durationMs": 15647,
+      "actionCount": 50,
+      "finalDigest": "fnv1a64:0865e46925c640bd",
+      "journalPath": null
+    },
+    {
+      "gameId": "special-planting-6",
+      "redTier": "intermediate",
+      "blueTier": "grandmaster",
+      "seed": 20260833,
+      "startingPlayer": "red",
+      "randomOpeningPlies": 0,
+      "handicapPlayer": null,
+      "handicapStones": 0,
+      "winner": "blue",
+      "capped": false,
+      "deployments": 21,
+      "reason": "Black King was captured by General capture reaction.",
+      "finalPieces": {
+        "red": 6,
+        "blue": 11
+      },
+      "durationMs": 5626,
+      "actionCount": 22,
+      "finalDigest": "fnv1a64:6f6920a633579db6",
+      "journalPath": null
+    }
+  ]
+}

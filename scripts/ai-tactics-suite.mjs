@@ -37,6 +37,12 @@ import {
 } from "../packages/game-engine/src/index.js";
 import { AI_RANK_SETTINGS, findAiDeployMove } from "../js/ai.js";
 import { neighbors } from "../js/board.js";
+import {
+  chooseMixedTierAction,
+  parsePerturbationPolicy,
+} from "./lib/human-like-perturbation.mjs";
+import { loadPveJournalPositions } from "./lib/pve-journal-positions.mjs";
+import { parseOverrideTiers, settingsWithTierOverride } from "./lib/tier-overrides.mjs";
 
 const TIERS = ["novice", "intermediate", "advanced", "expert", "grandmaster"];
 const SPECIAL_TYPES = ["general", "diplomat", "wizard"];
@@ -380,16 +386,24 @@ function classifySuicideAvoidance(state, player) {
 const CLASSIFIERS = [classifyWinNow, classifyHiddenTrap, classifyMustDefend, classifyTrueAtari, classifySuicideAvoidance];
 
 /**
- * Settings merged into every tier before it answers, so one knob can be swept across the exam
- * without disturbing how the sample was generated.
+ * Settings merged into the selected tiers before they answer, so one knob can be swept across
+ * part of the ladder without disturbing either the sample or the control tiers.
  */
 let tierOverride = null;
+let tierOverrideTiers = new Set();
 
 function askTier(position, tier) {
   const state = structuredClone(position);
   state.aiRank = tier;
   delete state.aiSettings;
-  if (tierOverride) state.aiSettings = { ...AI_RANK_SETTINGS[tier], ...tierOverride };
+  if (tierOverride && tierOverrideTiers.has(tier)) {
+    state.aiSettings = settingsWithTierOverride(
+      AI_RANK_SETTINGS[tier],
+      tier,
+      tierOverride,
+      tierOverrideTiers,
+    );
+  }
   const player = state.turn;
   return findAiDeployMove(state, {
     aiPlayer: player,
@@ -421,12 +435,16 @@ const DOCTRINE_DEPLOYMENTS = 5;
  * never consulted. Worse, the stretch used to end mid-doctrine — deployments three and four fell
  * past it and followed `openingWallStones`, so the exam scored a random King wrapped in a
  * doctrinal wall, a board neither the old sampler nor the tiers ever produce. The doctrine now
- * owns the first five deployments the way `probe-special-doctrine.mjs` does, and the random
- * stretch that follows is where the corpus gets its variety: the top tiers are deterministic, so
- * without it a pairing produces the same game every time.
+ * owns the first five deployments the way `probe-special-doctrine.mjs` does. A perturbation
+ * stretch follows to give the corpus variety: `uniform` preserves the historical sampler, while
+ * `mixed-tier` chooses among distinct recommendations from the five tiers.
  */
+function mixedTierAction(state, random) {
+  return chooseMixedTierAction(TIERS.map((tier) => askTier(state, tier)), random);
+}
+
 function* sampledPositions(random, options) {
-  const { games, randomPlies, maxPlies, soldiersOnly, endings } = options;
+  const { games, randomPlies, maxPlies, soldiersOnly, endings, perturbationPolicy } = options;
   for (let game = 0; game < games; game += 1) {
     const state = createGameState("pve", { aiRank: "grandmaster" });
     if (soldiersOnly) stripSpecials(state);
@@ -434,21 +452,25 @@ function* sampledPositions(random, options) {
       red: TIERS[Math.floor(random() * TIERS.length)],
       blue: TIERS[Math.floor(random() * TIERS.length)],
     };
-    const randomLeft = { red: randomPlies, blue: randomPlies };
+    const perturbationsLeft = { red: randomPlies, blue: randomPlies };
     let ply = 0;
     for (; ply < maxPlies && !state.winner; ply += 1) {
       const player = state.turn;
       const placed = state.deploymentCount?.[player] ?? 0;
       const phase = placed < DOCTRINE_DEPLOYMENTS ? "doctrine"
-        : randomLeft[player] > 0 ? "random" : "play";
+        : perturbationsLeft[player] > 0 ? "perturbation" : "play";
       const quiet = !state.pendingSpecial && !state.teleporting && !state.pendingKingSwap;
       if (phase === "play" && quiet && state.firstDeployDone[player]) yield structuredClone(state);
 
       let action = null;
-      if (phase === "random") {
-        randomLeft[player] -= 1;
-        const choices = legalDeployments(state, player);
-        action = choices.length ? choices[Math.floor(random() * choices.length)] : null;
+      if (phase === "perturbation") {
+        perturbationsLeft[player] -= 1;
+        if (perturbationPolicy === "mixed-tier") {
+          action = mixedTierAction(state, random);
+        } else {
+          const choices = legalDeployments(state, player);
+          action = choices.length ? choices[Math.floor(random() * choices.length)] : null;
+        }
       } else {
         const move = askTier(state, sides[player]);
         action = move ? { type: "deploy", unitType: move.type, row: move.row, col: move.col } : null;
@@ -537,15 +559,26 @@ function main() {
   const target = Number(optionValue("--positions", "60"));
   const maxPlies = Number(optionValue("--max-plies", "80"));
   const games = Number(optionValue("--games", "12"));
-  // Plies each side plays at random after its opening doctrine, which is where the corpus gets
-  // its variety. `--opening` used to mean random plies from move one; the doctrine now owns the
-  // first five deployments, so the knob only covers what comes after it.
+  // Perturbation plies after each side's opening doctrine. The option keeps its historical name,
+  // but `--perturbation-policy mixed-tier` makes these plausible tier-recommended moves instead
+  // of uniform legal moves.
   const randomPlies = Number(optionValue("--random-plies", "3"));
+  const perturbationPolicy = parsePerturbationPolicy(optionValue("--perturbation-policy", "uniform"));
   const perCategory = Number(optionValue("--per-category", "0"));
   const soldiersOnly = hasFlag("--soldiers-only");
   const dump = hasFlag("--dump-positions");
   const overridePath = optionValue("--tier-override");
   const pendingOverride = overridePath ? JSON.parse(readFileSync(resolve(overridePath), "utf8")) : null;
+  const overrideTiersValue = optionValue("--override-tiers");
+  if (hasFlag("--override-tiers") && overrideTiersValue == null) {
+    throw new Error("--override-tiers requires a comma-separated tier list");
+  }
+  if (overrideTiersValue && !pendingOverride) {
+    throw new Error("--override-tiers requires --tier-override");
+  }
+  const pendingOverrideTiers = pendingOverride
+    ? parseOverrideTiers(overrideTiersValue, TIERS)
+    : new Set();
   const outputPath = optionValue("--output", "experiments/ai-tactics-suite.json");
   const random = seededRandom(seed);
   pinRandom(seed);
@@ -560,13 +593,30 @@ function main() {
   // Generating the exam means playing hundreds of AI games; scoring it is cheap. A sweep over
   // tier settings should pay that cost once, so a finished report can be replayed as the exam.
   const examPath = optionValue("--load-exam");
+  const pveJournalsPath = optionValue("--pve-journals");
+  if (hasFlag("--pve-journals") && pveJournalsPath == null) {
+    throw new Error("--pve-journals requires a JSONL file or directory");
+  }
+  if (examPath && pveJournalsPath) {
+    throw new Error("--load-exam and --pve-journals are mutually exclusive corpus sources");
+  }
+  if (pveJournalsPath && hasFlag("--perturbation-policy")) {
+    throw new Error("--perturbation-policy does not apply to actual PvE journals");
+  }
+  if (pveJournalsPath && soldiersOnly) {
+    throw new Error("--soldiers-only cannot rewrite an actual PvE journal corpus");
+  }
   const exam = [];
   const counts = {};
   const endings = [];
+  let corpusSource = pveJournalsPath ? "pve-journal" : "synthetic";
+  let corpusPerturbationPolicy = pveJournalsPath ? "actual-pve" : perturbationPolicy;
   let scanned = 0;
 
   if (examPath) {
     const prior = JSON.parse(readFileSync(resolve(examPath), "utf8"));
+    corpusSource = prior.corpusSource ?? "replayed-exam";
+    corpusPerturbationPolicy = prior.perturbationPolicy ?? "legacy-unknown";
     for (const record of prior.answers) {
       if (!record.position) throw new Error(`${examPath} has no stored positions to replay`);
       exam.push({
@@ -578,6 +628,7 @@ function main() {
         correct: record.correct,
         forbidden: record.forbidden,
         detail: record.detail,
+        source: record.source ?? null,
       });
       counts[record.category] = (counts[record.category] || 0) + 1;
     }
@@ -585,9 +636,21 @@ function main() {
     endings.push(...(prior.gameEndings || []));
   }
 
-  for (const position of examPath ? [] : sampledPositions(random, { games, randomPlies, maxPlies, soldiersOnly, endings })) {
+  const sampled = examPath ? [] : pveJournalsPath
+    ? loadPveJournalPositions(pveJournalsPath)
+    : sampledPositions(random, {
+      games,
+      randomPlies,
+      maxPlies,
+      soldiersOnly,
+      endings,
+      perturbationPolicy,
+    });
+  for (const sample of sampled) {
     if (exam.length >= target) break;
     scanned += 1;
+    const position = sample.position ?? sample;
+    const source = sample.source ?? null;
     const player = position.turn;
     for (const classify of CLASSIFIERS) {
       const verdict = classify(position, player, { soldiersOnly });
@@ -595,7 +658,7 @@ function main() {
       const seen = counts[verdict.category] || 0;
       if (caps[verdict.category] && seen >= caps[verdict.category]) break;
       counts[verdict.category] = seen + 1;
-      exam.push({ id: `p${exam.length + 1}`, player, position, ...verdict });
+      exam.push({ id: `p${exam.length + 1}`, player, position, source, ...verdict });
       break;
     }
   }
@@ -609,6 +672,7 @@ function main() {
   // Applied only now. `askTier` also drives the games that produce the sample, so setting this
   // before sampling would hand each variant a different exam and make the comparison meaningless.
   tierOverride = pendingOverride;
+  tierOverrideTiers = pendingOverrideTiers;
 
   const scores = {};
   const outcomes = {};
@@ -630,6 +694,7 @@ function main() {
       board: item.position.board.map((row) => row.map((piece) => (piece ? `${piece.owner === "red" ? "R" : "b"}${piece.type}` : null))),
       turn: item.position.turn,
       position: item.position,
+      source: item.source,
       byTier: {},
     };
     for (const tier of TIERS) {
@@ -682,7 +747,10 @@ function main() {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     mode,
+    corpusSource,
+    perturbationPolicy: corpusPerturbationPolicy,
     tierOverride,
+    overrideTiers: tierOverride ? [...tierOverrideTiers] : null,
     seed,
     positions: exam.length,
     sampledPlies: scanned,

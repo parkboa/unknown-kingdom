@@ -1,0 +1,785 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T21:44:38.966Z",
+  "config": {
+    "pairs": [
+      [
+        "novice",
+        "intermediate"
+      ],
+      [
+        "advanced",
+        "expert"
+      ],
+      [
+        "grandmaster",
+        "intermediate"
+      ]
+    ],
+    "games": 6,
+    "maxDeployments": 50,
+    "baseSeed": 20260828
+  },
+  "aggregate": {
+    "king": {
+      "collected": 3184,
+      "searchObserved": 3169,
+      "searchKept": 2494,
+      "riskObserved": 2140,
+      "riskKept": 438,
+      "riskVetoed": 1,
+      "selected": 154,
+      "stopReasons": {
+        "outside_score_limit": 546,
+        "outside_risk_candidate_limit": 1702,
+        "midgame_special_attack_filter": 129
+      },
+      "searchSurvivalRate": 78.7,
+      "riskSurvivalRate": 20.5,
+      "selectionRate": 4.8
+    },
+    "special": {
+      "collected": 5831,
+      "searchObserved": 5831,
+      "searchKept": 676,
+      "riskObserved": 591,
+      "riskKept": 98,
+      "riskVetoed": 0,
+      "selected": 34,
+      "stopReasons": {
+        "outside_score_limit": 4356,
+        "outside_risk_candidate_limit": 493,
+        "midgame_special_attack_filter": 799
+      },
+      "searchSurvivalRate": 11.6,
+      "riskSurvivalRate": 16.6,
+      "selectionRate": 0.6
+    },
+    "board": {
+      "collected": 7454,
+      "searchObserved": 7407,
+      "searchKept": 2091,
+      "riskObserved": 1903,
+      "riskKept": 89,
+      "riskVetoed": 1,
+      "selected": 24,
+      "stopReasons": {
+        "outside_score_limit": 4999,
+        "outside_risk_candidate_limit": 1814,
+        "king_crisis_root_limit": 40,
+        "midgame_special_attack_filter": 277
+      },
+      "searchSurvivalRate": 28.2,
+      "riskSurvivalRate": 4.7,
+      "selectionRate": 0.3
+    }
+  },
+  "catalogStage": {
+    "king": {
+      "collected": 2251,
+      "searchObserved": 2236,
+      "searchKept": 1723,
+      "riskObserved": 1529,
+      "riskKept": 283,
+      "riskVetoed": 1,
+      "selected": 94,
+      "stopReasons": {
+        "outside_score_limit": 384,
+        "outside_risk_candidate_limit": 1246,
+        "midgame_special_attack_filter": 129
+      },
+      "searchSurvivalRate": 77.1,
+      "riskSurvivalRate": 18.5,
+      "selectionRate": 4.2
+    },
+    "special": {
+      "collected": 5831,
+      "searchObserved": 5831,
+      "searchKept": 676,
+      "riskObserved": 591,
+      "riskKept": 98,
+      "riskVetoed": 0,
+      "selected": 34,
+      "stopReasons": {
+        "outside_score_limit": 4356,
+        "outside_risk_candidate_limit": 493,
+        "midgame_special_attack_filter": 799
+      },
+      "searchSurvivalRate": 11.6,
+      "riskSurvivalRate": 16.6,
+      "selectionRate": 0.6
+    },
+    "board": {
+      "collected": 6449,
+      "searchObserved": 6402,
+      "searchKept": 1937,
+      "riskObserved": 1756,
+      "riskKept": 89,
+      "riskVetoed": 1,
+      "selected": 24,
+      "stopReasons": {
+        "outside_score_limit": 4148,
+        "outside_risk_candidate_limit": 1667,
+        "king_crisis_root_limit": 40,
+        "midgame_special_attack_filter": 277
+      },
+      "searchSurvivalRate": 30.3,
+      "riskSurvivalRate": 5.1,
+      "selectionRate": 0.4
+    }
+  },
+  "byTier": {
+    "novice": {
+      "decisions": 33,
+      "catalogStageDecisions": 23,
+      "catalogs": {
+        "king": {
+          "collected": 498,
+          "searchObserved": 498,
+          "searchKept": 354,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "riskVetoed": 0,
+          "selected": 27,
+          "stopReasons": {
+            "outside_score_limit": 144
+          },
+          "searchSurvivalRate": 71.1,
+          "riskSurvivalRate": null,
+          "selectionRate": 5.4
+        },
+        "special": {
+          "collected": 895,
+          "searchObserved": 895,
+          "searchKept": 85,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "riskVetoed": 0,
+          "selected": 5,
+          "stopReasons": {
+            "outside_score_limit": 810
+          },
+          "searchSurvivalRate": 9.5,
+          "riskSurvivalRate": null,
+          "selectionRate": 0.6
+        },
+        "board": {
+          "collected": 1279,
+          "searchObserved": 1279,
+          "searchKept": 188,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "riskVetoed": 0,
+          "selected": 1,
+          "stopReasons": {
+            "outside_score_limit": 1091
+          },
+          "searchSurvivalRate": 14.7,
+          "riskSurvivalRate": null,
+          "selectionRate": 0.1
+        }
+      },
+      "catalogStage": {
+        "king": {
+          "collected": 271,
+          "searchObserved": 271,
+          "searchKept": 194,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "riskVetoed": 0,
+          "selected": 17,
+          "stopReasons": {
+            "outside_score_limit": 77
+          },
+          "searchSurvivalRate": 71.6,
+          "riskSurvivalRate": null,
+          "selectionRate": 6.3
+        },
+        "special": {
+          "collected": 895,
+          "searchObserved": 895,
+          "searchKept": 85,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "riskVetoed": 0,
+          "selected": 5,
+          "stopReasons": {
+            "outside_score_limit": 810
+          },
+          "searchSurvivalRate": 9.5,
+          "riskSurvivalRate": null,
+          "selectionRate": 0.6
+        },
+        "board": {
+          "collected": 973,
+          "searchObserved": 973,
+          "searchKept": 181,
+          "riskObserved": 0,
+          "riskKept": 0,
+          "riskVetoed": 0,
+          "selected": 1,
+          "stopReasons": {
+            "outside_score_limit": 792
+          },
+          "searchSurvivalRate": 18.6,
+          "riskSurvivalRate": null,
+          "selectionRate": 0.1
+        }
+      }
+    },
+    "intermediate": {
+      "decisions": 61,
+      "catalogStageDecisions": 41,
+      "catalogs": {
+        "king": {
+          "collected": 1010,
+          "searchObserved": 995,
+          "searchKept": 752,
+          "riskObserved": 752,
+          "riskKept": 125,
+          "riskVetoed": 0,
+          "selected": 43,
+          "stopReasons": {
+            "outside_score_limit": 243,
+            "outside_risk_candidate_limit": 627
+          },
+          "searchSurvivalRate": 75.6,
+          "riskSurvivalRate": 16.6,
+          "selectionRate": 4.3
+        },
+        "special": {
+          "collected": 2183,
+          "searchObserved": 2183,
+          "searchKept": 280,
+          "riskObserved": 280,
+          "riskKept": 33,
+          "riskVetoed": 0,
+          "selected": 11,
+          "stopReasons": {
+            "outside_score_limit": 1903,
+            "outside_risk_candidate_limit": 247
+          },
+          "searchSurvivalRate": 12.8,
+          "riskSurvivalRate": 11.8,
+          "selectionRate": 0.5
+        },
+        "board": {
+          "collected": 2152,
+          "searchObserved": 2105,
+          "searchKept": 450,
+          "riskObserved": 450,
+          "riskKept": 21,
+          "riskVetoed": 0,
+          "selected": 7,
+          "stopReasons": {
+            "outside_score_limit": 1655,
+            "outside_risk_candidate_limit": 429
+          },
+          "searchSurvivalRate": 21.4,
+          "riskSurvivalRate": 4.7,
+          "selectionRate": 0.3
+        }
+      },
+      "catalogStage": {
+        "king": {
+          "collected": 636,
+          "searchObserved": 621,
+          "searchKept": 457,
+          "riskObserved": 457,
+          "riskKept": 66,
+          "riskVetoed": 0,
+          "selected": 23,
+          "stopReasons": {
+            "outside_score_limit": 164,
+            "outside_risk_candidate_limit": 391
+          },
+          "searchSurvivalRate": 73.6,
+          "riskSurvivalRate": 14.4,
+          "selectionRate": 3.6
+        },
+        "special": {
+          "collected": 2183,
+          "searchObserved": 2183,
+          "searchKept": 280,
+          "riskObserved": 280,
+          "riskKept": 33,
+          "riskVetoed": 0,
+          "selected": 11,
+          "stopReasons": {
+            "outside_score_limit": 1903,
+            "outside_risk_candidate_limit": 247
+          },
+          "searchSurvivalRate": 12.8,
+          "riskSurvivalRate": 11.8,
+          "selectionRate": 0.5
+        },
+        "board": {
+          "collected": 1750,
+          "searchObserved": 1703,
+          "searchKept": 383,
+          "riskObserved": 383,
+          "riskKept": 21,
+          "riskVetoed": 0,
+          "selected": 7,
+          "stopReasons": {
+            "outside_score_limit": 1320,
+            "outside_risk_candidate_limit": 362
+          },
+          "searchSurvivalRate": 22.5,
+          "riskSurvivalRate": 5.5,
+          "selectionRate": 0.4
+        }
+      }
+    },
+    "advanced": {
+      "decisions": 46,
+      "catalogStageDecisions": 36,
+      "catalogs": {
+        "king": {
+          "collected": 613,
+          "searchObserved": 613,
+          "searchKept": 531,
+          "riskObserved": 531,
+          "riskKept": 102,
+          "riskVetoed": 0,
+          "selected": 35,
+          "stopReasons": {
+            "outside_score_limit": 82,
+            "outside_risk_candidate_limit": 429
+          },
+          "searchSurvivalRate": 86.6,
+          "riskSurvivalRate": 19.2,
+          "selectionRate": 5.7
+        },
+        "special": {
+          "collected": 1028,
+          "searchObserved": 1028,
+          "searchKept": 145,
+          "riskObserved": 145,
+          "riskKept": 15,
+          "riskVetoed": 0,
+          "selected": 6,
+          "stopReasons": {
+            "outside_score_limit": 883,
+            "outside_risk_candidate_limit": 130
+          },
+          "searchSurvivalRate": 14.1,
+          "riskSurvivalRate": 10.3,
+          "selectionRate": 0.6
+        },
+        "board": {
+          "collected": 1764,
+          "searchObserved": 1764,
+          "searchKept": 682,
+          "riskObserved": 682,
+          "riskKept": 21,
+          "riskVetoed": 0,
+          "selected": 5,
+          "stopReasons": {
+            "outside_score_limit": 1082,
+            "outside_risk_candidate_limit": 661
+          },
+          "searchSurvivalRate": 38.7,
+          "riskSurvivalRate": 3.1,
+          "selectionRate": 0.3
+        }
+      },
+      "catalogStage": {
+        "king": {
+          "collected": 440,
+          "searchObserved": 440,
+          "searchKept": 374,
+          "riskObserved": 374,
+          "riskKept": 72,
+          "riskVetoed": 0,
+          "selected": 25,
+          "stopReasons": {
+            "outside_score_limit": 66,
+            "outside_risk_candidate_limit": 302
+          },
+          "searchSurvivalRate": 85,
+          "riskSurvivalRate": 19.3,
+          "selectionRate": 5.7
+        },
+        "special": {
+          "collected": 1028,
+          "searchObserved": 1028,
+          "searchKept": 145,
+          "riskObserved": 145,
+          "riskKept": 15,
+          "riskVetoed": 0,
+          "selected": 6,
+          "stopReasons": {
+            "outside_score_limit": 883,
+            "outside_risk_candidate_limit": 130
+          },
+          "searchSurvivalRate": 14.1,
+          "riskSurvivalRate": 10.3,
+          "selectionRate": 0.6
+        },
+        "board": {
+          "collected": 1565,
+          "searchObserved": 1565,
+          "searchKept": 633,
+          "riskObserved": 633,
+          "riskKept": 21,
+          "riskVetoed": 0,
+          "selected": 5,
+          "stopReasons": {
+            "outside_score_limit": 932,
+            "outside_risk_candidate_limit": 612
+          },
+          "searchSurvivalRate": 40.4,
+          "riskSurvivalRate": 3.3,
+          "selectionRate": 0.3
+        }
+      }
+    },
+    "expert": {
+      "decisions": 45,
+      "catalogStageDecisions": 35,
+      "catalogs": {
+        "king": {
+          "collected": 681,
+          "searchObserved": 681,
+          "searchKept": 645,
+          "riskObserved": 645,
+          "riskKept": 135,
+          "riskVetoed": 0,
+          "selected": 34,
+          "stopReasons": {
+            "outside_risk_candidate_limit": 510,
+            "outside_score_limit": 36
+          },
+          "searchSurvivalRate": 94.7,
+          "riskSurvivalRate": 20.9,
+          "selectionRate": 5
+        },
+        "special": {
+          "collected": 895,
+          "searchObserved": 895,
+          "searchKept": 135,
+          "riskObserved": 135,
+          "riskKept": 19,
+          "riskVetoed": 0,
+          "selected": 6,
+          "stopReasons": {
+            "outside_score_limit": 760,
+            "outside_risk_candidate_limit": 116
+          },
+          "searchSurvivalRate": 15.1,
+          "riskSurvivalRate": 14.1,
+          "selectionRate": 0.7
+        },
+        "board": {
+          "collected": 1506,
+          "searchObserved": 1506,
+          "searchKept": 632,
+          "riskObserved": 632,
+          "riskKept": 20,
+          "riskVetoed": 0,
+          "selected": 5,
+          "stopReasons": {
+            "outside_score_limit": 834,
+            "outside_risk_candidate_limit": 612,
+            "king_crisis_root_limit": 40
+          },
+          "searchSurvivalRate": 42,
+          "riskSurvivalRate": 3.2,
+          "selectionRate": 0.3
+        }
+      },
+      "catalogStage": {
+        "king": {
+          "collected": 560,
+          "searchObserved": 560,
+          "searchKept": 524,
+          "riskObserved": 524,
+          "riskKept": 101,
+          "riskVetoed": 0,
+          "selected": 24,
+          "stopReasons": {
+            "outside_score_limit": 36,
+            "outside_risk_candidate_limit": 423
+          },
+          "searchSurvivalRate": 93.6,
+          "riskSurvivalRate": 19.3,
+          "selectionRate": 4.3
+        },
+        "special": {
+          "collected": 895,
+          "searchObserved": 895,
+          "searchKept": 135,
+          "riskObserved": 135,
+          "riskKept": 19,
+          "riskVetoed": 0,
+          "selected": 6,
+          "stopReasons": {
+            "outside_score_limit": 760,
+            "outside_risk_candidate_limit": 116
+          },
+          "searchSurvivalRate": 15.1,
+          "riskSurvivalRate": 14.1,
+          "selectionRate": 0.7
+        },
+        "board": {
+          "collected": 1408,
+          "searchObserved": 1408,
+          "searchKept": 601,
+          "riskObserved": 601,
+          "riskKept": 20,
+          "riskVetoed": 0,
+          "selected": 5,
+          "stopReasons": {
+            "outside_score_limit": 767,
+            "outside_risk_candidate_limit": 581,
+            "king_crisis_root_limit": 40
+          },
+          "searchSurvivalRate": 42.7,
+          "riskSurvivalRate": 3.3,
+          "selectionRate": 0.4
+        }
+      }
+    },
+    "grandmaster": {
+      "decisions": 27,
+      "catalogStageDecisions": 17,
+      "catalogs": {
+        "king": {
+          "collected": 382,
+          "searchObserved": 382,
+          "searchKept": 212,
+          "riskObserved": 212,
+          "riskKept": 76,
+          "riskVetoed": 1,
+          "selected": 15,
+          "stopReasons": {
+            "outside_risk_candidate_limit": 136,
+            "midgame_special_attack_filter": 129,
+            "outside_score_limit": 41
+          },
+          "searchSurvivalRate": 55.5,
+          "riskSurvivalRate": 35.8,
+          "selectionRate": 3.9
+        },
+        "special": {
+          "collected": 830,
+          "searchObserved": 830,
+          "searchKept": 31,
+          "riskObserved": 31,
+          "riskKept": 31,
+          "riskVetoed": 0,
+          "selected": 6,
+          "stopReasons": {
+            "midgame_special_attack_filter": 799
+          },
+          "searchSurvivalRate": 3.7,
+          "riskSurvivalRate": 100,
+          "selectionRate": 0.7
+        },
+        "board": {
+          "collected": 753,
+          "searchObserved": 753,
+          "searchKept": 139,
+          "riskObserved": 139,
+          "riskKept": 27,
+          "riskVetoed": 1,
+          "selected": 6,
+          "stopReasons": {
+            "midgame_special_attack_filter": 277,
+            "outside_score_limit": 337,
+            "outside_risk_candidate_limit": 112
+          },
+          "searchSurvivalRate": 18.5,
+          "riskSurvivalRate": 19.4,
+          "selectionRate": 0.8
+        }
+      },
+      "catalogStage": {
+        "king": {
+          "collected": 344,
+          "searchObserved": 344,
+          "searchKept": 174,
+          "riskObserved": 174,
+          "riskKept": 44,
+          "riskVetoed": 1,
+          "selected": 5,
+          "stopReasons": {
+            "midgame_special_attack_filter": 129,
+            "outside_risk_candidate_limit": 130,
+            "outside_score_limit": 41
+          },
+          "searchSurvivalRate": 50.6,
+          "riskSurvivalRate": 25.3,
+          "selectionRate": 1.5
+        },
+        "special": {
+          "collected": 830,
+          "searchObserved": 830,
+          "searchKept": 31,
+          "riskObserved": 31,
+          "riskKept": 31,
+          "riskVetoed": 0,
+          "selected": 6,
+          "stopReasons": {
+            "midgame_special_attack_filter": 799
+          },
+          "searchSurvivalRate": 3.7,
+          "riskSurvivalRate": 100,
+          "selectionRate": 0.7
+        },
+        "board": {
+          "collected": 753,
+          "searchObserved": 753,
+          "searchKept": 139,
+          "riskObserved": 139,
+          "riskKept": 27,
+          "riskVetoed": 1,
+          "selected": 6,
+          "stopReasons": {
+            "midgame_special_attack_filter": 277,
+            "outside_score_limit": 337,
+            "outside_risk_candidate_limit": 112
+          },
+          "searchSurvivalRate": 18.5,
+          "riskSurvivalRate": 19.4,
+          "selectionRate": 0.8
+        }
+      }
+    }
+  },
+  "games": [
+    {
+      "gameId": "catalog-1",
+      "redTier": "novice",
+      "blueTier": "intermediate",
+      "seed": 20260828,
+      "startingPlayer": "red",
+      "randomOpeningPlies": 0,
+      "handicapPlayer": null,
+      "handicapStones": 0,
+      "winner": "blue",
+      "capped": true,
+      "deployments": 50,
+      "reason": "evaluation_cap_territory",
+      "finalPieces": {
+        "red": 22,
+        "blue": 28
+      },
+      "durationMs": 4261,
+      "actionCount": 50,
+      "finalDigest": "fnv1a64:a4c5cf82032b775c",
+      "journalPath": null
+    },
+    {
+      "gameId": "catalog-2",
+      "redTier": "intermediate",
+      "blueTier": "novice",
+      "seed": 20260829,
+      "startingPlayer": "red",
+      "randomOpeningPlies": 0,
+      "handicapPlayer": null,
+      "handicapStones": 0,
+      "winner": "red",
+      "capped": false,
+      "deployments": 16,
+      "reason": "White King was captured by General capture reaction.",
+      "finalPieces": {
+        "red": 8,
+        "blue": 5
+      },
+      "durationMs": 597,
+      "actionCount": 17,
+      "finalDigest": "fnv1a64:24b504aa9bde609c",
+      "journalPath": null
+    },
+    {
+      "gameId": "catalog-3",
+      "redTier": "advanced",
+      "blueTier": "expert",
+      "seed": 20260830,
+      "startingPlayer": "red",
+      "randomOpeningPlies": 0,
+      "handicapPlayer": null,
+      "handicapStones": 0,
+      "winner": "blue",
+      "capped": false,
+      "deployments": 41,
+      "reason": "Black King was captured by Diplomat conversion.",
+      "finalPieces": {
+        "red": 21,
+        "blue": 16
+      },
+      "durationMs": 15545,
+      "actionCount": 43,
+      "finalDigest": "fnv1a64:b37299e7a6c692c6",
+      "journalPath": null
+    },
+    {
+      "gameId": "catalog-4",
+      "redTier": "expert",
+      "blueTier": "advanced",
+      "seed": 20260831,
+      "startingPlayer": "red",
+      "randomOpeningPlies": 0,
+      "handicapPlayer": null,
+      "handicapStones": 0,
+      "winner": "red",
+      "capped": true,
+      "deployments": 50,
+      "reason": "evaluation_cap_territory",
+      "finalPieces": {
+        "red": 24,
+        "blue": 22
+      },
+      "durationMs": 29977,
+      "actionCount": 52,
+      "finalDigest": "fnv1a64:7cca04530d220a31",
+      "journalPath": null
+    },
+    {
+      "gameId": "catalog-5",
+      "redTier": "grandmaster",
+      "blueTier": "intermediate",
+      "seed": 20260832,
+      "startingPlayer": "red",
+      "randomOpeningPlies": 0,
+      "handicapPlayer": null,
+      "handicapStones": 0,
+      "winner": "blue",
+      "capped": false,
+      "deployments": 24,
+      "reason": "Black King was captured at 1,4.",
+      "finalPieces": {
+        "red": 5,
+        "blue": 15
+      },
+      "durationMs": 7669,
+      "actionCount": 26,
+      "finalDigest": "fnv1a64:f19418665d199132",
+      "journalPath": null
+    },
+    {
+      "gameId": "catalog-6",
+      "redTier": "intermediate",
+      "blueTier": "grandmaster",
+      "seed": 20260833,
+      "startingPlayer": "red",
+      "randomOpeningPlies": 0,
+      "handicapPlayer": null,
+      "handicapStones": 0,
+      "winner": "red",
+      "capped": false,
+      "deployments": 31,
+      "reason": "White King was captured at 7,2.",
+      "finalPieces": {
+        "red": 15,
+        "blue": 8
+      },
+      "durationMs": 12629,
+      "actionCount": 35,
+      "finalDigest": "fnv1a64:e52b017edbcceaff",
+      "journalPath": null
+    }
+  ]
+}

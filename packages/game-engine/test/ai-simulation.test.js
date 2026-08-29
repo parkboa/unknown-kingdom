@@ -3,11 +3,13 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { applyAction, canDeploy, createGameState, getLegalActions, hasLegalDeployment, isSuicideDeployment, kingLibertyCount, stateForPlayer } from "../src/index.js";
 import {
+  AI_DECISION_STAGE,
   AI_RANK_SETTINGS,
   AI_TIER_ORDER,
   compareBeliefStonePositions,
   findAiDeployMove,
   normalizeAiTier,
+  openingDecisionContract,
 } from "../../../js/ai.js";
 import { neighbors } from "../../../js/board.js";
 
@@ -55,6 +57,53 @@ test("all five production difficulty tiers remain on the promoted heuristic engi
   assert.equal(AI_TIER_ORDER.length, 5);
   for (const tier of AI_TIER_ORDER) {
     assert.equal(AI_RANK_SETTINGS[tier].searchAlgorithm, "heuristic");
+  }
+});
+
+test("opening priority keeps each tier's King and sanctuary contract above catalog play", () => {
+  for (const tier of AI_TIER_ORDER) {
+    const settings = AI_RANK_SETTINGS[tier];
+    const state = createGameState("pve", { aiRank: tier });
+    const kingContract = openingDecisionContract(state, "red", settings);
+
+    assert.equal(kingContract.stage, AI_DECISION_STAGE.OPENING_KING);
+    assert.equal(kingContract.allows("king", settings.kingWallDistance.min, 4), true);
+    assert.equal(kingContract.allows("soldier", settings.kingWallDistance.min, 4), false);
+
+    const kingRow = settings.kingWallDistance.min;
+    state.board[kingRow][4] = {
+      id: `${tier}-opening-king`,
+      owner: "red",
+      type: "king",
+      originalType: "king",
+      revealed: true,
+      abilityUsed: false,
+      kingEscapeUsed: false,
+    };
+    state.firstDeployDone.red = true;
+    state.deploymentCount.red = 1;
+    const sanctuaryContract = openingDecisionContract(state, "red", settings);
+    assert.equal(sanctuaryContract.stage, AI_DECISION_STAGE.OPENING_SANCTUARY);
+    assert.equal(sanctuaryContract.sanctuaryActive, true);
+    assert.equal(sanctuaryContract.allows("soldier", kingRow, 3), true);
+    assert.equal(sanctuaryContract.allows("soldier", 8, 8), false);
+
+    state.deploymentCount.red = settings.openingWallStones + 1;
+    const afterTierConstruction = openingDecisionContract(state, "red", settings);
+    if (state.deploymentCount.red < 5) {
+      assert.equal(afterTierConstruction.stage, AI_DECISION_STAGE.OPENING_FREE_PLAY);
+      assert.equal(afterTierConstruction.sanctuaryActive, true);
+      assert.equal(afterTierConstruction.allows, null);
+    } else {
+      assert.equal(afterTierConstruction.stage, AI_DECISION_STAGE.CATALOG);
+      assert.equal(afterTierConstruction.sanctuaryActive, false);
+    }
+
+    state.deploymentCount.red = 5;
+    const catalogContract = openingDecisionContract(state, "red", settings);
+    assert.equal(catalogContract.stage, AI_DECISION_STAGE.CATALOG);
+    assert.equal(catalogContract.sanctuaryActive, false);
+    assert.equal(catalogContract.allows, null);
   }
 });
 
