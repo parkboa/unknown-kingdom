@@ -2815,6 +2815,8 @@ const fxKingTauntBtn = document.querySelector("#fxKingTauntBtn");
 const fxSideToggleBtn = document.querySelector("#fxSideToggleBtn");
 const fxLoopToggleBtn = document.querySelector("#fxLoopToggleBtn");
 
+fxPreviewBar?.toggleAttribute("hidden", !DEVELOPER_MODE);
+
 let fxPreviewSide = "red";
 let fxLoopActive = false;
 let fxLoopInterval = null;

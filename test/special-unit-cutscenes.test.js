@@ -71,3 +71,21 @@ test("app.js handles special_activated event with non-blocking cutscene presenta
     "renderContext must receive activeSkillEffect",
   );
 });
+
+test("FX preview controls stay hidden outside developer mode", async () => {
+  const [appSource, htmlSource] = await Promise.all([
+    readFile(new URL("../app.js", import.meta.url), "utf8"),
+    readFile(new URL("../index.html", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(
+    htmlSource,
+    /<aside id="fxPreviewBar"[^>]*data-developer-only[^>]*hidden>/,
+    "FX preview must be hidden before JavaScript loads",
+  );
+  assert.match(
+    appSource,
+    /fxPreviewBar\?\.toggleAttribute\("hidden", !DEVELOPER_MODE\);/,
+    "FX preview must only be revealed in developer mode",
+  );
+});
