@@ -467,7 +467,8 @@ function returnToChallengeSelection() {
 function currentModeLabel() {
   if (state.mode === "pve") return text("pveMode");
   if (state.mode === "pvp") return text("onlinePvp");
-  if (state.mode === "puzzle" || state.mode === "tutorial") return text("puzzle");
+  if (state.mode === "tutorial") return text("tutorial");
+  if (state.mode === "puzzle") return text("puzzle");
   return text("chooseMode");
 }
 

@@ -23,16 +23,9 @@ async function assertLocalizedLockLabel(page, language) {
   await expect(page.locator(".unit-picker .lock-icon").first()).toHaveAttribute("aria-label", expected);
 }
 
-async function openChallenge(page) {
-  await page.locator('[data-start-mode="puzzle"]').click();
-  await expect(page.locator("#challengeModal")).toBeVisible();
-}
-
 async function startTutorial(page) {
-  await openChallenge(page);
-  const tutorialRank = page.locator(".challenge-rank-button").first();
-  await expect(tutorialRank).toBeEnabled();
-  await tutorialRank.click();
+  await page.locator('[data-start-mode="tutorial"]').click();
+  await expect(page.locator("#challengeModal")).toBeHidden();
   await expect(page.locator("#tutorialPanel")).toBeVisible();
 }
 
@@ -125,10 +118,6 @@ for (const viewport of VIEWPORTS) {
       await capture(page, testInfo, language, viewport, "settings");
       await page.locator("#closeSettingsBtn").click();
 
-      await openChallenge(page);
-      await capture(page, testInfo, language, viewport, "challenge");
-
-      await page.locator("#closeChallengeBtn").click();
       await startTutorial(page);
       await capture(page, testInfo, language, viewport, "tutorial-start");
 

@@ -1,18 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-const PROGRESS_KEY = "daeguk-challenge-progress-v1";
-
 async function startTutorial(page) {
   await page.goto("/?lang=ko&preview=iphone&dev=1");
   await expect(page.getByRole("dialog", { name: "대국 선택" })).toBeVisible({ timeout: 7_000 });
-  await page.getByRole("button", { name: "챌린지", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "챌린지" })).toBeVisible();
+  await page.getByRole("button", { name: "튜토리얼", exact: true }).click();
 
-  const tutorialRank = page.locator(".challenge-rank-button").filter({ hasText: "튜토리얼" });
-  await expect(tutorialRank).toBeEnabled();
-  await tutorialRank.click();
-
-  await expect(page.locator("#modeInfo")).toHaveText("챌린지");
+  await expect(page.locator("#challengeModal")).toBeHidden();
+  await expect(page.locator("#modeInfo")).toHaveText("튜토리얼");
   await expect(page.locator("#rankInfo")).toHaveText("튜토리얼");
   await expect(page.locator("#tutorialPanel")).toBeVisible();
 }
@@ -32,12 +26,7 @@ async function completeSpecialLesson(page, unitName) {
   await next.click();
 }
 
-test("Challenge tutorial completes all browser-owned steps and persists progression", async ({ page }) => {
-  await page.addInitScript((key) => {
-    if (sessionStorage.getItem("daeguk-e2e-progress-reset")) return;
-    localStorage.removeItem(key);
-    sessionStorage.setItem("daeguk-e2e-progress-reset", "true");
-  }, PROGRESS_KEY);
+test("Lobby tutorial opens directly and completes all browser-owned steps", async ({ page }) => {
   await startTutorial(page);
 
   await placeAndContinue(page, "E8");
@@ -55,18 +44,6 @@ test("Challenge tutorial completes all browser-owned steps and persists progress
   await expect(next).toBeVisible();
   await next.click();
 
-  await expect(page.locator("#tutorialPanel")).toHaveClass(/challenge-result/);
-  await expect(page.locator("#tutorialPanel")).toHaveClass(/complete/);
-  await expect(page.locator("#tutorialMessage")).toHaveText("챌린지 완료");
-  await expect.poll(async () => page.evaluate((key) => {
-    const saved = JSON.parse(localStorage.getItem(key) || "{}");
-    return saved.completedPuzzleIds || [];
-  }, PROGRESS_KEY)).toContain("basic-tutorial-01");
-
-  await page.reload();
-  await expect(page.getByRole("dialog", { name: "대국 선택" })).toBeVisible({ timeout: 7_000 });
-  await page.getByRole("button", { name: "챌린지", exact: true }).click();
-  const completedTutorial = page.getByRole("button", { name: "튜토리얼 완료", exact: true });
-  await expect(completedTutorial).toBeVisible();
-  await expect(completedTutorial).toHaveClass(/complete/);
+  await expect(page.locator("#tutorialPanel")).not.toHaveClass(/challenge-result/);
+  await expect(page.locator("#tutorialMessage")).toContainText("튜토리얼 완료");
 });
