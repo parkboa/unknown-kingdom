@@ -9,6 +9,15 @@ async function startTutorial(page) {
   await expect(page.locator("#modeInfo")).toHaveText("튜토리얼");
   await expect(page.locator("#rankInfo")).toHaveText("튜토리얼");
   await expect(page.locator("#tutorialPanel")).toBeVisible();
+
+  const nextDialogueBtn = page.locator(".dialogue-arrow-btn.down");
+  while (await nextDialogueBtn.isVisible()) {
+    await nextDialogueBtn.click();
+    await page.waitForTimeout(100);
+  }
+  const startBtn = page.locator("#startTutorialBtn");
+  await expect(startBtn).toBeVisible({ timeout: 5_000 });
+  await startBtn.click();
 }
 
 async function placeAndContinue(page, coordinate) {

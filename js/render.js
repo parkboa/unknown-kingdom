@@ -89,6 +89,14 @@ export const CUTSCENE_IMAGES = {
     red: "./assets/taunts/wizardb.png",
     blue: "./assets/taunts/wizardw.png",
   },
+  guide: {
+    red: "./assets/tutorial/soldier-guide.png",
+    blue: "./assets/tutorial/soldier-guide.png",
+  },
+  rules: {
+    red: "./assets/tutorial/kings-confrontation.png",
+    blue: "./assets/tutorial/kings-confrontation.png",
+  },
 };
 
 export const COIN_DESIGNS = {
@@ -114,7 +122,7 @@ export function createTauntOverlay(context) {
   }
   const owner = item.speakerOwner || item.owner || "red";
   const unitType = item.unitType || "king";
-  const itemKey = `${unitType}_${owner}_${item.id || item.durationMs || ""}`;
+  const itemKey = `${unitType}_${owner}_${item.id || item.durationMs || item.message || ""}_${item.hideDialogue ? "nodlg" : "dlg"}`;
 
   if (cachedOverlayEl && cachedOverlayKey === itemKey) {
     return cachedOverlayEl;
@@ -124,35 +132,75 @@ export function createTauntOverlay(context) {
   const overlay = document.createElement("div");
   overlay.className = `taunt-overlay ${owner === "red" ? "black-taunt" : "white-taunt"} cutscene-${unitType}`;
   if (item.durationMs) overlay.style.setProperty("--taunt-duration", `${item.durationMs}ms`);
+  if (item.persistent) overlay.classList.add("persistent-dialogue");
+
   const image = document.createElement("img");
   image.className = "taunt-character";
   image.alt = "";
-  image.src = CUTSCENE_IMAGES[unitType]?.[owner]
+  image.src = (unitType === "guide" ? "./assets/tutorial/soldier-guide.png" : null)
+    || (unitType === "rules" ? "./assets/tutorial/kings-confrontation.png" : null)
+    || CUTSCENE_IMAGES[unitType]?.[owner]
     || (owner === "red" ? "./assets/taunts/kingb_zzol.png" : "./assets/taunts/kingw_zzol.png");
-  const dialogueBox = document.createElement("div");
-  dialogueBox.className = "taunt-dialogue-box";
 
-  const nameplate = document.createElement("div");
-  nameplate.className = "taunt-nameplate";
-  nameplate.textContent = context.unitLabels[unitType] || unitType.toUpperCase();
+  if (!item.hideDialogue) {
+    const dialogueBox = document.createElement("div");
+    dialogueBox.className = "taunt-dialogue-box";
+    if (unitType === "guide" || item.persistent) {
+      dialogueBox.classList.add("guide-dialogue-box");
+    }
 
-  const dialogueText = document.createElement("div");
-  dialogueText.className = "taunt-dialogue-text";
+    const nameplateText = item.nameplate !== undefined
+      ? item.nameplate
+      : (unitType === "guide" ? context.text("tutorialGuideName") : (unitType === "rules" ? "" : (context.unitLabels[unitType] || unitType.toUpperCase())));
 
-  if (unitType === "king") {
-    dialogueText.textContent = context.text("tauntBubble");
-  } else if (unitType === "general") {
-    dialogueText.textContent = context.text("generalTauntBubble");
-  } else if (unitType === "diplomat") {
-    dialogueText.textContent = context.text("diplomatTauntBubble");
-  } else if (unitType === "wizard") {
-    dialogueText.textContent = context.text("wizardTauntBubble");
+    if (nameplateText) {
+      const nameplate = document.createElement("div");
+      nameplate.className = "taunt-nameplate";
+      nameplate.textContent = nameplateText;
+      dialogueBox.append(nameplate);
+    }
+
+    const dialogueText = document.createElement("div");
+    dialogueText.className = "taunt-dialogue-text";
+
+    if (item.message) {
+      dialogueText.textContent = item.message;
+    } else if (unitType === "guide") {
+      dialogueText.textContent = context.text("tutorialIntroDialogue");
+    } else if (unitType === "king") {
+      dialogueText.textContent = context.text("tauntBubble");
+    } else if (unitType === "general") {
+      dialogueText.textContent = context.text("generalTauntBubble");
+    } else if (unitType === "diplomat") {
+      dialogueText.textContent = context.text("diplomatTauntBubble");
+    } else if (unitType === "wizard") {
+      dialogueText.textContent = context.text("wizardTauntBubble");
+    } else {
+      dialogueText.textContent = context.unitLabels[unitType] || unitType;
+    }
+
+    dialogueBox.append(dialogueText);
+
+    if (typeof item.introPage === "number" && item.totalPages > 1) {
+      if (item.introPage < item.totalPages - 1) {
+        const nextBtn = document.createElement("button");
+        nextBtn.type = "button";
+        nextBtn.className = "dialogue-arrow-btn down";
+        nextBtn.setAttribute("aria-label", context.text("dialogueNext") || "Next");
+        nextBtn.title = context.text("dialogueNext") || "Next";
+        nextBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 9 12 17 18 9"></polygon></svg>';
+        nextBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (typeof context.onDialogueNext === "function") context.onDialogueNext();
+        });
+        dialogueBox.append(nextBtn);
+      }
+    }
+
+    overlay.append(image, dialogueBox);
   } else {
-    dialogueText.textContent = context.unitLabels[unitType] || unitType;
+    overlay.append(image);
   }
-
-  dialogueBox.append(nameplate, dialogueText);
-  overlay.append(image, dialogueBox);
   cachedOverlayEl = overlay;
   return overlay;
 }

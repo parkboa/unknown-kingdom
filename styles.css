@@ -2514,6 +2514,8 @@ body.iphone-preview .lobby-logo {
   place-items: center;
   font-family: var(--font-ui);
   pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
   animation: taunt-pop var(--taunt-duration, 3s) ease both;
 }
 
@@ -2554,36 +2556,39 @@ body.iphone-preview .lobby-logo {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(var(--cell) * 1.55);
+  min-height: 64px;
 }
 
 /* Corner Ornaments */
-.taunt-dialogue-box::before,
-.taunt-dialogue-box::after {
+.taunt-dialogue-box::before {
   content: "✦";
   position: absolute;
+  top: 4px;
+  left: 6px;
   font-size: 10px;
   color: #ffd700;
   opacity: 0.8;
 }
 
-.taunt-dialogue-box::before {
-  top: 4px;
-  left: 6px;
-}
-
 .taunt-dialogue-box::after {
+  content: "✦";
+  position: absolute;
   top: 4px;
   right: 6px;
+  font-size: 10px;
+  color: #ffd700;
+  opacity: 0.8;
+  display: none;
 }
 
 /* Nameplate */
 .taunt-nameplate {
   position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 1px 16px;
+  top: -13px;
+  right: 14px;
+  left: auto;
+  transform: none;
+  padding: 1px 14px;
   background: #2a0e14;
   border: 1.5px solid #d4af37;
   border-radius: 4px;
@@ -2594,13 +2599,14 @@ body.iphone-preview .lobby-logo {
   letter-spacing: 0.08em;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
   white-space: nowrap;
+  z-index: 16;
 }
 
 /* Dialogue Text */
 .taunt-dialogue-text {
   color: #fff6e8;
   font-family: var(--font-ui, "Pretendard", sans-serif);
-  font-size: clamp(14px, 3.8vw, 20px);
+  font-size: clamp(13px, 3.4vw, 17px);
   font-weight: 700;
   line-height: 1.35;
   text-align: center;
@@ -2610,7 +2616,143 @@ body.iphone-preview .lobby-logo {
   white-space: nowrap;
 }
 
+/* Guide / Story Tutorial Dialogue Customization */
+.taunt-overlay.persistent-dialogue {
+  pointer-events: auto;
+  animation: persistent-dialogue-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 
+.taunt-overlay.cutscene-guide .taunt-character {
+  position: absolute;
+  top: 8px;
+  bottom: 72px;
+  left: 0;
+  right: 0;
+  margin: auto;
+  width: auto;
+  height: calc(100% - 84px);
+  max-height: calc(100% - 84px);
+  max-width: 90%;
+  object-fit: contain;
+  object-position: center top;
+  transform: scale(1.1);
+  transform-origin: center top;
+  filter: drop-shadow(0 16px 22px rgba(0, 0, 0, 0.7));
+}
+
+.taunt-overlay.cutscene-rules .taunt-character {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 94%;
+  height: 94%;
+  max-width: 94%;
+  max-height: 94%;
+  object-fit: contain;
+  object-position: center;
+  transform: translateY(-10px) scale(1.2);
+  transform-origin: center center;
+  filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.75));
+}
+
+.taunt-dialogue-box.guide-dialogue-box {
+  padding: 12px 34px 10px 16px;
+  align-items: flex-start;
+  user-select: none;
+}
+
+.taunt-dialogue-box.guide-dialogue-box .taunt-dialogue-text {
+  display: block;
+  width: 100%;
+  white-space: pre-line;
+  word-break: keep-all;
+  font-size: clamp(11.5px, 2.9vw, 13px);
+  line-height: 1.38;
+  text-align: left;
+  font-weight: 600;
+  color: #fff8ef;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  margin: 0;
+}
+
+.dialogue-arrow-btn {
+  position: absolute;
+  bottom: 2px;
+  width: 32px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #ffd700;
+  cursor: pointer;
+  pointer-events: auto;
+  padding: 0;
+  transition: transform 0.15s ease, color 0.15s ease, filter 0.15s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dialogue-arrow-btn.down {
+  right: 4px;
+}
+
+.dialogue-arrow-btn.up {
+  right: 32px;
+}
+
+.dialogue-arrow-btn.up.only-btn {
+  right: 4px;
+}
+
+.dialogue-arrow-btn.down svg {
+  animation: dialogue-arrow-bounce-down 1.1s ease-in-out infinite;
+}
+
+.dialogue-arrow-btn.up svg {
+  animation: dialogue-arrow-bounce-up 1.1s ease-in-out infinite;
+}
+
+.dialogue-arrow-btn:hover,
+.dialogue-arrow-btn:active {
+  color: #fff280;
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.95));
+}
+
+.dialogue-arrow-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+@keyframes persistent-dialogue-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dialogue-arrow-bounce-down {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+@keyframes dialogue-arrow-bounce-up {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
 
 @keyframes taunt-pop {
   0% {
@@ -3844,37 +3986,45 @@ body.iphone-preview .game-status-bar {
   display: none !important;
 }
 
-.game-status-bar > .tutorial-panel #nextTutorialBtn {
-  color: #efd37a;
+.game-status-bar > .tutorial-panel #startTutorialBtn {
+  width: auto;
+  min-height: 28px;
+  height: 28px;
+  padding: 0 14px;
+  background: var(--card-control-background, linear-gradient(180deg, rgb(28 30 31 / 90%), rgb(13 14 15 / 94%)));
+  color: #ffd700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  display: inline-flex;
 }
 
-.game-status-bar > .tutorial-panel .tutorial-icon-button svg {
-  display: block;
-  width: 18px;
-  height: 18px;
-  margin: auto;
-  fill: none;
-  stroke: currentcolor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  overflow: visible;
+.game-status-bar > .tutorial-panel #startTutorialBtn:hover,
+.game-status-bar > .tutorial-panel #startTutorialBtn:active {
+  border-color: #ffd700;
+  display: none !important;
 }
-
-.game-status-bar > .tutorial-panel.challenge-result {
-  background: linear-gradient(180deg, rgb(28 30 31 / 96%), rgb(12 13 14 / 98%));
-}
-
-.game-status-bar > .tutorial-panel.wizard-move-panel .tutorial-actions,
-.game-status-bar > .tutorial-panel.challenge-result .tutorial-actions {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
   justify-content: center;
+  position: relative;
+  transition: transform 0.15s ease, color 0.15s ease, filter 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
+.game-status-bar > .tutorial-panel #nextTutorialBtn svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  stroke: none;
+  animation: dialogue-arrow-bounce-down 1.1s ease-in-out infinite;
+.game-status-bar > .tutorial-panel #nextTutorialBtn:active {
+  color: #fff280;
+}
 @media (max-width: 560px) {
   .game-status-bar,
   body.iphone-preview .game-status-bar {
-    height: 84px;
-    min-height: 84px;
     padding: 10px 12px;
   }
 
@@ -3882,17 +4032,8 @@ body.iphone-preview .game-status-bar {
   body.iphone-preview .game-status-bar.guide-active {
     height: 102px;
     min-height: 102px;
-    padding: 0;
-  }
-}
 
 /* Rematch Top Floating Toast Banner */
-.rematch-toast {
-  position: fixed;
-  top: max(24px, calc(env(safe-area-inset-top) + 16px));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: var(--z-modal-toast);
   width: min(calc(100vw - 32px), 380px);
   padding: 14px 16px;
   border-radius: 12px;
