@@ -16,12 +16,14 @@ async function startTutorial(page) {
   const multiLineDialogueTop = (await page.locator(".taunt-dialogue-text").boundingBox())?.y;
   await expect(page.locator(".taunt-overlay.persistent-dialogue")).toHaveCSS("animation-name", "none");
   expect(await page.locator(".taunt-dialogue-box").evaluate((element) => getComputedStyle(element, "::before").display)).toBe("none");
-  await expect(nextDialogueBtn.locator("svg")).toHaveCSS("animation-name", "dialogue-arrow-bounce-next");
+  await expect(nextDialogueBtn).toHaveCSS("color", "rgb(255, 215, 0)");
+  await expect(nextDialogueBtn.locator("svg")).toHaveCSS("animation-name", "none");
   await expect(nextDialogueBtn.locator("polygon")).toHaveAttribute("points", "9 6 17 12 9 18");
   await nextDialogueBtn.click();
   const previousDialogueBtn = page.locator(".dialogue-arrow-btn.previous");
   await expect(previousDialogueBtn).toBeVisible();
-  await expect(previousDialogueBtn.locator("svg")).toHaveCSS("animation-name", "dialogue-arrow-bounce-previous");
+  await expect(previousDialogueBtn).toHaveCSS("color", "rgb(255, 215, 0)");
+  await expect(previousDialogueBtn.locator("svg")).toHaveCSS("animation-name", "none");
   await expect(previousDialogueBtn.locator("polygon")).toHaveAttribute("points", "15 6 7 12 15 18");
   await previousDialogueBtn.click();
   while (await nextDialogueBtn.isVisible()) {
@@ -62,6 +64,8 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await kingCell.click();
   const sanctuaryNext = page.getByRole("button", { name: "다음", exact: true });
   await expect(sanctuaryNext).toBeVisible();
+  await expect(sanctuaryNext).toHaveCSS("color", "rgb(255, 215, 0)");
+  await expect(sanctuaryNext.locator("svg")).toHaveCSS("animation-name", "none");
   await expect(sanctuaryNext.locator("polygon")).toHaveAttribute("points", "9 6 17 12 9 18");
   await expect(page.locator("#tutorialMessage")).toHaveText("왕이 배치되면 왕을 둘러싼 성역이 나타납니다. 왕과 주변 8칸이 성역입니다.");
   const multiLineMessageTop = (await page.locator("#tutorialMessage").boundingBox())?.y;

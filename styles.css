@@ -2713,14 +2713,6 @@ body.iphone-preview .lobby-logo {
   right: 4px;
 }
 
-.dialogue-arrow-btn.next svg {
-  animation: dialogue-arrow-bounce-next 1.1s ease-in-out infinite;
-}
-
-.dialogue-arrow-btn.previous svg {
-  animation: dialogue-arrow-bounce-previous 1.1s ease-in-out infinite;
-}
-
 .dialogue-arrow-btn:hover,
 .dialogue-arrow-btn:active {
   color: #fff280;
@@ -2730,24 +2722,6 @@ body.iphone-preview .lobby-logo {
 .dialogue-arrow-btn svg {
   width: 14px;
   height: 14px;
-}
-
-@keyframes dialogue-arrow-bounce-next {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(4px);
-  }
-}
-
-@keyframes dialogue-arrow-bounce-previous {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(-4px);
-  }
 }
 
 @keyframes taunt-pop {
@@ -4236,6 +4210,7 @@ body.iphone-preview .game-status-bar {
   align-items: center;
   justify-content: center;
   position: relative;
+  color: #ffd700;
   transition: transform 0.15s ease, color 0.15s ease, filter 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
@@ -4246,7 +4221,6 @@ body.iphone-preview .game-status-bar {
   height: 14px;
   fill: currentColor;
   stroke: none;
-  animation: dialogue-arrow-bounce-next 1.1s ease-in-out infinite;
 }
 
 .game-status-bar > .tutorial-panel #nextTutorialBtn:hover,
