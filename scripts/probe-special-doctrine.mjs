@@ -319,10 +319,10 @@ function* sampledPositions(random, { games, randomPlies, maxPlies, perturbationP
   for (let game = 0; game < games; game += 1) {
     const state = createGameState("pve", { aiRank: "grandmaster" });
     const sides = {
-      red: TIERS[Math.floor(random() * TIERS.length)],
-      blue: TIERS[Math.floor(random() * TIERS.length)],
+      black: TIERS[Math.floor(random() * TIERS.length)],
+      white: TIERS[Math.floor(random() * TIERS.length)],
     };
-    const perturbationsLeft = { red: randomPlies, blue: randomPlies };
+    const perturbationsLeft = { black: randomPlies, white: randomPlies };
     for (let ply = 0; ply < maxPlies && !state.winner; ply += 1) {
       const player = state.turn;
       const placed = state.deploymentCount?.[player] ?? 0;

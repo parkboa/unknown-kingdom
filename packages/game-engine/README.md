@@ -75,7 +75,7 @@ The command runs a one-decision imperfect-information tactical model with shared
 
 `dispatchRecordedAction` stores every attempted action with its ordered domain events and the full-state digest before and after the transition. `replayGameJournal` starts from the embedded initial state and reports the first acceptance, event, or state-digest divergence. Journals contain the authoritative state and must not be sent to an opponent; use player-filtered state and events at the network boundary.
 
-JSONL journals use one `game_start` record, one `action` record per attempted action, and one `game_end` record. `scripts/lib/game-journal-jsonl.mjs` writes these records incrementally so a long-running evaluation retains every completed action even if the process stops early.
+JSONL journals use one `game_start` record, one `action` record per attempted action, and one `game_end` record. Schema version 2 uses `black` and `white` side IDs. Schema version 1 journals using `red` and `blue` are migrated when parsed and then verified against the current engine; historical source files remain unchanged. `scripts/lib/game-journal-jsonl.mjs` writes records incrementally so a long-running evaluation retains every completed action even if the process stops early.
 
 `scripts/ai-promotion-gate.mjs` runs candidate-versus-baseline pairs with the same seed and swapped colors. It promotes only when the candidate's Wilson lower confidence bound reaches the configured score threshold, rejects when the upper bound falls below it, and otherwise continues until the maximum pair count.
 

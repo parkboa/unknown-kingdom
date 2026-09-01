@@ -42,7 +42,7 @@ function randomLegalDeploy(state, player) {
 
 function chooseDeployMove(state, player, tier, settings, collectDecisionDiagnostics = false) {
   if (tier === RANDOM_TIER) return randomLegalDeploy(state, player);
-  const enemy = player === "red" ? "blue" : "red";
+  const enemy = player === "black" ? "white" : "black";
   const playerView = stateForPlayer(state, player);
   playerView.aiRank = tier;
   if (settings) playerView.aiSettings = settings;
@@ -98,7 +98,7 @@ function chooseRequiredAction(state, tiers, settings) {
   if (!state.teleporting) return null;
 
   const player = state.teleporting.owner;
-  const enemy = player === "red" ? "blue" : "red";
+  const enemy = player === "black" ? "white" : "black";
   if (tiers[player] === RANDOM_TIER) {
     const options = getLegalActions(state, player)
       .filter((action) => action.type === "wizard_teleport" || action.type === "wizard_stay");
@@ -117,9 +117,9 @@ function chooseRequiredAction(state, tiers, settings) {
 }
 
 function territoryWinner(state) {
-  const red = countPieces(state, "red");
-  const blue = countPieces(state, "blue");
-  return red === blue ? "draw" : red > blue ? "red" : "blue";
+  const black = countPieces(state, "black");
+  const white = countPieces(state, "white");
+  return black === white ? "draw" : black > white ? "black" : "white";
 }
 
 /**
@@ -163,26 +163,26 @@ function randomOpeningMove(state, player) {
 }
 
 export function playDeterministicAiMatch({
-  redTier,
-  blueTier,
+  blackTier,
+  whiteTier,
   seed,
   gameId,
   maxDeployments = 180,
-  startingPlayer = "red",
+  startingPlayer = "black",
   journalPath = null,
-  redSettings = null,
-  blueSettings = null,
+  blackSettings = null,
+  whiteSettings = null,
   onDecision = null,
   collectDecisionDiagnostics = false,
   randomOpeningPlies = 0,
   handicapPlayer = null,
   handicapStones = 0,
 }) {
-  const state = createGameState("pve", { aiRank: redTier });
+  const state = createGameState("pve", { aiRank: blackTier });
   state.turn = startingPlayer;
   state.log = [`Evaluation match started. ${startingPlayer} deploys first.`];
-  const tiers = { red: redTier, blue: blueTier };
-  const settings = { red: redSettings, blue: blueSettings };
+  const tiers = { black: blackTier, white: whiteTier };
+  const settings = { black: blackSettings, white: whiteSettings };
   const previousRandomForHandicap = Math.random;
   if (handicapPlayer && handicapStones > 0) {
     Math.random = seededRandom(seed);
@@ -241,7 +241,7 @@ export function playDeterministicAiMatch({
 
       const action = { type: "deploy", unitType: move.type, row: move.row, col: move.col };
       if (onDecision) {
-        const enemy = player === "red" ? "blue" : "red";
+        const enemy = player === "black" ? "white" : "black";
         onDecision({
           deployments,
           player,
@@ -250,7 +250,7 @@ export function playDeterministicAiMatch({
           decisionContext: {
             ownDeploymentCount: state.deploymentCount?.[player] ?? 0,
             enemyDeploymentCount: state.deploymentCount?.[enemy] ?? 0,
-            occupiedCount: countPieces(state, "red") + countPieces(state, "blue"),
+            occupiedCount: countPieces(state, "black") + countPieces(state, "white"),
             remainingSpecials: Object.fromEntries(
               ["general", "wizard", "diplomat"].map((type) => [type, state.stock[player][type] || 0]),
             ),
@@ -279,7 +279,7 @@ export function playDeterministicAiMatch({
     capped,
     deployments,
     reason: state.resultReason || (capped ? "evaluation_cap_territory" : "unknown"),
-    finalPieces: { red: countPieces(state, "red"), blue: countPieces(state, "blue") },
+    finalPieces: { black: countPieces(state, "black"), white: countPieces(state, "white") },
   };
   if (fileRecorder) fileRecorder.finalize(outcome);
   const replay = replayGameJournal(journal);
@@ -289,8 +289,8 @@ export function playDeterministicAiMatch({
 
   return {
     gameId,
-    redTier,
-    blueTier,
+    blackTier,
+    whiteTier,
     seed,
     startingPlayer,
     randomOpeningPlies,

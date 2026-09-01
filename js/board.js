@@ -27,5 +27,5 @@ export function orthogonalPositions(row, col) {
 }
 
 export function opponent(player) {
-  return player === "red" ? "blue" : "red";
+  return player === "black" ? "white" : "black";
 }

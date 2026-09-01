@@ -25,11 +25,11 @@ if (disableTacticalExtension) {
 }
 
 function opponent(player) {
-  return player === "red" ? "blue" : "red";
+  return player === "black" ? "white" : "black";
 }
 
 function swapPlayers(value) {
-  return { red: structuredClone(value.blue), blue: structuredClone(value.red) };
+  return { black: structuredClone(value.white), white: structuredClone(value.black) };
 }
 
 function mirrorPiece(piece) {

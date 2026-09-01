@@ -13,7 +13,7 @@ let specialDeployments = 0;
 
 for (const filename of files) {
   const { journal } = parseGameJournalJsonl(readFileSync(resolve(sourceDirectory, filename), "utf8"));
-  const deployments = { red: 0, blue: 0 };
+  const deployments = { black: 0, white: 0 };
   for (const entry of journal.actions) {
     if (entry.action.type !== "deploy") continue;
     if (deployments[entry.player] >= 5) {

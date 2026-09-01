@@ -1,10 +1,11 @@
 export const SIZE = 9;
+export { PROTOCOL_VERSION } from "../packages/game-engine/src/constants.js";
 export const WHITE_TERRITORY_BONUS = 0;
 export const SPECIALS = new Set(["general", "diplomat", "wizard"]);
 export const DEPLOY_ORDER = ["soldier", "general", "diplomat", "wizard", "king"];
 export const AI_PROFILES = ["balanced", "aggressive", "defensive"];
-export const PVE_HUMAN = "blue";
-export const PVE_AI = "red";
+export const PVE_HUMAN = "white";
+export const PVE_AI = "black";
 
 export const TEXT = {
   en: {
@@ -59,12 +60,12 @@ export const TEXT = {
     enterCode: "Enter code", createRoom: "Create Room", joinRoom: "Join Room", back: "Back", lobby: "Lobby", requestRematch: "Request rematch", acceptRematch: "Accept Rematch", opponentRematchOffered: "Opponent requested a rematch.", rematchOfferedToast: "Opponent requested a rematch!", declineRematch: "Decline", opponentDeclinedRematch: "Opponent declined the rematch. Returned to lobby.", rematchDeclinedSelf: "Rematch declined. Returned to lobby.", opponentLeftRoom: "Opponent has left the room.",
     rpsPrompt: "The winner of Rock-Paper-Scissors plays Black (1st).", rpsWaitingOpponent: "Choice made! Waiting for opponent…", rpsDraw: "Draw! Choose again.", rpsWin: "You won! Starting as Black (1st).", rpsLose: "You lost! Starting as White (2nd).", scissors: "Scissors", rock: "Rock", paper: "Paper",
     dontShowAgain: "Do not show this unit explanation again", gotIt: "Got It", matchComplete: "Match Complete",
-    redTerritory: "Black territory", blueTerritory: "White territory", redCaptures: "Black captures", blueCaptures: "White captures",
+    blackTerritory: "Black territory", whiteTerritory: "White territory", blackCaptures: "Black captures", whiteCaptures: "White captures",
     playAgain: "Play Again", matchDetails: "Match Results", matchMetaPve: "AI Match", matchMetaNoviceRank: "Third-Rate Master", finishMethod: "Finish", totalDeployments: "Total deployments", deploymentTotalValue: "{count} moves", wizardMoveButton: "Move", cancelAbility: "Do Not Move",
-    undo: "Undo", resign: "Resign", resignConfirmTitle: "Do you want to resign?", cancel: "Cancel", confirm: "Confirm", resignReason: "{side} resigned.", home: "Home", newGame: "New Game", settings: "Settings", close: "Close", downloadPveJournal: "Download PvE record", pveJournalDownloaded: "PvE JSONL record downloaded.", resetSpecialHelp: "Show detailed Challenge guidance", specialHelpReset: "Detailed Challenge guidance will be shown.", specialHelpHidden: "Challenge guidance will be concise.", soundSettings: "Sound", musicSetting: "Music", sfxSetting: "Effects", soundComingSoon: "Coming soon", specialHelpSetting: "Challenge guidance", redUnits: "Black units", blueUnits: "White units",
+    undo: "Undo", resign: "Resign", resignConfirmTitle: "Do you want to resign?", cancel: "Cancel", confirm: "Confirm", resignReason: "{side} resigned.", home: "Home", newGame: "New Game", settings: "Settings", close: "Close", downloadPveJournal: "Download PvE record", pveJournalDownloaded: "PvE JSONL record downloaded.", resetSpecialHelp: "Show detailed Challenge guidance", specialHelpReset: "Detailed Challenge guidance will be shown.", specialHelpHidden: "Challenge guidance will be concise.", soundSettings: "Sound", musicSetting: "Music", sfxSetting: "Effects", soundComingSoon: "Coming soon", specialHelpSetting: "Challenge guidance", blackUnits: "Black units", whiteUnits: "White units",
     soldier: "Soldier", king: "King", general: "General", diplomat: "Diplomat", wizard: "Wizard",
     used: "Used", kingFirst: "King first", left: "{count} left", available: "Available",
-    red: "Black", blue: "White", turn: "{side} turn", turnWithTime: "{side} turn {time}s", thinking: " thinking", wins: "{side} wins",
+    black: "Black", white: "White", turn: "{side} turn", turnWithTime: "{side} turn {time}s", thinking: " thinking", wins: "{side} wins",
     hiddenUnit: "a hidden unit", notConnected: "The online match is not connected.", createOrJoin: "Create a board or enter an open board.",
     rematchWaiting: "Waiting for opponent…", connecting: "Connecting to game server…",
     disconnected: "Disconnected from game server.", opponentDisconnected: "Opponent disconnected.", serverUnavailable: "Game server is unavailable. Online PvP requires the WebSocket server.",
@@ -73,8 +74,8 @@ export const TEXT = {
     serverRejected: "The game server rejected the request.", enterRoomCode: "Enter a room code.",
     resultWin: "{side} Wins", allEliminated: "All enemy units were eliminated.",
     timeExpired: "Time limit exceeded (30s).",
-    resultDraw: "Draw", draw: "Draw", boardFilled: "Board filled: Black {red} - White {blue}.",
-    noLegalMoves: "No legal deployments remained: Black {red} - White {blue}.",
+    resultDraw: "Draw", draw: "Draw", boardFilled: "Board filled: Black {black} - White {white}.",
+    noLegalMoves: "No legal deployments remained: Black {black} - White {white}.",
     autoPass: "{side} passed the turn.", taunt: "Taunt", tauntBubble: "Coward", generalTauntBubble: "Out of my way", diplomatTauntBubble: "Name your price", wizardTauntBubble: "Abracadabra",
     passNoticeTitle: "Pass", noLegalMovesPass: "{side} has no legal moves and passes the turn.", confirm: "OK",
     suicideWarningTitle: "Confirm Suicide Move", suicideWarning: "This unit will die immediately if placed here.",
@@ -143,12 +144,12 @@ export const TEXT = {
     enterCode: "코드 입력", createRoom: "방 만들기", joinRoom: "방 참가", back: "뒤로", lobby: "로비", requestRematch: "재대국 요청", acceptRematch: "재대국 수락", opponentRematchOffered: "상대가 재대국을 요청했습니다.", rematchOfferedToast: "상대방이 재대국을 신청했습니다!", declineRematch: "거절", opponentDeclinedRematch: "상대방이 재대국을 거절하여 온라인 대기실로 이동했습니다.", rematchDeclinedSelf: "재대국을 거절하고 온라인 대기실로 이동했습니다.", opponentLeftRoom: "상대방이 대국실을 나갔습니다.",
     rpsPrompt: "가위바위보를 이기는 사람이 흑(선공)을 잡습니다.", rpsWaitingOpponent: "선택 완료! 상대의 선택을 기다리는 중…", rpsDraw: "비겼습니다! 다시 선택하세요.", rpsWin: "가위바위보 승리! 흑(선공)으로 시작합니다.", rpsLose: "가위바위보 패배! 백(후공)으로 시작합니다.", scissors: "가위", rock: "바위", paper: "보",
     dontShowAgain: "이 유닛 설명을 다시 표시하지 않기", gotIt: "확인", matchComplete: "대국 종료",
-    redTerritory: "흑 영역", blueTerritory: "백 영역", redCaptures: "흑 포획", blueCaptures: "백 포획",
+    blackTerritory: "흑 영역", whiteTerritory: "백 영역", blackCaptures: "흑 포획", whiteCaptures: "백 포획",
     playAgain: "다시 대국", matchDetails: "경기 결과", matchMetaPve: "AI 대전", matchMetaNoviceRank: "삼류 고수", finishMethod: "종료 방식", totalDeployments: "총 배치 수", deploymentTotalValue: "{count}수", wizardMoveButton: "이동", cancelAbility: "이동 안함",
-    undo: "한수 물리기", resign: "기권", resignConfirmTitle: "기권하시겠습니까?", cancel: "취소", confirm: "확인", resignReason: "{side} 기권패", home: "홈", newGame: "새 게임", settings: "설정", close: "닫기", downloadPveJournal: "PvE 대국 기록 내려받기", pveJournalDownloaded: "PvE JSONL 대국 기록을 내려받았습니다.", resetSpecialHelp: "상세한 챌린지 도움말 표시", specialHelpReset: "상세한 챌린지 도움말을 표시합니다.", specialHelpHidden: "챌린지 도움말을 간결하게 표시합니다.", soundSettings: "사운드", musicSetting: "배경음악", sfxSetting: "효과음", soundComingSoon: "준비 중", specialHelpSetting: "챌린지 도움말", redUnits: "흑 유닛", blueUnits: "백 유닛",
+    undo: "한수 물리기", resign: "기권", resignConfirmTitle: "기권하시겠습니까?", cancel: "취소", confirm: "확인", resignReason: "{side} 기권패", home: "홈", newGame: "새 게임", settings: "설정", close: "닫기", downloadPveJournal: "PvE 대국 기록 내려받기", pveJournalDownloaded: "PvE JSONL 대국 기록을 내려받았습니다.", resetSpecialHelp: "상세한 챌린지 도움말 표시", specialHelpReset: "상세한 챌린지 도움말을 표시합니다.", specialHelpHidden: "챌린지 도움말을 간결하게 표시합니다.", soundSettings: "사운드", musicSetting: "배경음악", sfxSetting: "효과음", soundComingSoon: "준비 중", specialHelpSetting: "챌린지 도움말", blackUnits: "흑 유닛", whiteUnits: "백 유닛",
     soldier: "병사", king: "왕", general: "장군", diplomat: "외교관", wizard: "마법사",
     used: "사용 완료", kingFirst: "왕 먼저", left: "{count}개", available: "사용 가능",
-    red: "흑", blue: "백", turn: "{side} 턴", turnWithTime: "{side} 턴 {time}s", thinking: " 생각 중", wins: "{side} 승리",
+    black: "흑", white: "백", turn: "{side} 턴", turnWithTime: "{side} 턴 {time}s", thinking: " 생각 중", wins: "{side} 승리",
     hiddenUnit: "숨겨진 유닛", notConnected: "온라인 경기에 연결되지 않았습니다.", createOrJoin: "대국장을 만들거나 입장하세요.",
     rematchWaiting: "재대국 요청됨 (대기 중…)", connecting: "게임 서버에 연결 중…",
     disconnected: "게임 서버 연결이 끊어졌습니다.", opponentDisconnected: "상대 연결이 끊어졌습니다.", serverUnavailable: "게임 서버를 사용할 수 없습니다. 온라인 PvP에는 WebSocket 서버가 필요합니다.",
@@ -157,8 +158,8 @@ export const TEXT = {
     serverRejected: "게임 서버가 요청을 거절했습니다.", enterRoomCode: "방 코드를 입력하세요.",
     resultWin: "{side} 승리", allEliminated: "상대 유닛이 모두 제거되었습니다.",
     timeExpired: "제한 시간(30초) 초과.",
-    resultDraw: "무승부", draw: "무승부", boardFilled: "보드 종료: 흑 {red} - 백 {blue}.",
-    noLegalMoves: "더 이상 둘 수 없어 종료: 흑 {red} - 백 {blue}.",
+    resultDraw: "무승부", draw: "무승부", boardFilled: "보드 종료: 흑 {black} - 백 {white}.",
+    noLegalMoves: "더 이상 둘 수 없어 종료: 흑 {black} - 백 {white}.",
     autoPass: "{side}이(가) 턴을 넘겼습니다.", taunt: "쫄", tauntBubble: "쫄", generalTauntBubble: "감히 나를 막아", diplomatTauntBubble: "얼마면 돼", wizardTauntBubble: "아브라카다브라",
     passNoticeTitle: "패스", noLegalMovesPass: "{side}은(는) 둘 곳이 없어 패스합니다.", confirm: "확인",
     suicideWarningTitle: "자살수 확인", suicideWarning: "이곳에 놓으면 이 유닛은 즉시 사망합니다.",

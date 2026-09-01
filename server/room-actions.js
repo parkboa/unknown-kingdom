@@ -1,6 +1,6 @@
 export function declineRematch(room, byPlayer, sendMessage) {
   room.rematch.clear();
-  for (const player of ["red", "blue"]) {
+  for (const player of ["black", "white"]) {
     sendMessage(room.players[player], {
       type: "rematch_declined",
       byPlayer,

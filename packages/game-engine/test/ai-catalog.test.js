@@ -30,14 +30,14 @@ function piece(id, owner, type) {
 
 test("candidate catalogs keep overlapping signals while assigning one primary owner", () => {
   const state = createGameState("pve", { aiRank: "grandmaster" });
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 5, blue: 5 };
-  state.board[4][4] = piece("red-king", "red", "king");
-  state.board[0][4] = piece("blue-king", "blue", "king");
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 5, white: 5 };
+  state.board[4][4] = piece("black-king", "black", "king");
+  state.board[0][4] = piece("white-king", "white", "king");
   const context = createAiCatalogContext(
     state,
-    "red",
-    "blue",
+    "black",
+    "white",
     AI_DECISION_STAGE.CATALOG,
   );
 
@@ -59,8 +59,8 @@ test("candidate catalogs keep overlapping signals while assigning one primary ow
 test("opening diagnostics record every surviving candidate without changing the selected move contract", () => {
   const state = createGameState("pve", { aiRank: "novice" });
   const move = findAiDeployMove(state, {
-    aiPlayer: "red",
-    humanPlayer: "blue",
+    aiPlayer: "black",
+    humanPlayer: "white",
     canDeploy: (player, type, row, col) => canDeploy(state, player, type, row, col),
     countPieces: (owner) => countPieces(state, owner),
     neighbors,
@@ -81,17 +81,17 @@ test("opening diagnostics record every surviving candidate without changing the 
 
 test("catalog-stage diagnostics preserve King, special, and board candidates through one decision", () => {
   const state = createGameState("pve", { aiRank: "novice" });
-  state.turn = "red";
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 5, blue: 5 };
-  state.stock.red.king = 0;
-  state.stock.blue.king = 0;
-  state.board[4][4] = piece("red-king", "red", "king");
-  state.board[0][4] = piece("blue-king", "blue", "king");
+  state.turn = "black";
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 5, white: 5 };
+  state.stock.black.king = 0;
+  state.stock.white.king = 0;
+  state.board[4][4] = piece("black-king", "black", "king");
+  state.board[0][4] = piece("white-king", "white", "king");
 
   const move = findAiDeployMove(state, {
-    aiPlayer: "red",
-    humanPlayer: "blue",
+    aiPlayer: "black",
+    humanPlayer: "white",
     canDeploy: (player, type, row, col) => canDeploy(state, player, type, row, col),
     countPieces: (owner) => countPieces(state, owner),
     neighbors,
@@ -117,17 +117,17 @@ test("catalog-stage diagnostics preserve King, special, and board candidates thr
 
 test("grandmaster diagnostics identify the midgame special-attack search filter", () => {
   const state = createGameState("pve", { aiRank: "grandmaster" });
-  state.turn = "red";
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 5, blue: 5 };
-  state.stock.red.king = 0;
-  state.stock.blue.king = 0;
-  state.board[4][4] = piece("red-king", "red", "king");
-  state.board[0][4] = piece("blue-king", "blue", "king");
+  state.turn = "black";
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 5, white: 5 };
+  state.stock.black.king = 0;
+  state.stock.white.king = 0;
+  state.board[4][4] = piece("black-king", "black", "king");
+  state.board[0][4] = piece("white-king", "white", "king");
 
   const move = findAiDeployMove(state, {
-    aiPlayer: "red",
-    humanPlayer: "blue",
+    aiPlayer: "black",
+    humanPlayer: "white",
     canDeploy: (player, type, row, col) => canDeploy(state, player, type, row, col),
     countPieces: (owner) => countPieces(state, owner),
     neighbors,

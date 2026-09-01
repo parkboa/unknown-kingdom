@@ -7,12 +7,12 @@ export const TUTORIAL_SPECIAL_SURROUND_DELAY_MS = 1400;
 export const TUTORIAL_SPECIAL_ACTIVATE_DELAY_MS = 1800;
 
 export const TUTORIAL_STEPS = [
-  { owner: "blue", unitType: "king", row: 7, col: 4, setup: "empty" },
-  { owner: "blue", unitType: "soldier", row: 4, col: 4, setup: "empty" },
-  { owner: "blue", unitType: "soldier", row: 8, col: 3, setup: "wall-defense" },
-  { owner: "blue", unitType: "soldier", row: 7, col: 5, setup: "wall-capture" },
-  { owner: "blue", unitType: "soldier", row: 4, col: 5, setup: "capture" },
-  { owner: "blue", unitType: "general", row: 4, col: 4, setup: "special", reaction: true },
+  { owner: "white", unitType: "king", row: 7, col: 4, setup: "empty" },
+  { owner: "white", unitType: "soldier", row: 4, col: 4, setup: "empty" },
+  { owner: "white", unitType: "soldier", row: 8, col: 3, setup: "wall-defense" },
+  { owner: "white", unitType: "soldier", row: 7, col: 5, setup: "wall-capture" },
+  { owner: "white", unitType: "soldier", row: 4, col: 5, setup: "capture" },
+  { owner: "white", unitType: "general", row: 4, col: 4, setup: "special", reaction: true },
 ];
 
 export let challengeProgress = loadChallengeProgress();
@@ -67,14 +67,14 @@ export function localizedPuzzleText(value, language = "ko") {
 
 export function createEmptyStock() {
   return {
-    red: { soldier: 0, king: 0, general: 0, diplomat: 0, wizard: 0 },
-    blue: { soldier: 0, king: 0, general: 0, diplomat: 0, wizard: 0 },
+    black: { soldier: 0, king: 0, general: 0, diplomat: 0, wizard: 0 },
+    white: { soldier: 0, king: 0, general: 0, diplomat: 0, wizard: 0 },
   };
 }
 
 export function normalizePuzzleStock(stock = {}) {
   const normalized = createEmptyStock();
-  for (const owner of ["red", "blue"]) {
+  for (const owner of ["black", "white"]) {
     for (const unitType of DEPLOY_ORDER) {
       normalized[owner][unitType] = Math.max(0, Number(stock[owner]?.[unitType] || 0));
     }
@@ -85,7 +85,7 @@ export function normalizePuzzleStock(stock = {}) {
 export function isValidPuzzlePiece(piece) {
   if (!Array.isArray(piece) || piece.length !== 4) return false;
   const [owner, type, row, col] = piece;
-  return ["red", "blue"].includes(owner)
+  return ["black", "white"].includes(owner)
     && DEPLOY_ORDER.includes(type)
     && Number.isInteger(row)
     && Number.isInteger(col)

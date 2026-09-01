@@ -29,7 +29,7 @@ test("server adapter exposes the shared engine package API", () => {
 
 test("server adapter executes an authoritative shared-engine action", () => {
   const state = createGameState();
-  const result = dispatchAction(state, "red", {
+  const result = dispatchAction(state, "black", {
     type: "deploy",
     unitType: "king",
     row: 0,
@@ -38,7 +38,7 @@ test("server adapter executes an authoritative shared-engine action", () => {
 
   assert.equal(result.accepted, true);
   assert.equal(state.board[0][4]?.type, "king");
-  assert.equal(state.turn, "blue");
+  assert.equal(state.turn, "white");
   assert.equal(result.events.some(({ type }) => type === "piece_deployed"), true);
 });
 
@@ -47,25 +47,25 @@ test("declining a rematch clears the offer and notifies both players", () => {
   const white = { id: "white" };
   const room = {
     code: "TEST1",
-    players: { red: black, blue: white },
-    rematch: new Set(["red"]),
+    players: { black: black, white: white },
+    rematch: new Set(["black"]),
   };
   const deliveries = [];
 
-  declineRematch(room, "blue", (socket, message) => deliveries.push({ socket, message }));
+  declineRematch(room, "white", (socket, message) => deliveries.push({ socket, message }));
 
   assert.equal(room.rematch.size, 0);
   assert.deepEqual(deliveries, [
-    { socket: black, message: { type: "rematch_declined", byPlayer: "blue" } },
-    { socket: white, message: { type: "rematch_declined", byPlayer: "blue" } },
+    { socket: black, message: { type: "rematch_declined", byPlayer: "white" } },
+    { socket: white, message: { type: "rematch_declined", byPlayer: "white" } },
   ]);
 });
 
 test("an automatic King-wall taunt locks deployment for exactly three seconds", () => {
   const room = { state: createGameState() };
   const action = { type: "deploy", unitType: "king", row: 0, col: 4 };
-  assert.equal(applyAction(room.state, "red", action), true);
+  assert.equal(applyAction(room.state, "black", action), true);
 
-  assert.equal(startAutomaticTauntLock(room, "red", action, 10_000, 3_000), true);
+  assert.equal(startAutomaticTauntLock(room, "black", action, 10_000, 3_000), true);
   assert.equal(room.state.tauntUntil, 13_000);
 });

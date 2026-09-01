@@ -105,10 +105,10 @@ if (process.argv.includes("--worker")) {
     }
     try {
       const result = playDeterministicAiMatch({
-        redTier: job.redTier,
-        blueTier: job.blueTier,
-        redSettings: job.redSettings,
-        blueSettings: job.blueSettings,
+        blackTier: job.blackTier,
+        whiteTier: job.whiteTier,
+        blackSettings: job.blackSettings,
+        whiteSettings: job.whiteSettings,
         seed: job.seed,
         gameId: job.gameId,
         maxDeployments: job.maxDeployments,
@@ -185,14 +185,14 @@ if (process.argv.includes("--worker")) {
       || usesRandomness(tierSettings(first))
       || usesRandomness(tierSettings(second));
     for (const seed of stochastic ? seeds : seeds.slice(0, 1)) {
-      for (const [redTier, blueTier] of [[first, second], [second, first]]) {
+      for (const [blackTier, whiteTier] of [[first, second], [second, first]]) {
         jobs.push({
           jobIndex: jobs.length,
           league: true,
-          redTier,
-          blueTier,
-          redSettings: tierSettings(redTier),
-          blueSettings: tierSettings(blueTier),
+          blackTier,
+          whiteTier,
+          blackSettings: tierSettings(blackTier),
+          whiteSettings: tierSettings(whiteTier),
           stochastic,
           seed,
           maxDeployments,
@@ -200,9 +200,9 @@ if (process.argv.includes("--worker")) {
           handicapStones,
           // The reference opponent is the side that receives the free stones.
           handicapPlayer: handicapStones > 0 && referenceTier
-            ? (redTier === referenceTier ? "red" : "blue")
+            ? (blackTier === referenceTier ? "black" : "white")
             : null,
-          gameId: `${redTier}-R-vs-${blueTier}-B-h${handicapStones}-${seed}`,
+          gameId: `${blackTier}-R-vs-${whiteTier}-B-h${handicapStones}-${seed}`,
         });
       }
     }
@@ -215,7 +215,7 @@ if (process.argv.includes("--worker")) {
         || usesRandomness(opponentSettings);
       const jobSeeds = stochastic ? seeds : seeds.slice(0, 1);
       for (const seed of jobSeeds) {
-        for (const variantColor of ["red", "blue"]) {
+        for (const variantColor of ["black", "white"]) {
           jobs.push({
             jobIndex: jobs.length,
             variant: variant.name,
@@ -226,10 +226,10 @@ if (process.argv.includes("--worker")) {
             maxDeployments,
             randomOpeningPlies,
             gameId: `${variant.name}-vs-${opponent}-${variantColor}-${seed}`,
-            redTier: variantColor === "red" ? baseTier : opponent,
-            blueTier: variantColor === "blue" ? baseTier : opponent,
-            redSettings: variantColor === "red" ? variant.settings : opponentSettings,
-            blueSettings: variantColor === "blue" ? variant.settings : opponentSettings,
+            blackTier: variantColor === "black" ? baseTier : opponent,
+            whiteTier: variantColor === "white" ? baseTier : opponent,
+            blackSettings: variantColor === "black" ? variant.settings : opponentSettings,
+            whiteSettings: variantColor === "white" ? variant.settings : opponentSettings,
           });
         }
       }
@@ -263,7 +263,7 @@ if (process.argv.includes("--worker")) {
         finished += 1;
         // Settings are identical across every game of a variant, so they live in the
         // payload header rather than being repeated in each of hundreds of records.
-        const { redSettings, blueSettings, ...jobRecord } = job;
+        const { blackSettings, whiteSettings, ...jobRecord } = job;
         if (message.ok) {
           games[message.jobIndex] = { ...jobRecord, ...message.result, error: null };
         } else {
@@ -333,19 +333,19 @@ if (process.argv.includes("--worker")) {
   // League standings score each tier across every game it appeared in, on either colour.
   const leagueStandings = leagueTiers ? leagueTiers.map((tier) => {
     const played = games.filter((game) => game && !game.error && game.winner
-      && (game.redTier === tier || game.blueTier === tier));
+      && (game.blackTier === tier || game.whiteTier === tier));
     let points = 0;
     let territoryWins = 0;
     let kingCaptureWins = 0;
     let marginTotal = 0;
     const winDeployments = [];
     for (const game of played) {
-      const side = game.redTier === tier ? "red" : "blue";
+      const side = game.blackTier === tier ? "black" : "white";
       const gamePoints = game.winner === "draw" ? 0.5 : game.winner === side ? 1 : 0;
       points += gamePoints;
       // Final stone differential: the quantity the territory rule actually compares.
-      const own = side === "red" ? game.finalPieces?.red : game.finalPieces?.blue;
-      const foe = side === "red" ? game.finalPieces?.blue : game.finalPieces?.red;
+      const own = side === "black" ? game.finalPieces?.black : game.finalPieces?.white;
+      const foe = side === "black" ? game.finalPieces?.white : game.finalPieces?.black;
       marginTotal += (own ?? 0) - (foe ?? 0);
       if (gamePoints === 1) {
         winDeployments.push(game.deployments);

@@ -22,9 +22,9 @@ export function isOpponentLastMoveCell(state, viewerSide, row, col) {
   );
 }
 
-export function viewerOwnsPiece(state, networkPlayer, piece, pveHumanPlayer = "blue") {
+export function viewerOwnsPiece(state, networkPlayer, piece, pveHumanPlayer = "white") {
   if (state.mode === "pve" || state.mode === "puzzle") return piece.owner === pveHumanPlayer;
-  if (state.mode === "tutorial") return piece.owner === "blue";
+  if (state.mode === "tutorial") return piece.owner === "white";
   return piece.owner === networkPlayer;
 }
 
@@ -92,28 +92,28 @@ function pieceElement(piece, row, col, context, options = {}) {
 
 export const CUTSCENE_IMAGES = {
   king: {
-    red: "./assets/taunts/kingb_zzol.png",
-    blue: "./assets/taunts/kingw_zzol.png",
+    black: "./assets/taunts/kingb_zzol.png",
+    white: "./assets/taunts/kingw_zzol.png",
   },
   general: {
-    red: "./assets/taunts/generalb.png",
-    blue: "./assets/taunts/generalw.png",
+    black: "./assets/taunts/generalb.png",
+    white: "./assets/taunts/generalw.png",
   },
   diplomat: {
-    red: "./assets/taunts/diplomatb.png",
-    blue: "./assets/taunts/diplomatw.png",
+    black: "./assets/taunts/diplomatb.png",
+    white: "./assets/taunts/diplomatw.png",
   },
   wizard: {
-    red: "./assets/taunts/wizardb.png",
-    blue: "./assets/taunts/wizardw.png",
+    black: "./assets/taunts/wizardb.png",
+    white: "./assets/taunts/wizardw.png",
   },
   guide: {
-    red: "./assets/tutorial/soldier-guide.png",
-    blue: "./assets/tutorial/soldier-guide.png",
+    black: "./assets/tutorial/soldier-guide.png",
+    white: "./assets/tutorial/soldier-guide.png",
   },
   rules: {
-    red: "./assets/tutorial/kings-confrontation.png",
-    blue: "./assets/tutorial/kings-confrontation.png",
+    black: "./assets/tutorial/kings-confrontation.png",
+    white: "./assets/tutorial/kings-confrontation.png",
   },
 };
 
@@ -138,7 +138,7 @@ export function createTauntOverlay(context) {
     cachedOverlayEl = null;
     return null;
   }
-  const owner = item.speakerOwner || item.owner || "red";
+  const owner = item.speakerOwner || item.owner || "black";
   const unitType = item.unitType || "king";
   const itemKey = `${unitType}_${owner}_${item.id || item.durationMs || item.message || ""}_${item.hideDialogue ? "nodlg" : "dlg"}`;
 
@@ -148,7 +148,7 @@ export function createTauntOverlay(context) {
 
   cachedOverlayKey = itemKey;
   const overlay = document.createElement("div");
-  overlay.className = `taunt-overlay ${owner === "red" ? "black-taunt" : "white-taunt"} cutscene-${unitType}`;
+  overlay.className = `taunt-overlay ${owner === "black" ? "black-taunt" : "white-taunt"} cutscene-${unitType}`;
   if (item.durationMs) overlay.style.setProperty("--taunt-duration", `${item.durationMs}ms`);
   if (item.persistent) overlay.classList.add("persistent-dialogue");
 
@@ -158,7 +158,7 @@ export function createTauntOverlay(context) {
   image.src = (unitType === "guide" ? "./assets/tutorial/soldier-guide.png" : null)
     || (unitType === "rules" ? "./assets/tutorial/kings-confrontation.png" : null)
     || CUTSCENE_IMAGES[unitType]?.[owner]
-    || (owner === "red" ? "./assets/taunts/kingb_zzol.png" : "./assets/taunts/kingw_zzol.png");
+    || (owner === "black" ? "./assets/taunts/kingb_zzol.png" : "./assets/taunts/kingw_zzol.png");
 
   if (!item.hideDialogue) {
     const dialogueBox = document.createElement("div");
@@ -382,8 +382,8 @@ function renderBoard(context) {
 }
 
 function renderDeployPicker(context) {
-  context.deployDock?.classList.toggle("deploy-white", context.viewerSide === "blue");
-  context.deployDock?.classList.toggle("deploy-black", context.viewerSide === "red");
+  context.deployDock?.classList.toggle("deploy-white", context.viewerSide === "white");
+  context.deployDock?.classList.toggle("deploy-black", context.viewerSide === "black");
 
   const stockOwner = context.state.mode === "pvp" ? context.networkPlayer : context.state.turn;
   const visibleStock = context.state.stock[stockOwner] || {};
@@ -455,7 +455,7 @@ export function updateTurnTimerPill(turnPill, context) {
   if (turnPill.textContent !== turnText) {
     turnPill.textContent = turnText;
   }
-  turnPill.classList.toggle("blue", (context.state.winner ? context.state.winner === "blue" : context.state.turn === "blue"));
+  turnPill.classList.toggle("white", (context.state.winner ? context.state.winner === "white" : context.state.turn === "white"));
   turnPill.classList.toggle("draw", context.state.winner === "draw");
   turnPill.classList.toggle("danger", isDanger);
   turnPill.classList.toggle("warning", isWarning);
@@ -464,8 +464,8 @@ export function updateTurnTimerPill(turnPill, context) {
 function renderPanel(context) {
   updateTurnTimerPill(context.turnPill, context);
   const teleportUi = teleportUiState(context.state, context.viewerSide, context.wizardMovePromptDismissed);
-  context.redCount.textContent = context.countPieces("red");
-  context.blueCount.textContent = context.countPieces("blue");
+  context.blackCount.textContent = context.countPieces("black");
+  context.whiteCount.textContent = context.countPieces("white");
   if (context.modeInfo) context.modeInfo.textContent = context.modeLabel;
   if (context.rankInfo) context.rankInfo.textContent = context.rankLabel;
   if (context.connectionInfo) {

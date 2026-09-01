@@ -78,8 +78,8 @@ const baselineSettings = settingsSnapshot(baseline, baselineSettingsPath);
 
 const results = [];
 const colorStats = {
-  red: { games: 0, points: 0 },
-  blue: { games: 0, points: 0 },
+  black: { games: 0, points: 0 },
+  white: { games: 0, points: 0 },
 };
 let points = 0;
 let decision = decidePromotionGate({
@@ -93,24 +93,24 @@ let decision = decidePromotionGate({
 
 for (let pair = 1; pair <= maxPairs && decision.status === "continue"; pair += 1) {
   const pairSeed = (seed + Math.imul(pair, 0x9E3779B9)) >>> 0;
-  const candidateColors = seededRandom(pairSeed)() < 0.5 ? ["red", "blue"] : ["blue", "red"];
+  const candidateColors = seededRandom(pairSeed)() < 0.5 ? ["black", "white"] : ["white", "black"];
 
   for (const candidateColor of candidateColors) {
-    const redTier = candidateColor === "red" ? candidate : baseline;
-    const blueTier = candidateColor === "blue" ? candidate : baseline;
-    const redSettings = candidateColor === "red" ? candidateSettings : baselineSettings;
-    const blueSettings = candidateColor === "blue" ? candidateSettings : baselineSettings;
+    const blackTier = candidateColor === "black" ? candidate : baseline;
+    const whiteTier = candidateColor === "white" ? candidate : baseline;
+    const blackSettings = candidateColor === "black" ? candidateSettings : baselineSettings;
+    const whiteSettings = candidateColor === "white" ? candidateSettings : baselineSettings;
     const gameId = `pair-${String(pair).padStart(3, "0")}-candidate-${candidateColor}`;
     const journalPath = journalDir ? join(journalDir, `${gameId}.jsonl`) : null;
     const result = playDeterministicAiMatch({
-      redTier,
-      blueTier,
+      blackTier,
+      whiteTier,
       seed: pairSeed,
       gameId,
       maxDeployments,
       journalPath,
-      redSettings,
-      blueSettings,
+      blackSettings,
+      whiteSettings,
     });
     const gamePoints = result.winner === "draw" ? 0.5 : result.winner === candidateColor ? 1 : 0;
     points += gamePoints;

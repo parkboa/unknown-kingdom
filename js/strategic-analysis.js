@@ -22,9 +22,9 @@ const positionKey = (row, col) => `${row}:${col}`;
 const wallDistanceCache = new WeakMap();
 
 export function gamePhase(state) {
-  const red = state.deploymentCount?.red ?? (state.firstDeployDone?.red ? 1 : 0);
-  const blue = state.deploymentCount?.blue ?? (state.firstDeployDone?.blue ? 1 : 0);
-  const completedRounds = Math.min(red, blue);
+  const black = state.deploymentCount?.black ?? (state.firstDeployDone?.black ? 1 : 0);
+  const white = state.deploymentCount?.white ?? (state.firstDeployDone?.white ? 1 : 0);
+  const completedRounds = Math.min(black, white);
   if (completedRounds <= OPENING_DEPLOYMENT_LIMIT) return "opening";
   if (completedRounds <= MIDDLE_DEPLOYMENT_LIMIT) return "middle";
   return "endgame";
@@ -70,7 +70,7 @@ export function recentOpponentDeployments(state, perspective, limit = 4) {
 
 function wallDistancesThroughEmptyCells(state, startRow, startCol) {
   if (!inBounds(startRow, startCol) || state.board[startRow][startCol]) {
-    return { red: Infinity, blue: Infinity, neutral: Infinity };
+    return { black: Infinity, white: Infinity, neutral: Infinity };
   }
   const signature = boardSignature(state);
   let cached = wallDistanceCache.get(state);
@@ -80,7 +80,7 @@ function wallDistancesThroughEmptyCells(state, startRow, startCol) {
   }
   const startKey = positionKey(startRow, startCol);
   if (cached.values.has(startKey)) return cached.values.get(startKey);
-  const distances = { red: Infinity, blue: Infinity, neutral: Infinity };
+  const distances = { black: Infinity, white: Infinity, neutral: Infinity };
   const queue = [[startRow, startCol, 0]];
   const visited = new Set();
 
@@ -294,7 +294,7 @@ function minimumGroupDistance(first, second) {
 }
 
 function isHomeHalf(row, player) {
-  return player === "red" ? row <= Math.floor(SIZE / 2) : row >= Math.floor(SIZE / 2);
+  return player === "black" ? row <= Math.floor(SIZE / 2) : row >= Math.floor(SIZE / 2);
 }
 
 /**

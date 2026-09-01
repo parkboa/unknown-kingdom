@@ -33,7 +33,7 @@ export function createGameState(mode = "pvp", options = {}) {
   const base = {
     board: Array.from({ length: SIZE }, () => Array(SIZE).fill(null)),
     nextPieceId: 1,
-    turn: "red",
+    turn: "black",
     selected: null,
     lastMove: null,
     teleporting: null,
@@ -51,19 +51,19 @@ export function createGameState(mode = "pvp", options = {}) {
     aiProfile: "balanced",
     aiThinking: false,
     stock: {
-      red: { soldier: 77, king: 1, general: 1, diplomat: 1, wizard: 1 },
-      blue: { soldier: 77, king: 1, general: 1, diplomat: 1, wizard: 1 },
+      black: { soldier: 77, king: 1, general: 1, diplomat: 1, wizard: 1 },
+      white: { soldier: 77, king: 1, general: 1, diplomat: 1, wizard: 1 },
     },
-    firstDeployDone: { red: false, blue: false },
-    deploymentCount: { red: 0, blue: 0 },
+    firstDeployDone: { black: false, white: false },
+    deploymentCount: { black: 0, white: 0 },
     stats: {
-      captures: { red: 0, blue: 0 },
-      specialsUsed: { red: 0, blue: 0 },
+      captures: { black: 0, white: 0 },
+      specialsUsed: { black: 0, white: 0 },
     },
     informationHistory: {
       schemaVersion: 1,
-      red: [],
-      blue: [],
+      black: [],
+      white: [],
     },
     log: ["New online match started. Black deploys first."],
   };

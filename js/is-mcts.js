@@ -8,7 +8,7 @@ import {
 import { evaluateState } from "./state-evaluation.js";
 
 function opponent(player) {
-  return player === "red" ? "blue" : "red";
+  return player === "black" ? "white" : "black";
 }
 
 function decisionPlayer(state) {

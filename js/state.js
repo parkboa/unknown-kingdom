@@ -21,8 +21,8 @@ export function createOccupiedSoldier(owner) {
 }
 
 export function createInitialState(mode, pveHumanPlayer = PVE_HUMAN) {
-  const startingSide = mode === "puzzle" ? pveHumanPlayer : "red";
-  const startingSideLabel = startingSide === "red" ? "Black" : "White";
+  const startingSide = mode === "puzzle" ? pveHumanPlayer : "black";
+  const startingSideLabel = startingSide === "black" ? "Black" : "White";
   const aiProfile = AI_PROFILES[Math.floor(Math.random() * AI_PROFILES.length)];
   return {
     board: Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => null)),
@@ -45,14 +45,14 @@ export function createInitialState(mode, pveHumanPlayer = PVE_HUMAN) {
     aiRank: "novice",
     aiThinking: false,
     stock: {
-      red: { soldier: 77, king: 1, general: 1, diplomat: 1, wizard: 1 },
-      blue: { soldier: 77, king: 1, general: 1, diplomat: 1, wizard: 1 },
+      black: { soldier: 77, king: 1, general: 1, diplomat: 1, wizard: 1 },
+      white: { soldier: 77, king: 1, general: 1, diplomat: 1, wizard: 1 },
     },
-    firstDeployDone: { red: false, blue: false },
-    deploymentCount: { red: 0, blue: 0 },
+    firstDeployDone: { black: false, white: false },
+    deploymentCount: { black: 0, white: 0 },
     stats: {
-      captures: { red: 0, blue: 0 },
-      specialsUsed: { red: 0, blue: 0 },
+      captures: { black: 0, white: 0 },
+      specialsUsed: { black: 0, white: 0 },
     },
     log: [`New match started. ${startingSideLabel} deploys first.`],
   };

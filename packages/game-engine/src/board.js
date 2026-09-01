@@ -28,7 +28,7 @@ function deploymentCount(state, player) {
 }
 
 export function incrementDeploymentCount(state, player) {
-  state.deploymentCount ??= { red: 0, blue: 0 };
+  state.deploymentCount ??= { black: 0, white: 0 };
   state.deploymentCount[player] = deploymentCount(state, player) + 1;
 }
 
@@ -57,11 +57,11 @@ export function hasEmptyCell(state) {
 }
 
 export function wallOwnerForEdge(row, nextRow, nextCol) {
-  if (nextRow < 0) return "red";
-  if (nextRow >= SIZE) return "blue";
+  if (nextRow < 0) return "black";
+  if (nextRow >= SIZE) return "white";
   if (nextCol < 0 || nextCol >= SIZE) {
-    if (row <= 3) return "red";
-    if (row >= 5) return "blue";
+    if (row <= 3) return "black";
+    if (row >= 5) return "white";
   }
   return null;
 }
@@ -187,7 +187,7 @@ export function kingLibertyCount(state, owner) {
 }
 
 export function activeKingZones(state) {
-  return ["red", "blue"].flatMap((owner) => {
+  return ["black", "white"].flatMap((owner) => {
     const deployments = deploymentCount(state, owner);
     const king = findKingPosition(state, owner);
     if (deployments <= 0 || deployments >= 5 || !king) return [];

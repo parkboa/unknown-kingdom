@@ -4,7 +4,6 @@ const MESSAGE_TYPES = new Set([
   "room_created",
   "waiting",
   "room_list",
-  "side_selection",
   "match_start",
   "state",
   "error",
@@ -14,8 +13,8 @@ const MESSAGE_TYPES = new Set([
   "rps_start",
   "rps_result",
 ]);
-const PLAYERS = new Set(["red", "blue"]);
-const WINNERS = new Set(["red", "blue", "draw"]);
+const PLAYERS = new Set(["black", "white"]);
+const WINNERS = new Set(["black", "white", "draw"]);
 const UNIT_TYPES = new Set(DEPLOY_ORDER);
 
 function isPlainObject(value) {
@@ -80,12 +79,12 @@ function isVisibleStock(value) {
 }
 
 function hasStockForPlayer(state, player) {
-  const opponent = player === "red" ? "blue" : "red";
+  const opponent = player === "black" ? "white" : "black";
   return isStock(state.stock[player]) && state.stock[opponent] === null;
 }
 
 function isPlayerMap(value, validator) {
-  return isPlainObject(value) && validator(value.red) && validator(value.blue);
+  return isPlainObject(value) && validator(value.black) && validator(value.white);
 }
 
 function isPendingAbility(value) {
@@ -128,7 +127,7 @@ export function validateGameState(value) {
   if (!AI_PROFILES.includes(value.aiProfile)) return false;
   if (typeof value.aiThinking !== "boolean") return false;
   if (!isPlayerMap(value.stock, isVisibleStock)) return false;
-  if (value.stock.red === null && value.stock.blue === null) return false;
+  if (value.stock.black === null && value.stock.white === null) return false;
   if (!isPlayerMap(value.firstDeployDone, (item) => typeof item === "boolean")) return false;
   if (!isPlainObject(value.stats)) return false;
   if (!isPlayerMap(value.stats.captures, isNonNegativeInteger)) return false;
@@ -144,10 +143,6 @@ export function validateNetworkMessage(message) {
     return isRoomCode(message.roomCode)
       && hasOptionalBoardNumber(message)
       && (message.player === undefined || PLAYERS.has(message.player));
-  }
-
-  if (message.type === "side_selection") {
-    return isRoomCode(message.roomCode) && hasOptionalBoardNumber(message);
   }
 
   if (message.type === "room_list") {

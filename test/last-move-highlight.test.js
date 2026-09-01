@@ -5,26 +5,26 @@ import { isOpponentLastMoveCell, visiblePieceIdentity } from "../js/render.js";
 
 test("last-move highlight is shown only to the opponent at the played cell", () => {
   const state = {
-    lastMove: { player: "red", unitType: "soldier", row: 2, col: 6 },
+    lastMove: { player: "black", unitType: "soldier", row: 2, col: 6 },
   };
 
-  assert.equal(isOpponentLastMoveCell(state, "blue", 2, 6), true);
-  assert.equal(isOpponentLastMoveCell(state, "red", 2, 6), false);
-  assert.equal(isOpponentLastMoveCell(state, "blue", 6, 2), false);
+  assert.equal(isOpponentLastMoveCell(state, "white", 2, 6), true);
+  assert.equal(isOpponentLastMoveCell(state, "black", 2, 6), false);
+  assert.equal(isOpponentLastMoveCell(state, "white", 6, 2), false);
 });
 
 test("pass and missing moves do not create a board highlight", () => {
-  assert.equal(isOpponentLastMoveCell({ lastMove: { player: "red", action: "pass" } }, "blue", 0, 0), false);
-  assert.equal(isOpponentLastMoveCell({ lastMove: null }, "blue", 0, 0), false);
+  assert.equal(isOpponentLastMoveCell({ lastMove: { player: "black", action: "pass" } }, "white", 0, 0), false);
+  assert.equal(isOpponentLastMoveCell({ lastMove: null }, "white", 0, 0), false);
 });
 
 test("tutorial mode hides the opponent last-move highlight", () => {
   const state = {
     mode: "tutorial",
-    lastMove: { player: "red", unitType: "soldier", row: 2, col: 6 },
+    lastMove: { player: "black", unitType: "soldier", row: 2, col: 6 },
   };
 
-  assert.equal(isOpponentLastMoveCell(state, "blue", 2, 6), false);
+  assert.equal(isOpponentLastMoveCell(state, "white", 2, 6), false);
 });
 
 test("an activated and revealed special keeps its original visible identity", () => {

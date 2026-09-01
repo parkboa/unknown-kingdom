@@ -2,7 +2,8 @@
 
 Static browser prototype for validating the current Unknown Kingdom rules, UI, PvE, puzzle, and online PvP flows.
 
-> Naming note: the UI uses **Black / White**. The code and WebSocket protocol still use the internal side IDs `red` and `blue`, where `red = Black` and `blue = White`.
+Unknown Kingdom 1.0 uses **Black / White** in the UI and the internal side IDs
+`black` / `white` in game state, journals, and WebSocket protocol version 3.
 
 ## Structure
 
@@ -188,9 +189,9 @@ The selected server URL is stored in the browser for later matches.
 ### Client Messages
 
 ```json
-{ "type": "create_room", "protocolVersion": 2 }
-{ "type": "join_room", "roomCode": "ABC123", "protocolVersion": 2 }
-{ "type": "choose_side", "roomCode": "ABC123", "side": "blue" }
+{ "type": "create_room", "protocolVersion": 3 }
+{ "type": "join_room", "roomCode": "ABC123", "protocolVersion": 3 }
+{ "type": "rps_choice", "roomCode": "ABC123", "choice": "rock" }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "deploy", "unitType": "soldier", "row": 4, "col": 4 } }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "taunt" } }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "activate_special" } }
@@ -205,15 +206,21 @@ The selected server URL is stored in the browser for later matches.
 ```json
 { "type": "room_created", "roomCode": "ABC123" }
 { "type": "waiting", "roomCode": "ABC123" }
-{ "type": "side_selection", "roomCode": "ABC123" }
-{ "type": "match_start", "roomCode": "ABC123", "player": "blue", "state": {} }
-{ "type": "state", "roomCode": "ABC123", "player": "blue", "state": {} }
+{ "type": "rps_start", "roomCode": "ABC123" }
+{ "type": "rps_result", "result": "win", "yourSide": "black", "choices": { "black": "rock", "white": "scissors" } }
+{ "type": "match_start", "roomCode": "ABC123", "player": "white", "state": {} }
+{ "type": "state", "roomCode": "ABC123", "player": "white", "state": {} }
 { "type": "error", "message": "Invalid room code." }
 ```
 
-After both players join, the server sends `side_selection`. The first valid `choose_side` command claims that side and automatically assigns the opponent to the other side. The server is responsible for legal-move validation, captures, special reactions, hidden information, turn order, reconnects, and victory results.
+After both players join, the server starts rock-paper-scissors. The winner becomes
+Black and moves first; the other player becomes White. Protocol versions other than
+3 are rejected explicitly. The server is responsible for legal-move validation,
+captures, special reactions, hidden information, turn order, reconnects, and victory
+results.
 
-## Known Internal Naming Debt
+## Data Compatibility
 
-- The code still uses `red` and `blue` internally while the UI presents Black and White.
-- Future cleanup should rename internal side IDs only after server/client protocol compatibility is planned.
+- New game journals use schema version 2 and the `black` / `white` side IDs.
+- Schema version 1 JSONL journals using `red` / `blue` are migrated at the replay input boundary.
+- Historical files under `artifacts/` and `experiments/` remain unchanged for reproducibility.

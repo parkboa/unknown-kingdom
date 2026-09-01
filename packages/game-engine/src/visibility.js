@@ -3,7 +3,7 @@ import { PLAYERS, SPECIALS } from "./constants.js";
 export function stateForPlayer(state, player) {
   if (!PLAYERS.includes(player)) throw new TypeError(`Unknown player: ${player}`);
   const view = structuredClone(state);
-  const opponent = player === "red" ? "blue" : "red";
+  const opponent = player === "black" ? "white" : "black";
   if (view.stock && Object.hasOwn(view.stock, opponent)) {
     view.stock[opponent] = null;
   }

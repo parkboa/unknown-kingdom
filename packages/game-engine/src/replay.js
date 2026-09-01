@@ -1,7 +1,22 @@
 import { dispatchAction } from "./actions.js";
 
-const JOURNAL_SCHEMA_VERSION = 1;
+const JOURNAL_SCHEMA_VERSION = 2;
+const LEGACY_JOURNAL_SCHEMA_VERSION = 1;
 const JSONL_RECORD_TYPES = new Set(["game_start", "action", "game_end"]);
+
+function migrateLegacySideIds(value) {
+  if (value === "red") return "black";
+  if (value === "blue") return "white";
+  if (Array.isArray(value)) return value.map((item) => migrateLegacySideIds(item));
+  if (!value || typeof value !== "object") return value;
+
+  const migrated = {};
+  for (const [key, item] of Object.entries(value)) {
+    const migratedKey = key === "red" ? "black" : key === "blue" ? "white" : key;
+    migrated[migratedKey] = migrateLegacySideIds(item);
+  }
+  return migrated;
+}
 
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map((item) => canonicalize(item));
@@ -88,6 +103,10 @@ export function parseGameJournalJsonl(jsonl) {
   if (records.length < 2 || records[0].recordType !== "game_start" || records.at(-1).recordType !== "game_end") {
     throw new Error("JSONL journal must start with game_start and end with game_end");
   }
+  const schemaVersions = new Set(records.map((record) => record.schemaVersion));
+  if (schemaVersions.size === 1 && schemaVersions.has(LEGACY_JOURNAL_SCHEMA_VERSION)) {
+    return migrateLegacyGameJournalRecords(records);
+  }
   if (records.some((record) => record.schemaVersion !== JOURNAL_SCHEMA_VERSION || !JSONL_RECORD_TYPES.has(record.recordType))) {
     throw new Error("JSONL journal contains an unsupported record");
   }
@@ -111,6 +130,39 @@ export function parseGameJournalJsonl(jsonl) {
   if (!replay.ok) throw new Error(`JSONL journal replay failed at action ${replay.index}: ${replay.reason}`);
   if (replay.finalDigest !== end.finalDigest) throw new Error("JSONL journal final digest does not match");
   return { journal, outcome: structuredClone(end.outcome), replay };
+}
+
+function migrateLegacyGameJournalRecords(records) {
+  if (records.some((record) => !JSONL_RECORD_TYPES.has(record.recordType))) {
+    throw new Error("Legacy JSONL journal contains an unsupported record");
+  }
+  const start = records[0];
+  const end = records.at(-1);
+  const actions = records.slice(1, -1);
+  if (actions.some((record, index) => record.recordType !== "action" || record.index !== index)) {
+    throw new Error("Legacy JSONL journal action sequence is invalid");
+  }
+  if (end.actionCount !== actions.length) throw new Error("Legacy JSONL journal action count does not match");
+
+  const state = migrateLegacySideIds(start.initialState);
+  const journal = createGameJournal(state, migrateLegacySideIds(start.metadata || {}));
+  for (const entry of actions) {
+    const player = migrateLegacySideIds(entry.player);
+    const action = migrateLegacySideIds(entry.action);
+    const options = migrateLegacySideIds(entry.options || {});
+    const result = dispatchRecordedAction(state, journal, player, action, options);
+    if (result.accepted !== entry.accepted) {
+      throw new Error(`Legacy JSONL journal replay failed at action ${entry.index}: acceptance_mismatch`);
+    }
+  }
+  const replay = replayGameJournal(journal);
+  if (!replay.ok) throw new Error(`Legacy JSONL journal migration failed at action ${replay.index}: ${replay.reason}`);
+  return {
+    journal,
+    outcome: migrateLegacySideIds(end.outcome),
+    replay,
+    migratedFromSchemaVersion: LEGACY_JOURNAL_SCHEMA_VERSION,
+  };
 }
 
 export function dispatchRecordedAction(state, journal, player, action, options = {}) {

@@ -29,7 +29,7 @@ function terminalFixtureState(answer, aiRank) {
     for (let col = 0; col < answer.board[row].length; col += 1) {
       const compact = answer.board[row][col];
       if (!compact) continue;
-      const owner = compact[0] === "R" ? "red" : "blue";
+      const owner = compact[0] === "R" ? "black" : "white";
       const type = compact.slice(1);
       state.board[row][col] = {
         id: `terminal-fixture-${pieceId++}`,
@@ -42,14 +42,14 @@ function terminalFixtureState(answer, aiRank) {
       };
     }
   }
-  state.turn = answer.turn;
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 50, blue: 50 };
+  state.turn = answer.turn === "red" ? "black" : "white";
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 50, white: 50 };
   state.stock = {
-    red: { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 },
-    blue: { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 },
+    black: { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 },
+    white: { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 },
   };
-  state.stats.specialsUsed = { red: 3, blue: 3 };
+  state.stats.specialsUsed = { black: 3, white: 3 };
   return state;
 }
 
@@ -64,7 +64,7 @@ test("opening priority keeps each tier's King and sanctuary contract above catal
   for (const tier of AI_TIER_ORDER) {
     const settings = AI_RANK_SETTINGS[tier];
     const state = createGameState("pve", { aiRank: tier });
-    const kingContract = openingDecisionContract(state, "red", settings);
+    const kingContract = openingDecisionContract(state, "black", settings);
 
     assert.equal(kingContract.stage, AI_DECISION_STAGE.OPENING_KING);
     assert.equal(kingContract.allows("king", settings.kingWallDistance.min, 4), true);
@@ -73,24 +73,24 @@ test("opening priority keeps each tier's King and sanctuary contract above catal
     const kingRow = settings.kingWallDistance.min;
     state.board[kingRow][4] = {
       id: `${tier}-opening-king`,
-      owner: "red",
+      owner: "black",
       type: "king",
       originalType: "king",
       revealed: true,
       abilityUsed: false,
       kingEscapeUsed: false,
     };
-    state.firstDeployDone.red = true;
-    state.deploymentCount.red = 1;
-    const sanctuaryContract = openingDecisionContract(state, "red", settings);
+    state.firstDeployDone.black = true;
+    state.deploymentCount.black = 1;
+    const sanctuaryContract = openingDecisionContract(state, "black", settings);
     assert.equal(sanctuaryContract.stage, AI_DECISION_STAGE.OPENING_SANCTUARY);
     assert.equal(sanctuaryContract.sanctuaryActive, true);
     assert.equal(sanctuaryContract.allows("soldier", kingRow, 3), true);
     assert.equal(sanctuaryContract.allows("soldier", 8, 8), false);
 
-    state.deploymentCount.red = settings.openingWallStones + 1;
-    const afterTierConstruction = openingDecisionContract(state, "red", settings);
-    if (state.deploymentCount.red < 5) {
+    state.deploymentCount.black = settings.openingWallStones + 1;
+    const afterTierConstruction = openingDecisionContract(state, "black", settings);
+    if (state.deploymentCount.black < 5) {
       assert.equal(afterTierConstruction.stage, AI_DECISION_STAGE.OPENING_FREE_PLAY);
       assert.equal(afterTierConstruction.sanctuaryActive, true);
       assert.equal(afterTierConstruction.allows, null);
@@ -99,8 +99,8 @@ test("opening priority keeps each tier's King and sanctuary contract above catal
       assert.equal(afterTierConstruction.sanctuaryActive, false);
     }
 
-    state.deploymentCount.red = 5;
-    const catalogContract = openingDecisionContract(state, "red", settings);
+    state.deploymentCount.black = 5;
+    const catalogContract = openingDecisionContract(state, "black", settings);
     assert.equal(catalogContract.stage, AI_DECISION_STAGE.CATALOG);
     assert.equal(catalogContract.sanctuaryActive, false);
     assert.equal(catalogContract.allows, null);
@@ -117,7 +117,7 @@ test("all five tiers take the four saved territory-finishing moves", () => {
       const state = terminalFixtureState(fixture, tier);
       const move = findAiDeployMove(state, {
         aiPlayer: state.turn,
-        humanPlayer: state.turn === "red" ? "blue" : "red",
+        humanPlayer: state.turn === "black" ? "white" : "black",
         canDeploy: (player, type, row, col) => canDeploy(state, player, type, row, col),
         countPieces: (owner) => countPieces(state, owner),
         neighbors,
@@ -136,8 +136,8 @@ test("Tactical AI does not treat an undeployed opponent King as a forced win", (
   for (const tier of ["expert", "grandmaster"]) {
     const state = createGameState("pve", { aiRank: tier });
     const move = findAiDeployMove(state, {
-      aiPlayer: "red",
-      humanPlayer: "blue",
+      aiPlayer: "black",
+      humanPlayer: "white",
       canDeploy: (player, type, row, col) => canDeploy(state, player, type, row, col),
       countPieces: (owner) => countPieces(state, owner),
       neighbors,
@@ -152,11 +152,11 @@ test("Tactical AI does not treat an undeployed opponent King as a forced win", (
 
 test("searching AI does not call a hidden-special King trap a guaranteed win", () => {
   const base = createGameState("pve");
-  base.turn = "blue";
-  base.firstDeployDone = { red: true, blue: true };
-  base.deploymentCount = { red: 6, blue: 6 };
-  base.stock.red = { soldier: 70, king: 0, general: 1, diplomat: 0, wizard: 1 };
-  base.stock.blue = { soldier: 70, king: 0, general: 1, diplomat: 1, wizard: 1 };
+  base.turn = "white";
+  base.firstDeployDone = { black: true, white: true };
+  base.deploymentCount = { black: 6, white: 6 };
+  base.stock.black = { soldier: 70, king: 0, general: 1, diplomat: 0, wizard: 1 };
+  base.stock.white = { soldier: 70, king: 0, general: 1, diplomat: 1, wizard: 1 };
 
   const place = (row, col, owner, type, revealed = false) => {
     base.board[row][col] = {
@@ -169,18 +169,18 @@ test("searching AI does not call a hidden-special King trap a guaranteed win", (
       kingEscapeUsed: false,
     };
   };
-  place(4, 4, "red", "king", true);
-  place(4, 5, "red", "diplomat");
-  place(5, 5, "blue", "king", true);
+  place(4, 4, "black", "king", true);
+  place(4, 5, "black", "diplomat");
+  place(5, 5, "white", "king", true);
   for (const [row, col] of [[3, 4], [5, 4], [4, 3], [3, 5]]) {
-    place(row, col, "blue", "soldier");
+    place(row, col, "white", "soldier");
   }
 
   const actualTrap = structuredClone(base);
-  assert.equal(applyAction(actualTrap, "blue", { type: "deploy", unitType: "soldier", row: 4, col: 6 }), true);
+  assert.equal(applyAction(actualTrap, "white", { type: "deploy", unitType: "soldier", row: 4, col: 6 }), true);
   assert.equal(actualTrap.pendingSpecial?.type, "diplomat");
-  assert.equal(applyAction(actualTrap, "red", { type: "activate_special" }), true);
-  assert.equal(actualTrap.winner, "red");
+  assert.equal(applyAction(actualTrap, "black", { type: "activate_special" }), true);
+  assert.equal(actualTrap.winner, "black");
 
   const originalRandom = Math.random;
   Math.random = () => 0.5;
@@ -188,9 +188,9 @@ test("searching AI does not call a hidden-special King trap a guaranteed win", (
     for (const tier of ["intermediate", "advanced", "expert", "grandmaster"]) {
       const state = structuredClone(base);
       state.aiRank = tier;
-      const move = findAiDeployMove(stateForPlayer(state, "blue"), {
-        aiPlayer: "blue",
-        humanPlayer: "red",
+      const move = findAiDeployMove(stateForPlayer(state, "white"), {
+        aiPlayer: "white",
+        humanPlayer: "black",
         canDeploy: (owner, type, row, col) => canDeploy(state, owner, type, row, col),
         countPieces: (owner) => countPieces(state, owner),
         neighbors,
@@ -215,35 +215,35 @@ test("searching AI does not call a hidden-special King trap a guaranteed win", (
 test("Depth-3 search keeps a forced King rescue outside the heuristic reply cutoff", () => {
   for (const tier of ["advanced", "expert"]) {
     const state = createGameState("pve", { aiRank: tier });
-    state.turn = "blue";
-    state.firstDeployDone.red = true;
-    state.firstDeployDone.blue = true;
-    state.deploymentCount.red = 6;
-    state.deploymentCount.blue = 6;
+    state.turn = "white";
+    state.firstDeployDone.black = true;
+    state.firstDeployDone.white = true;
+    state.deploymentCount.black = 6;
+    state.deploymentCount.white = 6;
 
-    state.board[0][0] = { id: "blue-king", owner: "blue", type: "king", originalType: "king", revealed: true };
-    state.board[8][8] = { id: "red-king", owner: "red", type: "king", originalType: "king", revealed: true };
-    state.board[2][2] = { id: "red-soldier", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
-    state.board[1][2] = { id: "blue-1", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
-    state.board[3][2] = { id: "blue-2", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
-    state.board[2][1] = { id: "blue-3", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
+    state.board[0][0] = { id: "white-king", owner: "white", type: "king", originalType: "king", revealed: true };
+    state.board[8][8] = { id: "black-king", owner: "black", type: "king", originalType: "king", revealed: true };
+    state.board[2][2] = { id: "black-soldier", owner: "black", type: "soldier", originalType: "soldier", revealed: true };
+    state.board[1][2] = { id: "white-1", owner: "white", type: "soldier", originalType: "soldier", revealed: true };
+    state.board[3][2] = { id: "white-2", owner: "white", type: "soldier", originalType: "soldier", revealed: true };
+    state.board[2][1] = { id: "white-3", owner: "white", type: "soldier", originalType: "soldier", revealed: true };
 
     const move = findAiDeployMove(state, {
-      aiPlayer: "blue",
-      humanPlayer: "red",
+      aiPlayer: "white",
+      humanPlayer: "black",
       canDeploy: (player, type, row, col) => canDeploy(state, player, type, row, col),
       countPieces: (owner) => countPieces(state, owner),
       neighbors,
     });
 
     assert.ok(move, `${tier} should return a tactical move`);
-    assert.ok(move.deepScore < 10000, `${tier} should account for Red's forced I8 King rescue`);
+    assert.ok(move.deepScore < 10000, `${tier} should account for Black's forced I8 King rescue`);
   }
 });
 
 test("equidistant hidden stones keep the same order after color-swapped vertical mirroring", () => {
-  const redKing = { row: 4, col: 4 };
-  const blueKing = { row: 4, col: 4 };
+  const blackKing = { row: 4, col: 4 };
+  const whiteKing = { row: 4, col: 4 };
   const original = [
     { row: 3, col: 4 },
     { row: 4, col: 3 },
@@ -254,39 +254,39 @@ test("equidistant hidden stones keep the same order after color-swapped vertical
     .map(({ row, col }) => ({ row: 8 - row, col }))
     .sort((a, b) => a.row - b.row || a.col - b.col);
 
-  const redOrder = original.slice().sort((a, b) => compareBeliefStonePositions(a, b, redKing, "red"));
-  const blueOrder = mirroredRowMajor.slice().sort((a, b) => compareBeliefStonePositions(a, b, blueKing, "blue"));
+  const blackOrder = original.slice().sort((a, b) => compareBeliefStonePositions(a, b, blackKing, "black"));
+  const whiteOrder = mirroredRowMajor.slice().sort((a, b) => compareBeliefStonePositions(a, b, whiteKing, "white"));
 
   assert.deepEqual(
-    blueOrder,
-    redOrder.map(({ row, col }) => ({ row: 8 - row, col })),
+    whiteOrder,
+    blackOrder.map(({ row, col }) => ({ row: 8 - row, col })),
   );
 });
 
 test("Grandmaster returns an authoritative legal move in a tactical capture position", () => {
   const state = createGameState("pve", { aiRank: "grandmaster" });
-  state.turn = "blue";
-  state.firstDeployDone.red = true;
-  state.firstDeployDone.blue = true;
-  state.deploymentCount.red = 6;
-  state.deploymentCount.blue = 6;
+  state.turn = "white";
+  state.firstDeployDone.black = true;
+  state.firstDeployDone.white = true;
+  state.deploymentCount.black = 6;
+  state.deploymentCount.white = 6;
 
-  // Blue AI King at (0,0), Red King at (8,8) with friendly defenders
-  state.board[0][0] = { id: "blue-king", owner: "blue", type: "king", originalType: "king", revealed: true };
-  state.board[8][8] = { id: "red-king", owner: "red", type: "king", originalType: "king", revealed: true };
-  state.board[7][8] = { id: "red-def1", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[8][7] = { id: "red-def2", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
-  state.stock.blue = { king: 0, soldier: 10, general: 0, wizard: 0, diplomat: 0 };
+  // White AI King at (0,0), Black King at (8,8) with friendly defenders
+  state.board[0][0] = { id: "white-king", owner: "white", type: "king", originalType: "king", revealed: true };
+  state.board[8][8] = { id: "black-king", owner: "black", type: "king", originalType: "king", revealed: true };
+  state.board[7][8] = { id: "black-def1", owner: "black", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[8][7] = { id: "black-def2", owner: "black", type: "soldier", originalType: "soldier", revealed: true };
+  state.stock.white = { king: 0, soldier: 10, general: 0, wizard: 0, diplomat: 0 };
 
-  // Red group at (2,2) with 1 liberty at (2,3)
-  state.board[2][2] = { id: "red-soldier", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[1][2] = { id: "blue-s1", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[3][2] = { id: "blue-s2", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[2][1] = { id: "blue-s3", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
+  // Black group at (2,2) with 1 liberty at (2,3)
+  state.board[2][2] = { id: "black-soldier", owner: "black", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[1][2] = { id: "white-s1", owner: "white", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[3][2] = { id: "white-s2", owner: "white", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[2][1] = { id: "white-s3", owner: "white", type: "soldier", originalType: "soldier", revealed: true };
 
   const move = findAiDeployMove(state, {
-    aiPlayer: "blue",
-    humanPlayer: "red",
+    aiPlayer: "white",
+    humanPlayer: "black",
     canDeploy: (player, type, row, col) => !state.board[row][col] && state.stock[player][type] > 0,
     countPieces: (owner) => countPieces(state, owner),
     neighbors,
@@ -294,8 +294,8 @@ test("Grandmaster returns an authoritative legal move in a tactical capture posi
 
   assert.ok(move, "AI should return a move");
   const action = { type: "deploy", unitType: move.type, row: move.row, col: move.col };
-  assert.equal(getLegalActions(state, "blue").some((legal) => JSON.stringify(legal) === JSON.stringify(action)), true);
-  assert.equal(applyAction(structuredClone(state), "blue", action), true);
+  assert.equal(getLegalActions(state, "white").some((legal) => JSON.stringify(legal) === JSON.stringify(action)), true);
+  assert.equal(applyAction(structuredClone(state), "white", action), true);
 });
 
 test("legacy 8-rank save values migrate into the five current AI tiers", () => {
@@ -316,24 +316,24 @@ test("legacy 8-rank save values migrate into the five current AI tiers", () => {
 
 test("AI handles special reaction transaction settling when surrounding a Wizard", () => {
   const state = createGameState("pve", { aiRank: "expert" });
-  state.turn = "blue";
-  state.firstDeployDone.red = true;
-  state.firstDeployDone.blue = true;
-  state.deploymentCount.red = 6;
-  state.deploymentCount.blue = 6;
+  state.turn = "white";
+  state.firstDeployDone.black = true;
+  state.firstDeployDone.white = true;
+  state.deploymentCount.black = 6;
+  state.deploymentCount.white = 6;
 
-  state.board[0][0] = { id: "blue-king", owner: "blue", type: "king", originalType: "king", revealed: true };
-  state.board[8][8] = { id: "red-king", owner: "red", type: "king", originalType: "king", revealed: true };
+  state.board[0][0] = { id: "white-king", owner: "white", type: "king", originalType: "king", revealed: true };
+  state.board[8][8] = { id: "black-king", owner: "black", type: "king", originalType: "king", revealed: true };
 
-  // Red revealed wizard at (4,4) surrounded on 3 sides
-  state.board[4][4] = { id: "red-wiz", owner: "red", type: "wizard", originalType: "wizard", revealed: true };
-  state.board[3][4] = { id: "blue-s1", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[5][4] = { id: "blue-s2", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[4][3] = { id: "blue-s3", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
+  // Black revealed wizard at (4,4) surrounded on 3 sides
+  state.board[4][4] = { id: "black-wiz", owner: "black", type: "wizard", originalType: "wizard", revealed: true };
+  state.board[3][4] = { id: "white-s1", owner: "white", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[5][4] = { id: "white-s2", owner: "white", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[4][3] = { id: "white-s3", owner: "white", type: "soldier", originalType: "soldier", revealed: true };
 
   const move = findAiDeployMove(state, {
-    aiPlayer: "blue",
-    humanPlayer: "red",
+    aiPlayer: "white",
+    humanPlayer: "black",
     canDeploy: (player, type, row, col) => !state.board[row][col] && state.stock[player][type] > 0,
     countPieces: (owner) => countPieces(state, owner),
     neighbors,
@@ -341,8 +341,8 @@ test("AI handles special reaction transaction settling when surrounding a Wizard
 
   assert.ok(move, "AI should return a valid move with Wizard reaction settling");
   const action = { type: "deploy", unitType: move.type, row: move.row, col: move.col };
-  assert.equal(getLegalActions(state, "blue").some((legal) => JSON.stringify(legal) === JSON.stringify(action)), true);
-  assert.equal(applyAction(structuredClone(state), "blue", action), true);
+  assert.equal(getLegalActions(state, "white").some((legal) => JSON.stringify(legal) === JSON.stringify(action)), true);
+  assert.equal(applyAction(structuredClone(state), "white", action), true);
 });
 
 test("All 5 primary AI tiers (novice, intermediate, advanced, expert, grandmaster) generate valid moves", () => {
@@ -356,17 +356,17 @@ test("All 5 primary AI tiers (novice, intermediate, advanced, expert, grandmaste
 
   for (const tier of tiers) {
     const state = createGameState("pve", { aiRank: tier });
-    state.turn = "blue";
-    state.firstDeployDone.red = true;
-    state.firstDeployDone.blue = true;
-    state.deploymentCount.red = 6;
-    state.deploymentCount.blue = 6;
-    state.board[0][0] = { id: "blue-king", owner: "blue", type: "king", originalType: "king", revealed: true };
-    state.board[8][8] = { id: "red-king", owner: "red", type: "king", originalType: "king", revealed: true };
+    state.turn = "white";
+    state.firstDeployDone.black = true;
+    state.firstDeployDone.white = true;
+    state.deploymentCount.black = 6;
+    state.deploymentCount.white = 6;
+    state.board[0][0] = { id: "white-king", owner: "white", type: "king", originalType: "king", revealed: true };
+    state.board[8][8] = { id: "black-king", owner: "black", type: "king", originalType: "king", revealed: true };
 
     const move = findAiDeployMove(state, {
-      aiPlayer: "blue",
-      humanPlayer: "red",
+      aiPlayer: "white",
+      humanPlayer: "black",
       canDeploy: (player, type, row, col) => !state.board[row][col] && state.stock[player][type] > 0,
       countPieces: (owner) => countPieces(state, owner),
       neighbors,
@@ -375,31 +375,31 @@ test("All 5 primary AI tiers (novice, intermediate, advanced, expert, grandmaste
     assert.ok(move, `AI tier ${tier} should return a valid move`);
     const action = { type: "deploy", unitType: move.type, row: move.row, col: move.col };
     assert.equal(
-      getLegalActions(state, "blue").some((legal) => JSON.stringify(legal) === JSON.stringify(action)),
+      getLegalActions(state, "white").some((legal) => JSON.stringify(legal) === JSON.stringify(action)),
       true,
       `AI tier ${tier} should choose an authoritative legal action`,
     );
-    assert.equal(applyAction(structuredClone(state), "blue", action), true);
+    assert.equal(applyAction(structuredClone(state), "white", action), true);
   }
 });
 
 test("Grandmaster AI captures an exposed King in one move", () => {
   const state = createGameState("pve", { aiRank: "grandmaster" });
-  state.firstDeployDone.red = true;
-  state.firstDeployDone.blue = true;
-  state.deploymentCount.red = 6;
-  state.deploymentCount.blue = 6;
+  state.firstDeployDone.black = true;
+  state.firstDeployDone.white = true;
+  state.deploymentCount.black = 6;
+  state.deploymentCount.white = 6;
 
-  // Red King at (4,4) surrounded on 3 sides by Blue soldiers
-  state.board[4][4] = { id: "red-king", owner: "red", type: "king", originalType: "king", revealed: true };
-  state.board[3][4] = { id: "blue-1", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[5][4] = { id: "blue-2", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[4][3] = { id: "blue-3", owner: "blue", type: "soldier", originalType: "soldier", revealed: true };
+  // Black King at (4,4) surrounded on 3 sides by White soldiers
+  state.board[4][4] = { id: "black-king", owner: "black", type: "king", originalType: "king", revealed: true };
+  state.board[3][4] = { id: "white-1", owner: "white", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[5][4] = { id: "white-2", owner: "white", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[4][3] = { id: "white-3", owner: "white", type: "soldier", originalType: "soldier", revealed: true };
   // (4,5) is the 4th surrounding cell
 
   const move = findAiDeployMove(state, {
-    aiPlayer: "blue",
-    humanPlayer: "red",
+    aiPlayer: "white",
+    humanPlayer: "black",
     canDeploy: (player, type, row, col) => !state.board[row][col] && state.stock[player][type] > 0,
     countPieces: (owner) => countPieces(state, owner),
     neighbors,
@@ -409,40 +409,40 @@ test("Grandmaster AI captures an exposed King in one move", () => {
   assert.equal(move.row, 4, "Grandmaster AI should target row 4");
   assert.equal(move.col, 5, "Grandmaster AI should target col 5");
   const after = structuredClone(state);
-  after.turn = "blue";
-  assert.equal(applyAction(after, "blue", { type: "deploy", unitType: move.type, row: move.row, col: move.col }), true);
-  assert.equal(after.winner, "blue");
+  after.turn = "white";
+  assert.equal(applyAction(after, "white", { type: "deploy", unitType: move.type, row: move.row, col: move.col }), true);
+  assert.equal(after.winner, "white");
 });
 
 test("Grandmaster defensive move is legal and increases its King's liberties", () => {
   const state = createGameState("pve", { aiRank: "grandmaster" });
-  state.firstDeployDone.red = true;
-  state.firstDeployDone.blue = true;
-  state.turn = "blue";
-  state.deploymentCount.red = 6;
-  state.deploymentCount.blue = 6;
+  state.firstDeployDone.black = true;
+  state.firstDeployDone.white = true;
+  state.turn = "white";
+  state.deploymentCount.black = 6;
+  state.deploymentCount.white = 6;
 
-  // Blue AI King at (4,4) surrounded on 3 sides by Red soldiers
-  state.board[4][4] = { id: "blue-king", owner: "blue", type: "king", originalType: "king", revealed: true };
-  state.board[3][4] = { id: "red-1", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[5][4] = { id: "red-2", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[4][3] = { id: "red-3", owner: "red", type: "soldier", originalType: "soldier", revealed: true };
-  state.board[8][8] = { id: "red-king", owner: "red", type: "king", originalType: "king", revealed: true };
+  // White AI King at (4,4) surrounded on 3 sides by Black soldiers
+  state.board[4][4] = { id: "white-king", owner: "white", type: "king", originalType: "king", revealed: true };
+  state.board[3][4] = { id: "black-1", owner: "black", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[5][4] = { id: "black-2", owner: "black", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[4][3] = { id: "black-3", owner: "black", type: "soldier", originalType: "soldier", revealed: true };
+  state.board[8][8] = { id: "black-king", owner: "black", type: "king", originalType: "king", revealed: true };
 
   const move = findAiDeployMove(state, {
-    aiPlayer: "blue",
-    humanPlayer: "red",
+    aiPlayer: "white",
+    humanPlayer: "black",
     canDeploy: (player, type, row, col) => !state.board[row][col] && state.stock[player][type] > 0,
     countPieces: (owner) => countPieces(state, owner),
     neighbors,
   });
 
   assert.ok(move, "Grandmaster AI should find a defensive move");
-  const beforeLiberties = kingLibertyCount(state, "blue");
+  const beforeLiberties = kingLibertyCount(state, "white");
   const after = structuredClone(state);
-  assert.equal(applyAction(after, "blue", { type: "deploy", unitType: move.type, row: move.row, col: move.col }), true);
+  assert.equal(applyAction(after, "white", { type: "deploy", unitType: move.type, row: move.row, col: move.col }), true);
   assert.equal(after.winner, null);
-  assert.ok(kingLibertyCount(after, "blue") > beforeLiberties);
+  assert.ok(kingLibertyCount(after, "white") > beforeLiberties);
 });
 
 test("the AI suicide filter never removes a move the engine still requires", () => {
@@ -450,9 +450,9 @@ test("the AI suicide filter never removes a move the engine still requires", () 
   // discarded a soldier move that its own General would rescue. The engine still reported a
   // legal deployment and therefore withheld `pass`, leaving the AI with nothing to play.
   const state = createGameState("pve", { aiRank: "grandmaster" });
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 6, blue: 6 };
-  state.turn = "red";
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 6, white: 6 };
+  state.turn = "black";
   const place = (row, col, owner, type) => {
     state.board[row][col] = {
       id: `p${row}-${col}`,
@@ -465,24 +465,24 @@ test("the AI suicide filter never removes a move the engine still requires", () 
     };
   };
 
-  // Fill the board so 4,5 is the only empty point red can play.
+  // Fill the board so 4,5 is the only empty point black can play.
   for (let row = 0; row < 9; row += 1) {
-    for (let col = 0; col < 9; col += 1) place(row, col, "blue", "soldier");
+    for (let col = 0; col < 9; col += 1) place(row, col, "white", "soldier");
   }
-  place(0, 0, "red", "king"); // survives on its own wall, so the match stays live
-  place(8, 8, "blue", "king");
-  place(4, 4, "red", "general");
+  place(0, 0, "black", "king"); // survives on its own wall, so the match stays live
+  place(8, 8, "white", "king");
+  place(4, 4, "black", "general");
   state.board[4][5] = null;
-  state.stock.red = { soldier: 10, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.stock.black = { soldier: 10, king: 0, general: 0, diplomat: 0, wizard: 0 };
 
-  // Sealing at 4,5 leaves the red group without a liberty, which fires the unspent General
+  // Sealing at 4,5 leaves the black group without a liberty, which fires the unspent General
   // and rescues it — so the engine counts this as a real move, not a suicide.
-  assert.equal(isSuicideDeployment(state, "red", "soldier", 4, 5), false);
-  assert.equal(hasLegalDeployment(state, "red"), true);
+  assert.equal(isSuicideDeployment(state, "black", "soldier", 4, 5), false);
+  assert.equal(hasLegalDeployment(state, "black"), true);
 
   const move = findAiDeployMove(state, {
-    aiPlayer: "red",
-    humanPlayer: "blue",
+    aiPlayer: "black",
+    humanPlayer: "white",
     canDeploy: (owner, type, row, col) => canDeploy(state, owner, type, row, col),
     countPieces: (owner) => countPieces(state, owner),
     neighbors,

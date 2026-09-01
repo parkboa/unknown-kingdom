@@ -35,41 +35,41 @@ const settings = {
 
 test("common state evaluation is exactly zero-sum between colors", () => {
   const state = createGameState();
-  state.firstDeployDone = { red: true, blue: true };
-  state.board[0][4] = piece("red", "king", "red-king");
-  state.board[8][4] = piece("blue", "king", "blue-king");
-  state.board[3][4] = piece("red", "soldier", "red-soldier");
-  state.board[6][5] = piece("blue", "soldier", "blue-soldier");
-  state.stats.captures = { red: 2, blue: 1 };
+  state.firstDeployDone = { black: true, white: true };
+  state.board[0][4] = piece("black", "king", "black-king");
+  state.board[8][4] = piece("white", "king", "white-king");
+  state.board[3][4] = piece("black", "soldier", "black-soldier");
+  state.board[6][5] = piece("white", "soldier", "white-soldier");
+  state.stats.captures = { black: 2, white: 1 };
 
-  assert.equal(evaluateState(state, "red", settings), -evaluateState(state, "blue", settings));
+  assert.equal(evaluateState(state, "black", settings), -evaluateState(state, "white", settings));
 });
 
 test("terminal wins and losses have fixed opposite values", () => {
   const state = createGameState();
-  state.winner = "red";
-  assert.equal(evaluateState(state, "red", settings), TERMINAL_STATE_VALUE);
-  assert.equal(evaluateState(state, "blue", settings), -TERMINAL_STATE_VALUE);
+  state.winner = "black";
+  assert.equal(evaluateState(state, "black", settings), TERMINAL_STATE_VALUE);
+  assert.equal(evaluateState(state, "white", settings), -TERMINAL_STATE_VALUE);
 });
 
 test("state transition value uses the same common state evaluation", () => {
   const before = createGameState();
-  before.firstDeployDone = { red: true, blue: true };
-  before.board[0][4] = piece("red", "king", "red-king");
-  before.board[8][4] = piece("blue", "king", "blue-king");
+  before.firstDeployDone = { black: true, white: true };
+  before.board[0][4] = piece("black", "king", "black-king");
+  before.board[8][4] = piece("white", "king", "white-king");
   const after = structuredClone(before);
-  after.board[4][4] = piece("red", "soldier", "red-center");
+  after.board[4][4] = piece("black", "soldier", "black-center");
 
-  const delta = evaluateStateTransition(before, after, "red", settings);
-  assert.equal(delta, evaluateState(after, "red", settings) - evaluateState(before, "red", settings));
-  assert.equal(delta, -evaluateStateTransition(before, after, "blue", settings));
-  assert.ok(evaluateStateDetailed(after, "red", settings).weighted.material > 0);
+  const delta = evaluateStateTransition(before, after, "black", settings);
+  assert.equal(delta, evaluateState(after, "black", settings) - evaluateState(before, "black", settings));
+  assert.equal(delta, -evaluateStateTransition(before, after, "white", settings));
+  assert.ok(evaluateStateDetailed(after, "black", settings).weighted.material > 0);
 });
 
 test("common evaluation respects explicit zero-weight ablations", () => {
   const state = createGameState();
-  state.board[4][4] = piece("red", "soldier", "red-center");
-  const result = evaluateStateDetailed(state, "red", {
+  state.board[4][4] = piece("black", "soldier", "black-center");
+  const result = evaluateStateDetailed(state, "black", {
     score: {
       capture: 0,
       kingSafety: 0,
@@ -85,43 +85,43 @@ test("common evaluation respects explicit zero-weight ablations", () => {
 });
 
 /**
- * Red's King is sealed against its own wall with no board liberty; Blue's stands in the open
+ * Black's King is sealed against its own wall with no board liberty; White's stands in the open
  * with three. This is the pair the liberty count ranked backwards.
  */
 function inversionState() {
   const state = createGameState();
-  state.firstDeployDone = { red: true, blue: true };
-  state.board[0][4] = piece("red", "king", "red-king");
-  state.board[1][4] = piece("blue", "soldier", "seal-south");
-  state.board[0][3] = piece("blue", "soldier", "seal-west");
-  state.board[0][5] = piece("blue", "soldier", "seal-east");
-  state.board[5][4] = piece("blue", "king", "blue-king");
-  state.board[4][4] = piece("red", "soldier", "red-centre");
+  state.firstDeployDone = { black: true, white: true };
+  state.board[0][4] = piece("black", "king", "black-king");
+  state.board[1][4] = piece("white", "soldier", "seal-south");
+  state.board[0][3] = piece("white", "soldier", "seal-west");
+  state.board[0][5] = piece("white", "soldier", "seal-east");
+  state.board[5][4] = piece("white", "king", "white-king");
+  state.board[4][4] = piece("black", "soldier", "black-centre");
   return state;
 }
 
 test("the terminal objective model ranks a wall-anchored King above an exposed one", () => {
   const state = inversionState();
 
-  // Red's King cannot be taken by soldiers at all; Blue's is three moves from capture. The
+  // Black's King cannot be taken by soldiers at all; White's is three moves from capture. The
   // liberty count says the opposite, because one wall liberty reads as fewer than three board
   // liberties.
-  assert.ok(kingLibertyCount(state, "red") < kingLibertyCount(state, "blue"));
-  assert.ok(evaluateStateDetailed(state, "red", settings).features.kingLiberties < 0);
+  assert.ok(kingLibertyCount(state, "black") < kingLibertyCount(state, "white"));
+  assert.ok(evaluateStateDetailed(state, "black", settings).features.kingLiberties < 0);
 
-  const fixed = evaluateStateDetailed(state, "red", { ...settings, terminalObjectiveModel: true });
+  const fixed = evaluateStateDetailed(state, "black", { ...settings, terminalObjectiveModel: true });
   assert.ok(fixed.features.kingLiberties > 0);
 
   // An out-of-reach King scores exactly 0, so safety stops drawing on the budget the
   // territory term will need.
-  const safeOnly = evaluateStateDetailed(state, "blue", { ...settings, terminalObjectiveModel: true });
+  const safeOnly = evaluateStateDetailed(state, "white", { ...settings, terminalObjectiveModel: true });
   assert.equal(fixed.features.kingLiberties, -safeOnly.features.kingLiberties);
 });
 
 test("the terminal objective flag leaves the default evaluation path untouched", () => {
   const state = inversionState();
-  const off = evaluateStateDetailed(state, "red", settings);
-  const on = evaluateStateDetailed(state, "red", { ...settings, terminalObjectiveModel: true });
+  const off = evaluateStateDetailed(state, "black", settings);
+  const on = evaluateStateDetailed(state, "black", { ...settings, terminalObjectiveModel: true });
 
   // The flag has to change something, or the A/B run measures nothing.
   assert.notEqual(off.features.kingLiberties, on.features.kingLiberties);
@@ -134,24 +134,24 @@ test("the terminal objective flag leaves the default evaluation path untouched",
     if (liberties === 2) return -3;
     return Math.min(6, liberties - 2);
   };
-  assert.equal(off.features.kingLiberties, libertyValue("red") - libertyValue("blue"));
+  assert.equal(off.features.kingLiberties, libertyValue("black") - libertyValue("white"));
 
   // Both paths stay exactly zero-sum.
   for (const s of [settings, { ...settings, terminalObjectiveModel: true }]) {
-    assert.equal(evaluateState(state, "red", s), -evaluateState(state, "blue", s));
+    assert.equal(evaluateState(state, "black", s), -evaluateState(state, "white", s));
   }
 });
 
 test("the three Stage 1 flags isolate their features and reproduce the combined model", () => {
   const state = inversionState();
   for (let col = 0; col < 9; col += 1) {
-    if (!state.board[7][col]) state.board[7][col] = piece("red", "soldier", `late-red-${col}`);
+    if (!state.board[7][col]) state.board[7][col] = piece("black", "soldier", `late-black-${col}`);
   }
   const baseSettings = { ...settings, kingTacticalPriority: 0.9 };
-  const baseline = evaluateStateDetailed(state, "red", baseSettings);
-  const kingOnly = evaluateStateDetailed(state, "red", { ...baseSettings, kingDangerModel: true });
-  const territoryOnly = evaluateStateDetailed(state, "red", { ...baseSettings, territoryVerdictModel: true });
-  const additiveOnly = evaluateStateDetailed(state, "red", { ...baseSettings, additiveObjectiveModel: true });
+  const baseline = evaluateStateDetailed(state, "black", baseSettings);
+  const kingOnly = evaluateStateDetailed(state, "black", { ...baseSettings, kingDangerModel: true });
+  const territoryOnly = evaluateStateDetailed(state, "black", { ...baseSettings, territoryVerdictModel: true });
+  const additiveOnly = evaluateStateDetailed(state, "black", { ...baseSettings, additiveObjectiveModel: true });
 
   assert.notEqual(kingOnly.features.kingLiberties, baseline.features.kingLiberties);
   assert.equal(kingOnly.features.territoryVerdict, 0);
@@ -160,13 +160,13 @@ test("the three Stage 1 flags isolate their features and reproduce the combined 
   assert.deepEqual(additiveOnly.features, baseline.features);
   assert.notEqual(additiveOnly.value, baseline.value);
 
-  const split = evaluateStateDetailed(state, "red", {
+  const split = evaluateStateDetailed(state, "black", {
     ...baseSettings,
     kingDangerModel: true,
     territoryVerdictModel: true,
     additiveObjectiveModel: true,
   });
-  const combined = evaluateStateDetailed(state, "red", {
+  const combined = evaluateStateDetailed(state, "black", {
     ...baseSettings,
     terminalObjectiveModel: true,
   });
@@ -174,19 +174,19 @@ test("the three Stage 1 flags isolate their features and reproduce the combined 
 });
 
 /**
- * Fills `filled` cells while holding Red's margin at exactly `margin`, so the only thing that
+ * Fills `filled` cells while holding Black's margin at exactly `margin`, so the only thing that
  * varies between two of these boards is how close the match is to a territory finish.
  * `filled` and `margin` must share parity for an exact split to exist.
  */
 function filledBoard(filled, margin) {
   assert.equal((filled - margin) % 2, 0, "filled and margin must share parity");
   const state = createGameState();
-  state.firstDeployDone = { red: true, blue: true };
+  state.firstDeployDone = { black: true, white: true };
   const reds = (filled + margin) / 2;
   let placed = 0;
   for (let row = 0; row < 9 && placed < filled; row += 1) {
     for (let col = 0; col < 9 && placed < filled; col += 1) {
-      state.board[row][col] = piece(placed < reds ? "red" : "blue", "soldier", `s${placed}`);
+      state.board[row][col] = piece(placed < reds ? "black" : "white", "soldier", `s${placed}`);
       placed += 1;
     }
   }
@@ -197,7 +197,7 @@ test("the territory verdict grows with board fill at a fixed stone margin", () =
   const on = { ...settings, terminalObjectiveModel: true };
   const margin = 4;
   const values = [20, 40, 60, 72, 80].map((filled) =>
-    evaluateStateDetailed(filledBoard(filled, margin), "red", on).features.territoryVerdict);
+    evaluateStateDetailed(filledBoard(filled, margin), "black", on).features.territoryVerdict);
 
   for (let i = 1; i < values.length; i += 1) {
     assert.ok(values[i] > values[i - 1], `fill step ${i} must raise the verdict`);
@@ -212,35 +212,35 @@ test("the territory verdict grows with board fill at a fixed stone margin", () =
 test("the territory verdict is exactly zero unless the terminal objective model is on", () => {
   for (const filled of [20, 60, 80]) {
     const state = filledBoard(filled, 4);
-    const off = evaluateStateDetailed(state, "red", settings);
+    const off = evaluateStateDetailed(state, "black", settings);
     assert.equal(off.features.territoryVerdict, 0);
     assert.equal(off.weighted.territoryVerdict, 0);
   }
 
   // The margin itself is unchanged; only its verdict weighting is gated.
   const state = filledBoard(60, 4);
-  assert.equal(evaluateStateDetailed(state, "red", settings).features.material, 4);
+  assert.equal(evaluateStateDetailed(state, "black", settings).features.material, 4);
   assert.equal(
-    evaluateStateDetailed(state, "red", { ...settings, terminalObjectiveModel: true }).features.material,
+    evaluateStateDetailed(state, "black", { ...settings, terminalObjectiveModel: true }).features.material,
     4,
   );
 });
 
 test("the additive combination stops a King penalty from erasing a strategic lead", () => {
   const state = createGameState();
-  state.firstDeployDone = { red: true, blue: true };
-  // Red's King stands in the open, so the danger term is live rather than anchored to 0.
-  state.board[4][4] = piece("red", "king", "red-king");
-  state.board[3][4] = piece("blue", "soldier", "presser");
-  state.board[8][4] = piece("blue", "king", "blue-king");
+  state.firstDeployDone = { black: true, white: true };
+  // Black's King stands in the open, so the danger term is live rather than anchored to 0.
+  state.board[4][4] = piece("black", "king", "black-king");
+  state.board[3][4] = piece("white", "soldier", "presser");
+  state.board[8][4] = piece("white", "king", "white-king");
   for (let col = 0; col < 9; col += 1) {
-    state.board[6][col] = piece("red", "soldier", `red-wall-${col}`);
+    state.board[6][col] = piece("black", "soldier", `black-wall-${col}`);
   }
 
   // The blend only bites when a tier actually sets a King priority; Grandmaster ships 0.9.
   const budgeted = { ...settings, kingTacticalPriority: 0.9 };
-  const blended = evaluateStateDetailed(state, "red", budgeted);
-  const additive = evaluateStateDetailed(state, "red", { ...budgeted, terminalObjectiveModel: true });
+  const blended = evaluateStateDetailed(state, "black", budgeted);
+  const additive = evaluateStateDetailed(state, "black", { ...budgeted, terminalObjectiveModel: true });
 
   // The premise of the test: this is a position where the King term is not zero, which is the
   // only case in which the two combinations can differ.
@@ -250,7 +250,7 @@ test("the additive combination stops a King penalty from erasing a strategic lea
   const strategicSum = (result) => Object.entries(result.weighted)
     .filter(([key]) => key !== "kingLiberties" && key !== "territoryVerdict")
     .reduce((sum, [, component]) => sum + component, 0);
-  assert.ok(strategicSum(blended) > 0, "Red must hold a positional lead here");
+  assert.ok(strategicSum(blended) > 0, "Black must hold a positional lead here");
 
   // Under the fixed budget a King penalty smaller than the positional lead still outvotes it,
   // because the lead is only worth `1 - kingTacticalPriority` of itself.
@@ -264,7 +264,7 @@ test("the additive combination stops a King penalty from erasing a strategic lea
 test("the additive path keeps the territory verdict out of the phase multiplier", () => {
   const on = { ...settings, terminalObjectiveModel: true, strategicContext: true };
   const state = filledBoard(72, 4);
-  const result = evaluateStateDetailed(state, "red", on);
+  const result = evaluateStateDetailed(state, "black", on);
 
   // A settled stone count is not a matter of shape, so the phase multiplier must not touch it:
   // the verdict enters the total at exactly its weighted value.

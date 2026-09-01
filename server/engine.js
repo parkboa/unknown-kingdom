@@ -9,5 +9,6 @@ export {
   isEnclosedPlacement,
   isSuicideDeployment,
   opponent,
+  PROTOCOL_VERSION,
   stateForPlayer,
 } from "@daeguk/game-engine";

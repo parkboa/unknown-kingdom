@@ -37,11 +37,11 @@
         <header class="game-status-bar" aria-label="Current match status">
           <div class="status-left-group">
             <div class="unit-counters" aria-label="Units currently on the board">
-              <div class="unit-counter red-counter" aria-label="Black units">
-                <span id="redCount">0</span>
+              <div class="unit-counter black-counter" aria-label="Black units">
+                <span id="blackCount">0</span>
               </div>
-              <div class="unit-counter blue-counter" aria-label="White units">
-                <span id="blueCount">0</span>
+              <div class="unit-counter white-counter" aria-label="White units">
+                <span id="whiteCount">0</span>
               </div>
             </div>
             <div id="turnPill" class="turn-pill">White turn</div>
@@ -88,13 +88,13 @@
           </aside>
         </header>
         <div class="fortress-frame" aria-label="Fortress walls and board">
-          <div class="horizontal-wall red-wall" aria-hidden="true"></div>
+          <div class="horizontal-wall black-wall" aria-hidden="true"></div>
           <div class="board-row">
             <div class="vertical-wall left-wall" aria-hidden="true"></div>
             <div id="board" class="board" role="grid" aria-label="9 by 9 Unknown Kingdom board"></div>
             <div class="vertical-wall right-wall" aria-hidden="true"></div>
           </div>
-          <div class="horizontal-wall blue-wall" aria-hidden="true"></div>
+          <div class="horizontal-wall white-wall" aria-hidden="true"></div>
         </div>
         <section class="deploy-dock" aria-label="Unit to deploy">
           <div class="unit-picker" role="radiogroup" aria-label="Unit to deploy">
@@ -196,8 +196,8 @@
         </div>
         <p class="side-choice-label" data-i18n="choosePreferredSide">Choose your side</p>
         <div class="side-choice-actions">
-          <button type="button" data-pve-side="red" data-i18n="blackSide">Black</button>
-          <button type="button" data-pve-side="blue" data-i18n="whiteSide">White</button>
+          <button type="button" data-pve-side="black" data-i18n="blackSide">Black</button>
+          <button type="button" data-pve-side="white" data-i18n="whiteSide">White</button>
           <button id="cancelPveSideBtn" class="card-back-button" type="button" data-i18n="back">Back</button>
         </div>
       </section>
@@ -333,12 +333,12 @@
           <div><dt data-i18n="finishMethod">Finish</dt><dd id="resultFinishMethod"></dd></div>
         </dl>
         <div class="result-grid result-units-grid">
-          <div><strong id="resultRedUnits">0</strong><span data-i18n="redUnits">Black units</span></div>
-          <div><strong id="resultBlueUnits">0</strong><span data-i18n="blueUnits">White units</span></div>
+          <div><strong id="resultRedUnits">0</strong><span data-i18n="blackUnits">Black units</span></div>
+          <div><strong id="resultBlueUnits">0</strong><span data-i18n="whiteUnits">White units</span></div>
         </div>
         <div class="result-grid result-record-grid">
-          <div><strong id="resultRedCaptures">0</strong><span data-i18n="redCaptures">Black captures</span></div>
-          <div><strong id="resultBlueCaptures">0</strong><span data-i18n="blueCaptures">White captures</span></div>
+          <div><strong id="resultRedCaptures">0</strong><span data-i18n="blackCaptures">Black captures</span></div>
+          <div><strong id="resultBlueCaptures">0</strong><span data-i18n="whiteCaptures">White captures</span></div>
         </div>
         <p id="resultRematchNotice" class="result-rematch-notice" aria-live="polite" hidden></p>
         <div class="result-actions">

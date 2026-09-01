@@ -44,7 +44,7 @@ function stateBeforeAction(journal, actionIndex) {
 }
 
 function hiddenOpponentStones(publicState, player) {
-  const enemy = player === "red" ? "blue" : "red";
+  const enemy = player === "black" ? "white" : "black";
   return publicState.board.flat().filter((piece) =>
     piece?.owner === enemy && !piece.revealed && piece.type === "soldier").length;
 }
@@ -57,7 +57,7 @@ for (const diagnosticCase of cases) {
   const reveal = entry.events.find(({ type }) => type === "special_revealed");
   if (!reveal) throw new Error(`${diagnosticCase.gameId} has no reveal at the selected action`);
   const player = entry.player;
-  const enemy = player === "red" ? "blue" : "red";
+  const enemy = player === "black" ? "white" : "black";
   const publicState = stateForPlayer(state, player);
   const random = seededRandom(diagnosticCase.gameId.length * 1000003 + entry.beforeDigest.length);
   const targetTypes = {};

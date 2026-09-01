@@ -44,5 +44,5 @@ export {
   touchesOwnWall,
   wallOwnerForEdge,
 } from "./board.js";
-export { orthogonalPositions, opponent, inBounds, neighbors, SIZE, DEPLOY_ORDER } from "./constants.js";
+export { orthogonalPositions, opponent, inBounds, neighbors, SIZE, DEPLOY_ORDER, PROTOCOL_VERSION } from "./constants.js";
 export { declareWinner } from "./victory.js";

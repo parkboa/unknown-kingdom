@@ -4,31 +4,31 @@ import { createGameState, stateForPlayer } from "../src/index.js";
 import { validateGameState, validateNetworkMessage } from "../../../js/protocol.js";
 
 test("accepts a player-visible state with only the viewer's stock", () => {
-  const visibleState = stateForPlayer(createGameState(), "blue");
+  const visibleState = stateForPlayer(createGameState(), "white");
 
   assert.equal(validateGameState(visibleState), true);
   assert.equal(validateNetworkMessage({
     type: "match_start",
     roomCode: "ABC123",
     boardNumber: 1,
-    player: "blue",
+    player: "white",
     state: visibleState,
   }), true);
 });
 
 test("rejects a visible state when both stocks are absent", () => {
-  const visibleState = stateForPlayer(createGameState(), "blue");
-  visibleState.stock.blue = null;
+  const visibleState = stateForPlayer(createGameState(), "white");
+  visibleState.stock.white = null;
 
   assert.equal(validateGameState(visibleState), false);
 });
 
 test("rejects a network state whose visible stock belongs to the other player", () => {
-  const visibleState = stateForPlayer(createGameState(), "red");
+  const visibleState = stateForPlayer(createGameState(), "black");
 
   assert.equal(validateNetworkMessage({
     type: "state",
-    player: "blue",
+    player: "white",
     state: visibleState,
   }), false);
 });

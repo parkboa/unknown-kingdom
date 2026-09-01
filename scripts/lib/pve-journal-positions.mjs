@@ -7,8 +7,8 @@ import {
 
 function playerFromMetadata(metadata, key) {
   const player = metadata?.[key];
-  if (player !== "red" && player !== "blue") {
-    throw new Error(`PvE journal metadata.${key} must be red or blue`);
+  if (player !== "black" && player !== "white") {
+    throw new Error(`PvE journal metadata.${key} must be black or white`);
   }
   return player;
 }

@@ -17,13 +17,13 @@ function recordedPveJournal(metadata = {}) {
     source: "browser-pve",
     gameId: "human-game-1",
     aiRank: "advanced",
-    humanPlayer: "red",
-    aiPlayer: "blue",
+    humanPlayer: "black",
+    aiPlayer: "white",
     ...metadata,
   });
-  recorder.record("red", { type: "deploy", unitType: "king", row: 0, col: 4 });
-  recorder.record("blue", { type: "deploy", unitType: "king", row: 8, col: 4 });
-  recorder.record("red", { type: "deploy", unitType: "soldier", row: 1, col: 4 });
+  recorder.record("black", { type: "deploy", unitType: "king", row: 0, col: 4 });
+  recorder.record("white", { type: "deploy", unitType: "king", row: 8, col: 4 });
+  recorder.record("black", { type: "deploy", unitType: "soldier", row: 1, col: 4 });
   return recorder.jsonl();
 }
 
@@ -31,15 +31,15 @@ test("PvE journals yield quiet AI response positions after human play", () => {
   const positions = positionsFromPveJournalJsonl(recordedPveJournal(), "downloaded.jsonl");
 
   assert.equal(positions.length, 1);
-  assert.equal(positions[0].position.turn, "blue");
-  assert.equal(positions[0].position.board[1][4].owner, "red");
+  assert.equal(positions[0].position.turn, "white");
+  assert.equal(positions[0].position.board[1][4].owner, "black");
   assert.deepEqual(positions[0].source, {
     kind: "pve-journal",
     file: "downloaded.jsonl",
     gameId: "human-game-1",
     actionIndex: 2,
-    humanPlayer: "red",
-    aiPlayer: "blue",
+    humanPlayer: "black",
+    aiPlayer: "white",
     aiRank: "advanced",
   });
 });
@@ -48,7 +48,7 @@ test("PvE journal import refuses to guess missing or contradictory player metada
   const missing = recordedPveJournal({ humanPlayer: undefined });
   assert.throws(() => positionsFromPveJournalJsonl(missing), /metadata\.humanPlayer/);
 
-  const samePlayer = recordedPveJournal({ aiPlayer: "red" });
+  const samePlayer = recordedPveJournal({ aiPlayer: "black" });
   assert.throws(() => positionsFromPveJournalJsonl(samePlayer), /must differ/);
 });
 

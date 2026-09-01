@@ -28,7 +28,7 @@ const commonScoreFlagIndex = process.argv.indexOf("--common-score");
 const commonScoreProfile = commonScoreFlagIndex >= 0 ? process.argv[commonScoreFlagIndex + 1] : null;
 const scoreAblationFlagIndex = process.argv.indexOf("--ablate-score");
 const startingPlayerFlagIndex = process.argv.indexOf("--starting-player");
-const startingPlayer = startingPlayerFlagIndex >= 0 ? process.argv[startingPlayerFlagIndex + 1] : "red";
+const startingPlayer = startingPlayerFlagIndex >= 0 ? process.argv[startingPlayerFlagIndex + 1] : "black";
 const outputFlagIndex = process.argv.indexOf("--output");
 const outputPath = outputFlagIndex >= 0 ? resolve(process.argv[outputFlagIndex + 1]) : null;
 const settingsOverrideFlagIndex = process.argv.indexOf("--settings-override");
@@ -52,8 +52,8 @@ const scoreProfiles = {
 if (commonScoreProfile && !["intermediate", "advanced"].includes(commonScoreProfile)) {
   throw new Error("--common-score must be either intermediate or advanced");
 }
-if (!["red", "blue"].includes(startingPlayer)) {
-  throw new Error("--starting-player must be red or blue");
+if (!["black", "white"].includes(startingPlayer)) {
+  throw new Error("--starting-player must be black or white");
 }
 if (scoreAblations.some((key) => !["capture", "kingPressure", "kingSafety"].includes(key))) {
   throw new Error("--ablate-score values must be capture, kingPressure, or kingSafety");
@@ -107,7 +107,7 @@ function seededRandom(initialSeed) {
 Math.random = seededRandom(seed);
 
 function deployMove(state, player, tier, collectDecisionDiagnostics = false) {
-  const enemy = player === "red" ? "blue" : "red";
+  const enemy = player === "black" ? "white" : "black";
   const playerView = stateForPlayer(state, player);
   playerView.aiRank = tier;
   return findAiDeployMove(playerView, {
@@ -137,7 +137,7 @@ function settleRequiredDecision(state, journal, tiers) {
       playerView,
       neighbors,
       owner,
-      owner === "red" ? "blue" : "red",
+      owner === "black" ? "white" : "black",
     );
     return dispatchRecordedAction(
       state,
@@ -152,9 +152,9 @@ function settleRequiredDecision(state, journal, tiers) {
 }
 
 function territoryWinner(state) {
-  const red = countPieces(state, "red");
-  const blue = countPieces(state, "blue");
-  return red === blue ? "draw" : red > blue ? "red" : "blue";
+  const black = countPieces(state, "black");
+  const white = countPieces(state, "white");
+  return black === white ? "draw" : black > white ? "black" : "white";
 }
 
 function tacticalTags(beforeState, afterState, player, enemy, move) {
@@ -190,11 +190,11 @@ function tacticalTags(beforeState, afterState, player, enemy, move) {
 function traceStateSummary(state) {
   return {
     turn: state.turn,
-    pieces: { red: countPieces(state, "red"), blue: countPieces(state, "blue") },
+    pieces: { black: countPieces(state, "black"), white: countPieces(state, "white") },
     captures: structuredClone(state.stats.captures),
     kingLiberties: {
-      red: kingLibertyCount(state, "red"),
-      blue: kingLibertyCount(state, "blue"),
+      black: kingLibertyCount(state, "black"),
+      white: kingLibertyCount(state, "white"),
     },
     pendingSpecial: state.pendingSpecial ? structuredClone(state.pendingSpecial) : null,
     teleporting: state.teleporting ? structuredClone(state.teleporting) : null,
@@ -202,11 +202,11 @@ function traceStateSummary(state) {
   };
 }
 
-function playGame(redTier, blueTier, gameNumber) {
-  const state = createGameState("pve", { aiRank: redTier });
+function playGame(blackTier, whiteTier, gameNumber) {
+  const state = createGameState("pve", { aiRank: blackTier });
   state.turn = startingPlayer;
   state.log = [`Simulation match started. ${startingPlayer} deploys first.`];
-  const tiers = { red: redTier, blue: blueTier };
+  const tiers = { black: blackTier, white: whiteTier };
   const journal = createGameJournal(state, {
     seed,
     gameNumber,
@@ -256,7 +256,7 @@ function playGame(redTier, blueTier, gameNumber) {
     }
 
     const player = state.turn;
-    const enemy = player === "red" ? "blue" : "red";
+    const enemy = player === "black" ? "white" : "black";
     const positionBeforeMove = puzzleOutputPath || tracing ? structuredClone(state) : null;
     const move = deployMove(state, player, tiers[player], tracing);
     if (!move) {
@@ -311,8 +311,8 @@ function playGame(redTier, blueTier, gameNumber) {
             seed,
             gameNumber,
             moveNumber: deployments,
-            redTier,
-            blueTier,
+            blackTier,
+            whiteTier,
             playerTier: tiers[player],
           },
           tags: tactical.tags,
@@ -348,15 +348,15 @@ function playGame(redTier, blueTier, gameNumber) {
       candidatePlayerWon: candidate.position.turn === winner,
       finishType,
       reason,
-      finalPieces: { red: countPieces(state, "red"), blue: countPieces(state, "blue") },
+      finalPieces: { black: countPieces(state, "black"), white: countPieces(state, "white") },
     };
     collectedPuzzleCandidates.push(candidate);
   }
   if (tracing) {
     collectedGameTraces.push({
       gameNumber,
-      redTier,
-      blueTier,
+      blackTier,
+      whiteTier,
       startingPlayer,
       winner,
       deployments,
@@ -366,15 +366,15 @@ function playGame(redTier, blueTier, gameNumber) {
         actionCount: replay.actionCount,
         finalDigest: replay.finalDigest,
       },
-      finalPieces: { red: countPieces(state, "red"), blue: countPieces(state, "blue") },
+      finalPieces: { black: countPieces(state, "black"), white: countPieces(state, "white") },
       events: traceEvents,
       journal,
     });
   }
   return {
     gameNumber,
-    redTier,
-    blueTier,
+    blackTier,
+    whiteTier,
     startingPlayer,
     winner,
     capped,
@@ -382,7 +382,7 @@ function playGame(redTier, blueTier, gameNumber) {
     durationMs: Math.round(performance.now() - startedAt),
     reason,
     finishType,
-    finalPieces: { red: countPieces(state, "red"), blue: countPieces(state, "blue") },
+    finalPieces: { black: countPieces(state, "black"), white: countPieces(state, "white") },
   };
 }
 
@@ -395,12 +395,12 @@ for (let left = 0; left < AI_TIER_ORDER.length; left += 1) {
     const first = AI_TIER_ORDER[left];
     const second = AI_TIER_ORDER[right];
     for (let game = 0; game < gamesPerColor; game += 1) {
-      for (const [redTier, blueTier] of [[first, second], [second, first]]) {
-        const result = playGame(redTier, blueTier, completed + 1);
+      for (const [blackTier, whiteTier] of [[first, second], [second, first]]) {
+        const result = playGame(blackTier, whiteTier, completed + 1);
         results.push(result);
         completed += 1;
         process.stderr.write(
-          `[${completed}/${totalGames}] ${redTier}(B) vs ${blueTier}(W): ${result.winner} in ${result.deployments} moves, ${result.durationMs}ms\n`,
+          `[${completed}/${totalGames}] ${blackTier}(B) vs ${whiteTier}(W): ${result.winner} in ${result.deployments} moves, ${result.durationMs}ms\n`,
         );
       }
     }
@@ -424,11 +424,11 @@ const standings = Object.fromEntries(AI_TIER_ORDER.map((tier) => [tier, {
 }]));
 
 for (const result of results) {
-  for (const [side, tier] of [["red", result.redTier], ["blue", result.blueTier]]) {
+  for (const [side, tier] of [["black", result.blackTier], ["white", result.whiteTier]]) {
     const row = standings[tier];
     row.games += 1;
     row.totalDeployments += result.deployments;
-    const color = side === "red" ? row.asBlack : row.asWhite;
+    const color = side === "black" ? row.asBlack : row.asWhite;
     const turnOrder = side === result.startingPlayer ? row.asStarter : row.asSecond;
     color.games += 1;
     turnOrder.games += 1;
@@ -485,8 +485,8 @@ const output = {
   })).sort((a, b) => b.scoreRate - a.scoreRate),
   cappedGames: results.filter((result) => result.capped).length,
   outcomeSummary: {
-    redWins: results.filter((result) => result.winner === "red").length,
-    blueWins: results.filter((result) => result.winner === "blue").length,
+    blackWins: results.filter((result) => result.winner === "black").length,
+    whiteWins: results.filter((result) => result.winner === "white").length,
     starterWins: results.filter((result) => result.winner === result.startingPlayer).length,
     secondPlayerWins: results.filter(
       (result) => result.winner !== "draw" && result.winner !== result.startingPlayer,
@@ -497,15 +497,15 @@ const output = {
   traces: collectedGameTraces,
   gameSummaries: results.map((result) => ({
     gameNumber: result.gameNumber,
-    redTier: result.redTier,
-    blueTier: result.blueTier,
+    blackTier: result.blackTier,
+    whiteTier: result.whiteTier,
     winner: result.winner,
     deployments: result.deployments,
     capped: result.capped,
     finishType: result.finishType,
     reason: result.reason,
     finalPieces: result.finalPieces,
-    pieceMargin: Math.abs(result.finalPieces.red - result.finalPieces.blue),
+    pieceMargin: Math.abs(result.finalPieces.black - result.finalPieces.white),
   })),
   ...(summaryOnly ? {} : { results }),
 };

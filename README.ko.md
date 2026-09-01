@@ -74,9 +74,9 @@ http://127.0.0.1:4173/
 클라이언트 메시지:
 
 ```json
-{ "type": "create_room", "protocolVersion": 2 }
-{ "type": "join_room", "roomCode": "ABC123", "protocolVersion": 2 }
-{ "type": "choose_side", "roomCode": "ABC123", "side": "blue" }
+{ "type": "create_room", "protocolVersion": 3 }
+{ "type": "join_room", "roomCode": "ABC123", "protocolVersion": 3 }
+{ "type": "rps_choice", "roomCode": "ABC123", "choice": "rock" }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "deploy", "unitType": "soldier", "row": 4, "col": 4 } }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "taunt" } }
 { "type": "action", "roomCode": "ABC123", "action": { "type": "wizard_teleport", "row": 2, "col": 5 } }
@@ -88,10 +88,15 @@ http://127.0.0.1:4173/
 ```json
 { "type": "room_created", "roomCode": "ABC123" }
 { "type": "waiting", "roomCode": "ABC123" }
-{ "type": "side_selection", "roomCode": "ABC123" }
-{ "type": "match_start", "roomCode": "ABC123", "player": "blue", "state": {} }
-{ "type": "state", "roomCode": "ABC123", "player": "blue", "state": {} }
+{ "type": "rps_start", "roomCode": "ABC123" }
+{ "type": "rps_result", "result": "win", "yourSide": "black", "choices": { "black": "rock", "white": "scissors" } }
+{ "type": "match_start", "roomCode": "ABC123", "player": "white", "state": {} }
+{ "type": "state", "roomCode": "ABC123", "player": "white", "state": {} }
 { "type": "error", "message": "Invalid room code." }
 ```
 
-두 플레이어가 모두 참가하면 서버는 `side_selection`을 전송합니다. 먼저 유효한 `choose_side` 명령을 보낸 플레이어가 해당 진영을 선택하며, 상대에게는 다른 진영이 자동으로 배정됩니다. 서버는 합법적인 수의 검증, 포획, 특수 반응, 숨겨진 정보, 턴 순서, 재연결 및 승리 결과를 담당합니다.
+두 플레이어가 모두 참가하면 서버가 가위바위보를 시작합니다. 승자는 흑이 되어 먼저
+두고, 상대는 백이 됩니다. 버전 3이 아닌 프로토콜 요청은 명시적으로 거부됩니다.
+서버는 합법적인 수의 검증, 포획, 특수 반응, 숨겨진 정보, 턴 순서, 재연결 및 승리
+결과를 담당합니다. 새 대국 기록은 스키마 2와 `black`/`white`를 사용하며, 과거
+스키마 1의 `red`/`blue` JSONL 기록은 재생 입력 경계에서 변환됩니다.

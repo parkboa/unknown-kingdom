@@ -25,23 +25,23 @@ function piece(owner, type, id, revealed = type === "king") {
 function benchmarkScenarios() {
   const opening = createGameState("pve");
   const hiddenMidgame = createGameState("pve");
-  hiddenMidgame.turn = "blue";
-  hiddenMidgame.firstDeployDone = { red: true, blue: true };
-  hiddenMidgame.deploymentCount = { red: 6, blue: 6 };
-  hiddenMidgame.stock.red = { soldier: 72, king: 0, general: 1, diplomat: 1, wizard: 1 };
-  hiddenMidgame.stock.blue = { soldier: 72, king: 0, general: 1, diplomat: 1, wizard: 1 };
-  hiddenMidgame.board[0][4] = piece("red", "king", "red-king");
-  hiddenMidgame.board[8][4] = piece("blue", "king", "blue-king");
-  hiddenMidgame.board[2][2] = piece("red", "soldier", "red-hidden-1", false);
-  hiddenMidgame.board[3][4] = piece("red", "soldier", "red-hidden-2", false);
-  hiddenMidgame.board[4][3] = piece("red", "soldier", "red-hidden-3", false);
-  hiddenMidgame.board[4][5] = piece("blue", "soldier", "blue-1", false);
-  hiddenMidgame.board[5][4] = piece("blue", "soldier", "blue-2", false);
-  hiddenMidgame.board[6][3] = piece("blue", "soldier", "blue-3", false);
+  hiddenMidgame.turn = "white";
+  hiddenMidgame.firstDeployDone = { black: true, white: true };
+  hiddenMidgame.deploymentCount = { black: 6, white: 6 };
+  hiddenMidgame.stock.black = { soldier: 72, king: 0, general: 1, diplomat: 1, wizard: 1 };
+  hiddenMidgame.stock.white = { soldier: 72, king: 0, general: 1, diplomat: 1, wizard: 1 };
+  hiddenMidgame.board[0][4] = piece("black", "king", "black-king");
+  hiddenMidgame.board[8][4] = piece("white", "king", "white-king");
+  hiddenMidgame.board[2][2] = piece("black", "soldier", "black-hidden-1", false);
+  hiddenMidgame.board[3][4] = piece("black", "soldier", "black-hidden-2", false);
+  hiddenMidgame.board[4][3] = piece("black", "soldier", "black-hidden-3", false);
+  hiddenMidgame.board[4][5] = piece("white", "soldier", "white-1", false);
+  hiddenMidgame.board[5][4] = piece("white", "soldier", "white-2", false);
+  hiddenMidgame.board[6][3] = piece("white", "soldier", "white-3", false);
   hiddenMidgame.nextPieceId = 20;
   return [
-    { name: "opening", state: opening, player: "red" },
-    { name: "hidden_midgame", state: hiddenMidgame, player: "blue" },
+    { name: "opening", state: opening, player: "black" },
+    { name: "hidden_midgame", state: hiddenMidgame, player: "white" },
   ];
 }
 

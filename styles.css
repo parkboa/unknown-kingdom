@@ -6,10 +6,10 @@
   --panel: #f4f5f3;
   --grid: #9da8ae;
   --grid-dark: #4f5960;
-  --red: #242526;
-  --red-dark: #070809;
-  --blue: #f0eee6;
-  --blue-dark: #c8c4b9;
+  --black: #242526;
+  --black-dark: #070809;
+  --white: #f0eee6;
+  --white-dark: #c8c4b9;
   --neutral: #b8c0c4;
   --gold: #d6a532;
   --gold-light: #ffe178;
@@ -755,9 +755,9 @@ body.iphone-preview .lobby-logo {
 }
 
 .mode-start-actions button:first-child {
-  border-color: var(--blue);
+  border-color: var(--white);
   color: white;
-  background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+  background: linear-gradient(135deg, var(--white), var(--white-dark));
 }
 
 .mode-start-actions strong,
@@ -1933,16 +1933,16 @@ body.iphone-preview .lobby-logo {
   box-shadow: inset 0 -6px 10px rgb(0 0 0 / 24%), 0 4px 9px rgb(37 25 4 / 18%);
 }
 
-.red-counter {
+.black-counter {
   color: var(--gold-light);
   border-color: #4c5052;
-  background: radial-gradient(circle at 34% 25%, #56595a, var(--red) 50%, var(--red-dark) 78%);
+  background: radial-gradient(circle at 34% 25%, #56595a, var(--black) 50%, var(--black-dark) 78%);
 }
 
-.blue-counter {
+.white-counter {
   color: #7f5d18;
   border-color: #fff;
-  background: radial-gradient(circle at 34% 25%, #fff, var(--blue) 52%, var(--blue-dark) 82%);
+  background: radial-gradient(circle at 34% 25%, #fff, var(--white) 52%, var(--white-dark) 82%);
 }
 
 .fortress-frame {
@@ -1966,11 +1966,11 @@ body.iphone-preview .lobby-logo {
   box-shadow: inset 0 1px 1px rgb(255 255 255 / 90%), var(--shadow);
 }
 
-.fortress-frame.view-red {
+.fortress-frame.view-black {
   transform: rotate(180deg);
 }
 
-.fortress-frame.view-red .piece {
+.fortress-frame.view-black .piece {
   transform: rotate(180deg);
 }
 
@@ -2024,18 +2024,18 @@ body.iphone-preview .lobby-logo {
   content: none;
 }
 
-.red-wall {
+.black-wall {
   border-radius: 7px 7px 0 0;
   background: transparent;
 }
 
-.blue-wall {
+.white-wall {
   z-index: 1;
   border-radius: 0 0 7px 7px;
   background: transparent;
 }
 
-.blue-wall::after {
+.white-wall::after {
   z-index: 2;
 }
 
@@ -2147,11 +2147,11 @@ body.iphone-preview .lobby-logo {
   display: none;
 }
 
-.fortress-frame.view-red .king-zone-cell::after {
+.fortress-frame.view-black .king-zone-cell::after {
   transform: rotate(180deg);
 }
 
-.red-king-zone-cell {
+.black-king-zone-cell {
   color: var(--gold-light);
   background:
     radial-gradient(circle at 50% 50%, rgb(0 0 0 / 24%), rgb(0 0 0 / 16%) 46%, rgb(0 0 0 / 8%) 78%, rgb(0 0 0 / 3%) 100%),
@@ -2162,7 +2162,7 @@ body.iphone-preview .lobby-logo {
   mix-blend-mode: multiply;
 }
 
-.blue-king-zone-cell {
+.white-king-zone-cell {
   color: #6f4610;
   background:
     radial-gradient(circle at 50% 50%, rgb(255 255 255 / 28%), rgb(255 255 255 / 18%) 48%, rgb(255 255 255 / 9%) 78%, rgb(255 255 255 / 4%) 100%),
@@ -2173,7 +2173,7 @@ body.iphone-preview .lobby-logo {
   mix-blend-mode: normal;
 }
 
-.blue-king-zone-cell::after {
+.white-king-zone-cell::after {
   opacity: 1;
 }
 
@@ -2322,7 +2322,7 @@ body.iphone-preview .lobby-logo {
   mask: var(--piece-icon-image) center / contain no-repeat;
 }
 
-.piece.blue .piece-icon {
+.piece.white .piece-icon {
   filter: drop-shadow(0 1px 0 rgb(255 255 255 / 75%));
 }
 
@@ -2332,12 +2332,12 @@ body.iphone-preview .lobby-logo {
   height: 72%;
 }
 
-.piece.red {
+.piece.black {
   border-color: #080909;
   background: radial-gradient(circle at 34% 24%, #55595a, #242627 48%, #070809 80%);
 }
 
-.piece.blue {
+.piece.white {
   color: #b07b18;
   border-color: #d8d6ce;
   text-shadow: 0 1px 1px rgb(255 255 255 / 80%);
@@ -2380,8 +2380,8 @@ body.iphone-preview .lobby-logo {
   animation: piece-drop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
-.fortress-frame.view-red .cell.latest-move .piece {
-  animation: piece-drop-red 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+.fortress-frame.view-black .cell.latest-move .piece {
+  animation: piece-drop-black 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
 @keyframes piece-drop {
@@ -2395,7 +2395,7 @@ body.iphone-preview .lobby-logo {
   }
 }
 
-@keyframes piece-drop-red {
+@keyframes piece-drop-black {
   0% {
     transform: rotate(180deg) scale(1.22);
     opacity: 0.8;
@@ -2431,7 +2431,7 @@ body.iphone-preview .lobby-logo {
   animation: taunt-pop var(--taunt-duration, 3s) ease both;
 }
 
-.fortress-frame.view-red .taunt-overlay {
+.fortress-frame.view-black .taunt-overlay {
   rotate: 180deg;
 }
 
@@ -3045,7 +3045,7 @@ body.iphone-preview .lobby-logo {
   white-space: nowrap;
 }
 
-.turn-pill.blue {
+.turn-pill.white {
   color: #795714;
   background: linear-gradient(180deg, #fff, #d3d0c6);
   border-color: rgb(216 165 50 / 40%);
@@ -3067,7 +3067,7 @@ body.iphone-preview .lobby-logo {
   animation: turn-danger-pulse 1s infinite alternate;
 }
 
-.turn-pill.blue.danger {
+.turn-pill.white.danger {
   color: #661818;
   border-color: rgba(255, 82, 82, 0.9);
   background: linear-gradient(180deg, #ffe5e5, #f5baba);
@@ -3277,7 +3277,7 @@ body.iphone-preview .lobby-logo {
 }
 
 .unit-picker label.used small {
-  color: var(--red);
+  color: var(--black);
   font-weight: 800;
   text-decoration: none;
 }
@@ -3310,7 +3310,7 @@ body.iphone-preview .lobby-logo {
   width: 17px;
   height: 17px;
   margin: 0;
-  accent-color: var(--blue);
+  accent-color: var(--white);
 }
 
 .icon-button {
@@ -3990,17 +3990,17 @@ body.iphone-preview .game-status-bar {
   mask: url("./assets/units/king.svg") center / contain no-repeat;
 }
 
-.game-status-bar > .tutorial-panel.match-result-announcement[data-outcome="red"] .match-result-stone {
+.game-status-bar > .tutorial-panel.match-result-announcement[data-outcome="black"] .match-result-stone {
   border-color: #55595b;
   background: radial-gradient(circle at 34% 24%, #676a6c, #242526 48%, #070809 82%);
 }
 
-.game-status-bar > .tutorial-panel.match-result-announcement[data-outcome="blue"] .match-result-stone {
+.game-status-bar > .tutorial-panel.match-result-announcement[data-outcome="white"] .match-result-stone {
   border-color: #fff;
   background: radial-gradient(circle at 34% 24%, #fff, #e7e5dd 52%, #aaa9a2 84%);
 }
 
-.game-status-bar > .tutorial-panel.match-result-announcement[data-outcome="blue"] .match-result-stone::after {
+.game-status-bar > .tutorial-panel.match-result-announcement[data-outcome="white"] .match-result-stone::after {
   background: #9a6b17;
 }
 

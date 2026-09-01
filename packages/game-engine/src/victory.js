@@ -15,16 +15,16 @@ export function declareWinner(state, winner, legacyReason, events, reason = "kin
 }
 
 function finishByTerritory(state, prefix, trigger, events) {
-  const red = countPieces(state, "red");
-  const blue = countPieces(state, "blue");
-  const legacyReason = `${prefix}: Black ${red} - White ${blue}.`;
-  const details = { trigger, red, blue, secondPlayerBonus: WHITE_TERRITORY_BONUS };
-  if (red === blue) {
+  const black = countPieces(state, "black");
+  const white = countPieces(state, "white");
+  const legacyReason = `${prefix}: Black ${black} - White ${white}.`;
+  const details = { trigger, black, white, secondPlayerBonus: WHITE_TERRITORY_BONUS };
+  if (black === white) {
     state.winner = "draw";
     state.resultReason = legacyReason;
     emitEvent(state, events, { type: "match_ended", winner: "draw", reason: "territory", ...details });
   } else {
-    declareWinner(state, red > blue ? "red" : "blue", legacyReason, events, "territory", details);
+    declareWinner(state, black > white ? "black" : "white", legacyReason, events, "territory", details);
   }
 }
 

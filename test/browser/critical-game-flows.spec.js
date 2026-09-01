@@ -41,7 +41,7 @@ test("FX preview is available only in developer mode", async ({ page }) => {
   await expect(page.locator("#fxPreviewBar")).toBeVisible();
 });
 
-for (const side of ["red", "blue"]) {
+for (const side of ["black", "white"]) {
   test(`PvE ${side} side starts with the selected fortress at the bottom`, async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
@@ -60,17 +60,17 @@ for (const side of ["red", "blue"]) {
 
     await expect(page.locator("#pveSideModal")).toBeHidden();
     await expect(page.locator("#modeModal")).toBeHidden();
-    if (side === "red") {
-      await expect(page.locator(".fortress-frame")).toHaveClass(/view-red/);
+    if (side === "black") {
+      await expect(page.locator(".fortress-frame")).toHaveClass(/view-black/);
     } else {
-      await expect(page.locator(".fortress-frame")).not.toHaveClass(/view-red/);
+      await expect(page.locator(".fortress-frame")).not.toHaveClass(/view-black/);
     }
 
     const wallTops = await page.evaluate(() => ({
-      red: document.querySelector(".red-wall").getBoundingClientRect().top,
-      blue: document.querySelector(".blue-wall").getBoundingClientRect().top,
+      black: document.querySelector(".black-wall").getBoundingClientRect().top,
+      white: document.querySelector(".white-wall").getBoundingClientRect().top,
     }));
-    expect(wallTops[side]).toBeGreaterThan(wallTops[side === "red" ? "blue" : "red"]);
+    expect(wallTops[side]).toBeGreaterThan(wallTops[side === "black" ? "white" : "black"]);
     expect(pageErrors).toEqual([]);
   });
 }
@@ -88,7 +88,7 @@ test("PvE result can start another match", async ({ page }) => {
   await expect(page.locator("#matchResultSummary")).toBeVisible();
   await expect(page.locator("#matchResultActions")).toBeVisible();
   const capturedKingCell = page.locator('.cell[data-row="5"][data-col="4"]');
-  await expect(capturedKingCell.locator(".piece.blue.king")).toBeVisible();
+  await expect(capturedKingCell.locator(".piece.white.king")).toBeVisible();
   await expect(capturedKingCell.locator('.piece[title*="왕"]')).toBeVisible();
   const announcementBox = await page.locator("#tutorialPanel").boundingBox();
   const summaryBox = await page.locator("#matchResultSummary").boundingBox();

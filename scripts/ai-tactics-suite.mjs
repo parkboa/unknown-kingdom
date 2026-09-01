@@ -91,7 +91,7 @@ function withTurn(state, player) {
  * the board stay, and King capture remains a win — that is a rule, not a unit.
  */
 function stripSpecials(state) {
-  for (const player of ["red", "blue"]) {
+  for (const player of ["black", "white"]) {
     for (const type of SPECIAL_TYPES) state.stock[player][type] = 0;
     // Emptying the stock is not enough. `observedRemainingSpecialTypes` answers "could a
     // special still be hiding among the enemy's pieces", and it reads revealed pieces, the
@@ -147,7 +147,7 @@ function simulate(state, player, action) {
   state.informationHistory = undefined;
   const next = structuredClone(state);
   state.informationHistory = carried;
-  next.informationHistory = { schemaVersion: carried?.schemaVersion ?? 1, red: [], blue: [] };
+  next.informationHistory = { schemaVersion: carried?.schemaVersion ?? 1, black: [], white: [] };
   const before = countPieces(next, opponent(player));
   const accepted = dispatchAction(next, player, {
     type: "deploy",
@@ -449,10 +449,10 @@ function* sampledPositions(random, options) {
     const state = createGameState("pve", { aiRank: "grandmaster" });
     if (soldiersOnly) stripSpecials(state);
     const sides = {
-      red: TIERS[Math.floor(random() * TIERS.length)],
-      blue: TIERS[Math.floor(random() * TIERS.length)],
+      black: TIERS[Math.floor(random() * TIERS.length)],
+      white: TIERS[Math.floor(random() * TIERS.length)],
     };
-    const perturbationsLeft = { red: randomPlies, blue: randomPlies };
+    const perturbationsLeft = { black: randomPlies, white: randomPlies };
     let ply = 0;
     for (; ply < maxPlies && !state.winner; ply += 1) {
       const player = state.turn;
@@ -501,7 +501,7 @@ function renderPosition(item) {
       const piece = item.position.board[row][col];
       if (piece) {
         const glyph = GLYPH[piece.type] || "?";
-        cells.push(piece.owner === "red" ? glyph.toUpperCase() : glyph);
+        cells.push(piece.owner === "black" ? glyph.toUpperCase() : glyph);
         continue;
       }
       const key = `${row}:${col}`;
@@ -512,7 +512,7 @@ function renderPosition(item) {
     }
     lines.push(`   ${row}  ${cells.join(" ")}`);
   }
-  lines.push("    RED uppercase / blue lowercase, * = keyed correct, x = forbidden, ! = killing point");
+  lines.push("    BLACK uppercase / white lowercase, * = keyed correct, x = forbidden, ! = killing point");
   return lines.join("\n");
 }
 
@@ -691,7 +691,7 @@ function main() {
       // board alone is not faithful: stock, `stats.specialsUsed`, `deploymentCount` and the
       // information history all steer the belief model, and a rebuilt position scored nothing
       // like the original.
-      board: item.position.board.map((row) => row.map((piece) => (piece ? `${piece.owner === "red" ? "R" : "b"}${piece.type}` : null))),
+      board: item.position.board.map((row) => row.map((piece) => (piece ? `${piece.owner === "black" ? "R" : "b"}${piece.type}` : null))),
       turn: item.position.turn,
       position: item.position,
       source: item.source,

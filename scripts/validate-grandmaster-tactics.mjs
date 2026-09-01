@@ -33,10 +33,10 @@ function countPieces(state, owner) {
 }
 
 function chooseMove(actualState, rootFilter = () => true) {
-  const publicState = stateForPlayer(actualState, "blue");
+  const publicState = stateForPlayer(actualState, "white");
   return findAiDeployMove(publicState, {
-    aiPlayer: "blue",
-    humanPlayer: "red",
+    aiPlayer: "white",
+    humanPlayer: "black",
     canDeploy: (player, type, row, col) => rootFilter(player, type, row, col)
       && canDeploy(actualState, player, type, row, col),
     countPieces: (owner) => countPieces(actualState, owner),
@@ -50,17 +50,17 @@ function requireCondition(condition, message) {
 
 function mineState(hiddenType = "soldier") {
   const state = createGameState("pve", { aiRank: "grandmaster" });
-  state.turn = "blue";
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 6, blue: 6 };
-  state.stock.red = { soldier: 70, king: 0, general: 1, diplomat: 1, wizard: 1 };
-  if (hiddenType !== "soldier") state.stock.red[hiddenType] = 0;
-  state.stock.blue = { soldier: 70, king: 0, general: 0, diplomat: 0, wizard: 0 };
-  state.board[0][0] = piece("red", "king", "red-king");
-  state.board[4][4] = piece("blue", "king", "blue-king");
-  state.board[4][5] = piece("red", hiddenType, "hidden-mine", false);
-  state.board[4][7] = piece("red", "soldier", "red-connection", false);
-  state.lastMove = { player: "red", unitType: hiddenType, row: 4, col: 5 };
+  state.turn = "white";
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 6, white: 6 };
+  state.stock.black = { soldier: 70, king: 0, general: 1, diplomat: 1, wizard: 1 };
+  if (hiddenType !== "soldier") state.stock.black[hiddenType] = 0;
+  state.stock.white = { soldier: 70, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.board[0][0] = piece("black", "king", "black-king");
+  state.board[4][4] = piece("white", "king", "white-king");
+  state.board[4][5] = piece("black", hiddenType, "hidden-mine", false);
+  state.board[4][7] = piece("black", "soldier", "black-connection", false);
+  state.lastMove = { player: "black", unitType: hiddenType, row: 4, col: 5 };
   state.aiSettings = {
     ...AI_RANK_SETTINGS.grandmaster,
     searchDepth: 1,
@@ -103,7 +103,7 @@ runScenario("king-adjacent hidden identities are all treated as 100% mine risk",
     requireCondition(move.kingMineHypothesis === true, `${hiddenType}: hypothesis was not marked as a mine`);
     requireCondition(move.row === 5 && move.col === 4, `${hiddenType}: selected the mine-blocking route`);
     const after = structuredClone(state);
-    requireCondition(applyAction(after, "blue", actionOf(move)), `${hiddenType}: selected move was illegal`);
+    requireCondition(applyAction(after, "white", actionOf(move)), `${hiddenType}: selected move was illegal`);
     requireCondition(!after.pendingSpecial && !after.winner, `${hiddenType}: safe move detonated the mine`);
     safeMineMoves.push({ hiddenType, action: actionOf(move) });
   }
@@ -140,17 +140,17 @@ runScenario("King group advances toward its own fortress wall", () => {
 
 runScenario("spent specials disable mine belief and restore ordinary capture", () => {
   const state = createGameState("pve", { aiRank: "grandmaster" });
-  state.turn = "blue";
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 41, blue: 41 };
-  state.stats.specialsUsed.red = 3;
-  state.stock.red = { soldier: 50, king: 0, general: 0, diplomat: 0, wizard: 0 };
-  state.stock.blue = { soldier: 50, king: 0, general: 0, diplomat: 0, wizard: 0 };
-  state.board[0][0] = piece("red", "king", "red-king");
-  state.board[4][4] = piece("blue", "king", "blue-king");
-  state.board[4][5] = piece("red", "soldier", "ordinary-target", false);
-  state.board[3][5] = piece("blue", "soldier", "north");
-  state.board[5][5] = piece("blue", "soldier", "south");
+  state.turn = "white";
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 41, white: 41 };
+  state.stats.specialsUsed.black = 3;
+  state.stock.black = { soldier: 50, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.stock.white = { soldier: 50, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.board[0][0] = piece("black", "king", "black-king");
+  state.board[4][4] = piece("white", "king", "white-king");
+  state.board[4][5] = piece("black", "soldier", "ordinary-target", false);
+  state.board[3][5] = piece("white", "soldier", "north");
+  state.board[5][5] = piece("white", "soldier", "south");
   const move = chooseMove(
     state,
     (_player, type, row, col) => type === "soldier"
@@ -159,39 +159,39 @@ runScenario("spent specials disable mine belief and restore ordinary capture", (
   requireCondition(move.row === 4 && move.col === 6, "ordinary last-liberty capture was not restored");
   requireCondition(move.kingMineDefusal?.mineCount === 0, "spent special still created a mine");
   const after = structuredClone(state);
-  requireCondition(applyAction(after, "blue", actionOf(move)), "ordinary capture move was illegal");
-  requireCondition(after.board[4][5]?.owner === "blue", "ordinary target was not captured");
+  requireCondition(applyAction(after, "white", actionOf(move)), "ordinary capture move was illegal");
+  requireCondition(after.board[4][5]?.owner === "white", "ordinary target was not captured");
   requireCondition(!after.pendingSpecial, "ordinary target incorrectly queued a special");
   return { selectedAction: actionOf(move), capturedOwner: after.board[4][5]?.owner };
 });
 
 runScenario("King emergency rescue overrides unrelated play without detonating adjacent mines", () => {
   const state = createGameState("pve", { aiRank: "grandmaster" });
-  state.turn = "blue";
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 6, blue: 6 };
-  state.stock.red = { soldier: 70, king: 0, general: 1, diplomat: 1, wizard: 1 };
-  state.stock.blue = { soldier: 70, king: 0, general: 0, diplomat: 0, wizard: 0 };
-  state.board[8][8] = piece("red", "king", "red-king");
-  state.board[4][4] = piece("blue", "king", "blue-king");
+  state.turn = "white";
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 6, white: 6 };
+  state.stock.black = { soldier: 70, king: 0, general: 1, diplomat: 1, wizard: 1 };
+  state.stock.white = { soldier: 70, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.board[8][8] = piece("black", "king", "black-king");
+  state.board[4][4] = piece("white", "king", "white-king");
   for (const [row, col] of [[3, 4], [4, 3], [5, 4]]) {
-    state.board[row][col] = piece("red", "soldier", `hidden-${row}-${col}`, false);
+    state.board[row][col] = piece("black", "soldier", `hidden-${row}-${col}`, false);
   }
-  const beforeLiberties = kingLibertyCount(state, "blue");
+  const beforeLiberties = kingLibertyCount(state, "white");
   const move = chooseMove(
     state,
     (_player, type, row, col) => type === "soldier"
       && ((row === 4 && col === 5) || (row === 0 && col === 0)),
   );
   const after = structuredClone(state);
-  requireCondition(applyAction(after, "blue", actionOf(move)), "King rescue move was illegal");
+  requireCondition(applyAction(after, "white", actionOf(move)), "King rescue move was illegal");
   requireCondition(move.row === 4 && move.col === 5, "AI chose unrelated play while its King was in atari");
-  requireCondition(kingLibertyCount(after, "blue") > beforeLiberties, "King rescue did not add liberties");
+  requireCondition(kingLibertyCount(after, "white") > beforeLiberties, "King rescue did not add liberties");
   requireCondition(!after.pendingSpecial && !after.winner, "King rescue detonated a mine or ended the game");
   return {
     selectedAction: actionOf(move),
     beforeLiberties,
-    afterLiberties: kingLibertyCount(after, "blue"),
+    afterLiberties: kingLibertyCount(after, "white"),
   };
 });
 

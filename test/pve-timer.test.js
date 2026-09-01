@@ -53,17 +53,17 @@ test("AI timer deadline exists only during the human PvE turn", () => {
     mode: "pve",
     winner: null,
     gameActive: true,
-    turn: "red",
-    humanPlayer: "red",
+    turn: "black",
+    humanPlayer: "black",
   };
 
   assert.equal(resolvePveTurnDeadline(base), 31_000);
   assert.equal(resolvePveTurnDeadline({ ...base, currentDeadline: 15_000 }), 15_000);
   assert.equal(resolvePveTurnDeadline({ ...base, timerEnabled: false }), null);
   assert.equal(resolvePveTurnDeadline({ ...base, developerMode: true }), null);
-  assert.equal(resolvePveTurnDeadline({ ...base, turn: "blue" }), null);
+  assert.equal(resolvePveTurnDeadline({ ...base, turn: "white" }), null);
   assert.equal(resolvePveTurnDeadline({ ...base, mode: "tutorial" }), null);
-  assert.equal(resolvePveTurnDeadline({ ...base, winner: "red" }), null);
+  assert.equal(resolvePveTurnDeadline({ ...base, winner: "black" }), null);
   assert.equal(resolvePveTurnDeadline({ ...base, gameActive: false }), null);
 });
 

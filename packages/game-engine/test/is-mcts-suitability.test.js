@@ -18,20 +18,20 @@ function seededRandom(seed) {
 }
 
 const PROACTIVE_WIZARD_TRAP_HISTORY = [
-  ["red", ["king", 4, 4]], ["blue", ["king", 7, 2]],
-  ["red", ["soldier", 3, 4]], ["blue", ["soldier", 6, 2]],
-  ["red", ["soldier", 5, 4]], ["blue", ["soldier", 7, 3]],
-  ["red", ["soldier", 4, 5]], ["blue", ["soldier", 8, 2]],
-  ["red", ["soldier", 4, 3]], ["blue", ["soldier", 5, 5]],
-  ["red", ["wizard", 7, 1]], ["blue", ["general", 6, 1]],
-  ["red", ["general", 5, 6]], ["blue", ["wizard", 4, 2]],
-  ["red", ["diplomat", 8, 3]], ["blue", ["soldier", 8, 1]],
-  ["red", ["soldier", 8, 0]], ["blue", ["diplomat", 5, 2]],
-  ["red", ["soldier", 6, 5]], ["blue", ["soldier", 7, 4]],
-  ["red", ["soldier", 6, 3]], ["blue", ["soldier", 4, 1]],
-  ["red", ["soldier", 3, 2]], ["blue", ["soldier", 5, 1]],
-  ["red", ["soldier", 5, 0]], ["blue", ["soldier", 4, 0]],
-  ["red", ["soldier", 6, 0]],
+  ["black", ["king", 4, 4]], ["white", ["king", 7, 2]],
+  ["black", ["soldier", 3, 4]], ["white", ["soldier", 6, 2]],
+  ["black", ["soldier", 5, 4]], ["white", ["soldier", 7, 3]],
+  ["black", ["soldier", 4, 5]], ["white", ["soldier", 8, 2]],
+  ["black", ["soldier", 4, 3]], ["white", ["soldier", 5, 5]],
+  ["black", ["wizard", 7, 1]], ["white", ["general", 6, 1]],
+  ["black", ["general", 5, 6]], ["white", ["wizard", 4, 2]],
+  ["black", ["diplomat", 8, 3]], ["white", ["soldier", 8, 1]],
+  ["black", ["soldier", 8, 0]], ["white", ["diplomat", 5, 2]],
+  ["black", ["soldier", 6, 5]], ["white", ["soldier", 7, 4]],
+  ["black", ["soldier", 6, 3]], ["white", ["soldier", 4, 1]],
+  ["black", ["soldier", 3, 2]], ["white", ["soldier", 5, 1]],
+  ["black", ["soldier", 5, 0]], ["white", ["soldier", 4, 0]],
+  ["black", ["soldier", 6, 0]],
 ];
 
 function actionKey(action) {
@@ -91,8 +91,8 @@ test("risk-aware IS-MCTS defends against the opponent's next-turn Wizard trap", 
     }).accepted, true);
   }
   const historicalLosingAction = { type: "deploy", unitType: "soldier", row: 3, col: 1 };
-  const result = findIsMctsAction(stateForPlayer(state, "blue"), {
-    aiPlayer: "blue",
+  const result = findIsMctsAction(stateForPlayer(state, "white"), {
+    aiPlayer: "white",
     iterations: 24,
     rootCandidateLimit: 8,
     treeCandidateLimit: 6,

@@ -29,20 +29,20 @@ function piece(id, owner, type) {
 
 function baseState(tier, ownDeployments = 8) {
   const state = createGameState("pve", { aiRank: tier });
-  state.turn = "red";
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: ownDeployments, blue: ownDeployments };
-  state.stock.red.king = 0;
-  state.stock.blue.king = 0;
-  state.board[0][0] = piece("red-king", "red", "king");
-  state.board[8][8] = piece("blue-king", "blue", "king");
+  state.turn = "black";
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: ownDeployments, white: ownDeployments };
+  state.stock.black.king = 0;
+  state.stock.white.king = 0;
+  state.board[0][0] = piece("black-king", "black", "king");
+  state.board[8][8] = piece("white-king", "white", "king");
   return state;
 }
 
 function findMove(state, allowed) {
   return findAiDeployMove(state, {
-    aiPlayer: "red",
-    humanPlayer: "blue",
+    aiPlayer: "black",
+    humanPlayer: "white",
     canDeploy: (player, type, row, col) =>
       allowed(type, row, col) && canDeploy(state, player, type, row, col),
     countPieces: (owner) => countPieces(state, owner),
@@ -53,13 +53,13 @@ function findMove(state, allowed) {
 
 function recordOwnDeployments(state, types) {
   for (const unitType of types) {
-    state.informationHistory.red.push({
-      actor: "red",
+    state.informationHistory.black.push({
+      actor: "black",
       ownAction: { type: "deploy", unitType, row: 1, col: 1 },
       events: [],
     });
-    state.informationHistory.red.push({
-      actor: "blue",
+    state.informationHistory.black.push({
+      actor: "white",
       ownAction: null,
       events: [],
     });
@@ -109,9 +109,9 @@ test("novice waits until its ninth deployment while intermediate must open by ei
 test("a verified special King capture overrides the novice deployment window", () => {
   const state = baseState("novice", 5);
   state.board[8][8] = null;
-  state.board[4][4] = piece("blue-target-king", "blue", "king");
+  state.board[4][4] = piece("white-target-king", "white", "king");
   for (const [row, col] of [[3, 5], [5, 5], [4, 6]]) {
-    state.board[row][col] = piece(`blue-surround-${row}-${col}`, "blue", "soldier");
+    state.board[row][col] = piece(`white-surround-${row}-${col}`, "white", "soldier");
   }
   const move = findMove(state, (type, row, col) =>
     (type === "general" && row === 4 && col === 5)
@@ -131,23 +131,23 @@ test("intermediate stops after one consecutive special, advanced after two, and 
     || (type === "soldier" && row === 6 && col === 6);
 
   const intermediate = baseState("intermediate", 7);
-  intermediate.stock.red.general = 0;
+  intermediate.stock.black.general = 0;
   recordOwnDeployments(intermediate, ["general"]);
   assert.equal(findMove(intermediate, allowed).type, "soldier");
 
   const advanced = baseState("advanced", 7);
-  advanced.stock.red.general = 0;
-  advanced.stock.red.wizard = 0;
+  advanced.stock.black.general = 0;
+  advanced.stock.black.wizard = 0;
   recordOwnDeployments(advanced, ["general", "wizard"]);
   assert.equal(findMove(advanced, allowed).type, "soldier");
 
   const expert = baseState("expert", 7);
-  expert.stock.red.general = 0;
-  expert.stock.red.wizard = 0;
+  expert.stock.black.general = 0;
+  expert.stock.black.wizard = 0;
   recordOwnDeployments(expert, ["general", "wizard"]);
   assert.equal(findMove(expert, allowed).type, "diplomat");
 
-  const contract = specialDeploymentContract(expert, "red", AI_RANK_SETTINGS.expert);
+  const contract = specialDeploymentContract(expert, "black", AI_RANK_SETTINGS.expert);
   assert.equal(contract.consecutiveSpecials, 2);
   assert.equal(contract.specialsDeployed, 2);
 });
@@ -158,10 +158,10 @@ test("lower tiers rescue an active special group while expert and grandmaster le
 
   for (const tier of ["novice", "intermediate", "advanced", "expert", "grandmaster"]) {
     const state = baseState(tier, 21);
-    state.stock.red = { soldier: 70, king: 0, general: 0, diplomat: 0, wizard: 0 };
-    state.board[4][4] = piece(`${tier}-general`, "red", "general");
+    state.stock.black = { soldier: 70, king: 0, general: 0, diplomat: 0, wizard: 0 };
+    state.board[4][4] = piece(`${tier}-general`, "black", "general");
     for (const [row, col] of [[3, 4], [4, 3], [5, 4]]) {
-      state.board[row][col] = piece(`${tier}-block-${row}-${col}`, "blue", "soldier");
+      state.board[row][col] = piece(`${tier}-block-${row}-${col}`, "white", "soldier");
     }
 
     const move = findMove(state, allowed);
@@ -174,22 +174,22 @@ test("lower tiers rescue an active special group while expert and grandmaster le
 
 test("grandmaster preserves a just-cleared activation cell for its final special", () => {
   const state = baseState("grandmaster", 8);
-  state.stock.red.general = 0;
-  state.stock.red.diplomat = 0;
-  state.stock.red.wizard = 1;
+  state.stock.black.general = 0;
+  state.stock.black.diplomat = 0;
+  state.stock.black.wizard = 1;
   state.board[6][8] = {
-    ...piece("spent-general", "red", "soldier"),
+    ...piece("spent-general", "black", "soldier"),
     originalType: "general",
     abilityUsed: true,
   };
   recordOwnDeployments(state, ["general", "diplomat"]);
-  state.informationHistory.red.push({
-    actor: "red",
+  state.informationHistory.black.push({
+    actor: "black",
     ownAction: { type: "activate_special" },
     events: [
       {
         type: "special_activated",
-        owner: "red",
+        owner: "black",
         unitType: "general",
         pieceId: "spent-general",
         row: 6,
@@ -197,9 +197,9 @@ test("grandmaster preserves a just-cleared activation cell for its final special
       },
       {
         type: "piece_removed",
-        captor: "red",
-        owner: "blue",
-        pieceId: "cleared-blue",
+        captor: "black",
+        owner: "white",
+        pieceId: "cleared-white",
         unitType: "soldier",
         row: 7,
         col: 8,
@@ -208,8 +208,8 @@ test("grandmaster preserves a just-cleared activation cell for its final special
     ],
   });
 
-  assert.deepEqual([...recentOwnSpecialActivationVacancies(state, "red")], ["7:8"]);
-  const contract = specialDeploymentContract(state, "red", AI_RANK_SETTINGS.grandmaster);
+  assert.deepEqual([...recentOwnSpecialActivationVacancies(state, "black")], ["7:8"]);
+  const contract = specialDeploymentContract(state, "black", AI_RANK_SETTINGS.grandmaster);
   assert.deepEqual([...contract.reactiveReplantCells], ["7:8"]);
 
   const move = findMove(state, (type, row, col) =>
@@ -233,48 +233,48 @@ test("grandmaster preserves a just-cleared activation cell for its final special
 
 test("reactive replant expires after the next own deployment and stays grandmaster-only", () => {
   const state = baseState("grandmaster", 9);
-  state.stock.red.general = 0;
-  state.stock.red.wizard = 0;
-  state.stock.red.diplomat = 1;
-  state.informationHistory.red.push({
-    actor: "red",
+  state.stock.black.general = 0;
+  state.stock.black.wizard = 0;
+  state.stock.black.diplomat = 1;
+  state.informationHistory.black.push({
+    actor: "black",
     ownAction: { type: "activate_special" },
     events: [
-      { type: "special_activated", owner: "red", unitType: "general", row: 4, col: 4 },
-      { type: "piece_removed", captor: "red", reason: "general_reaction", row: 4, col: 5 },
+      { type: "special_activated", owner: "black", unitType: "general", row: 4, col: 4 },
+      { type: "piece_removed", captor: "black", reason: "general_reaction", row: 4, col: 5 },
     ],
   });
   assert.deepEqual(
-    [...specialDeploymentContract(state, "red", AI_RANK_SETTINGS.expert).reactiveReplantCells],
+    [...specialDeploymentContract(state, "black", AI_RANK_SETTINGS.expert).reactiveReplantCells],
     [],
   );
 
-  state.informationHistory.red.push({
-    actor: "red",
+  state.informationHistory.black.push({
+    actor: "black",
     ownAction: { type: "deploy", unitType: "soldier", row: 6, col: 6 },
     events: [],
   });
-  assert.deepEqual([...recentOwnSpecialActivationVacancies(state, "red")], []);
+  assert.deepEqual([...recentOwnSpecialActivationVacancies(state, "black")], []);
 });
 
 test("grandmaster keeps a poor reactive replant searchable without forcing it", () => {
   const state = baseState("grandmaster", 8);
-  state.stock.red.general = 0;
-  state.stock.red.wizard = 0;
-  state.stock.red.diplomat = 1;
+  state.stock.black.general = 0;
+  state.stock.black.wizard = 0;
+  state.stock.black.diplomat = 1;
   state.board[4][4] = {
-    ...piece("spent-general", "red", "soldier"),
+    ...piece("spent-general", "black", "soldier"),
     originalType: "general",
     abilityUsed: true,
   };
-  state.board[3][5] = piece("nearby-blue", "blue", "soldier");
+  state.board[3][5] = piece("nearby-white", "white", "soldier");
   recordOwnDeployments(state, ["general", "wizard"]);
-  state.informationHistory.red.push({
-    actor: "red",
+  state.informationHistory.black.push({
+    actor: "black",
     ownAction: { type: "activate_special" },
     events: [
-      { type: "special_activated", owner: "red", unitType: "general", row: 4, col: 4 },
-      { type: "piece_removed", captor: "red", reason: "general_reaction", row: 4, col: 5 },
+      { type: "special_activated", owner: "black", unitType: "general", row: 4, col: 4 },
+      { type: "piece_removed", captor: "black", reason: "general_reaction", row: 4, col: 5 },
     ],
   });
 

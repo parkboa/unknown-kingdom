@@ -22,7 +22,7 @@ function parsePairs(value) {
       throw new Error(`Invalid tier pair: ${pair.join(":")}`);
     }
   }
-  if (!pairs.length) throw new Error("--pairs must include at least one red:blue pair");
+  if (!pairs.length) throw new Error("--pairs must include at least one black:white pair");
   return pairs;
 }
 
@@ -136,12 +136,12 @@ function summarizeCatalogs(source) {
 const games = [];
 let gameIndex = 0;
 for (const pair of pairs) {
-  for (const [redTier, blueTier] of [pair, [pair[1], pair[0]]]) {
+  for (const [blackTier, whiteTier] of [pair, [pair[1], pair[0]]]) {
     gameIndex += 1;
     const seed = (baseSeed + gameIndex - 1) >>> 0;
     const result = playDeterministicAiMatch({
-      redTier,
-      blueTier,
+      blackTier,
+      whiteTier,
       seed,
       gameId: `catalog-${gameIndex}`,
       maxDeployments,
@@ -150,7 +150,7 @@ for (const pair of pairs) {
     });
     games.push(result);
     process.stderr.write(
-      `[${gameIndex}/${pairs.length * 2}] ${redTier}(B) vs ${blueTier}(W): `
+      `[${gameIndex}/${pairs.length * 2}] ${blackTier}(B) vs ${whiteTier}(W): `
       + `${result.winner} in ${result.deployments} deployments\n`,
     );
   }

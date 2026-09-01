@@ -581,7 +581,7 @@ function scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer, rootStrate
   const centerScore = 8 - (Math.abs(row - 4) + Math.abs(col - 4));
   const adjacentAllies = adjacentCount(state, row, col, aiPlayer, neighbors);
   const adjacentEnemies = adjacentCount(state, row, col, humanPlayer, neighbors);
-  const homeBoardBias = aiPlayer === "red" ? SIZE - 1 - row : row;
+  const homeBoardBias = aiPlayer === "black" ? SIZE - 1 - row : row;
   const weights = difficultySettings(state).score;
   const capturePotential = localCapturePotential(state, row, col, aiPlayer, humanPlayer, neighbors);
   const liberties = libertiesAfterDeploy(state, row, col, aiPlayer, neighbors);
@@ -634,8 +634,8 @@ function scoreCell(state, row, col, neighbors, aiPlayer, humanPlayer, rootStrate
 }
 
 function compareCandidates(a, b, perspectivePlayer) {
-  const relativeRowA = perspectivePlayer === "red" ? a.row : SIZE - 1 - a.row;
-  const relativeRowB = perspectivePlayer === "red" ? b.row : SIZE - 1 - b.row;
+  const relativeRowA = perspectivePlayer === "black" ? a.row : SIZE - 1 - a.row;
+  const relativeRowB = perspectivePlayer === "black" ? b.row : SIZE - 1 - b.row;
   return (b.deepScore ?? b.score) - (a.deepScore ?? a.score)
     || b.score - a.score
     || relativeRowA - relativeRowB
@@ -730,8 +730,8 @@ function settleSimulationState(state, aiPlayer, humanPlayer, neighbors) {
 export function compareBeliefStonePositions(a, b, myKing, perspectivePlayer) {
   const distA = myKing ? Math.abs(a.row - myKing.row) + Math.abs(a.col - myKing.col) : 0;
   const distB = myKing ? Math.abs(b.row - myKing.row) + Math.abs(b.col - myKing.col) : 0;
-  const relativeRowA = perspectivePlayer === "red" ? a.row : SIZE - 1 - a.row;
-  const relativeRowB = perspectivePlayer === "red" ? b.row : SIZE - 1 - b.row;
+  const relativeRowA = perspectivePlayer === "black" ? a.row : SIZE - 1 - a.row;
+  const relativeRowB = perspectivePlayer === "black" ? b.row : SIZE - 1 - b.row;
   return distA - distB || relativeRowA - relativeRowB || a.col - b.col;
 }
 
@@ -882,7 +882,7 @@ function instantWinSurvivalOdds(publicState, opponentPlayer, failingWorlds) {
   // win stands. `specialCandidatePool` rules out the opening ten stones outright, since nobody
   // may deploy a special before their fifth move.
   if (pool <= 0) return 1;
-  const kings = ["red", "blue"].map((side) => findKing(publicState, side)).filter(Boolean);
+  const kings = ["black", "white"].map((side) => findKing(publicState, side)).filter(Boolean);
   const besideKing = (row, col) => kings.some((king) =>
     Math.abs(king.row - row) + Math.abs(king.col - col) === 1);
 
@@ -997,8 +997,8 @@ function materializeUnknownStockForSimulation(state, player) {
 
 function simulateEngineTransition(state, player, action, neighbors) {
   const cloned = structuredClone(state);
-  materializeUnknownStockForSimulation(cloned, "red");
-  materializeUnknownStockForSimulation(cloned, "blue");
+  materializeUnknownStockForSimulation(cloned, "black");
+  materializeUnknownStockForSimulation(cloned, "white");
   if (action.type === "deploy" && !cloned.pendingSpecial && !cloned.teleporting) {
     cloned.turn = player;
   }
@@ -1418,7 +1418,7 @@ function scoreWithLookahead(
  * stone and plays on, and the ring closes a square at a time up the ladder.
  */
 function wallDistanceRow(player, distance) {
-  return player === "red" ? distance : SIZE - 1 - distance;
+  return player === "black" ? distance : SIZE - 1 - distance;
 }
 
 export const AI_DECISION_STAGE = Object.freeze({
@@ -2092,7 +2092,7 @@ export function chooseAiKingSwapTarget(state, {
       const adjacentEnemies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === humanPlayer).length;
       const adjacentAllies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === aiPlayer).length;
       const fortressSafety = escapeType === "swap" && isFortressConnected(aiPlayer, row, col) ? 20 : 0;
-      const homeBoardSafety = (aiPlayer === "red" ? SIZE - 1 - row : row) * 2;
+      const homeBoardSafety = (aiPlayer === "black" ? SIZE - 1 - row : row) * 2;
       candidates.push({
         row,
         col,

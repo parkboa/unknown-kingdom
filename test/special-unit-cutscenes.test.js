@@ -8,7 +8,7 @@ import { TEXT } from "../js/config.js";
 
 test("all cutscene image assets exist on disk", () => {
   const units = ["king", "general", "diplomat", "wizard"];
-  const sides = ["red", "blue"];
+  const sides = ["black", "white"];
 
   for (const unit of units) {
     for (const side of sides) {

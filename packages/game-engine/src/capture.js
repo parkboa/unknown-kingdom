@@ -105,7 +105,7 @@ function resolveCapturedGroup(state, group, captor, events, queueSpecialActivati
 
 export function resolveCaptures(state, preferredCaptor, events, queueSpecialActivation) {
   const seen = new Set();
-  const rowOrder = preferredCaptor === "blue"
+  const rowOrder = preferredCaptor === "white"
     ? Array.from({ length: SIZE }, (_, index) => SIZE - 1 - index)
     : Array.from({ length: SIZE }, (_, index) => index);
   let changed = true;

@@ -71,7 +71,7 @@ const TERRITORY_PROXIMITY_EXPONENT = 12;
 /**
  * The territory result, discounted by how far the board is from producing it.
  *
- * A territory finish compares raw piece counts (`victory.js` uses `red > blue`, with the komi
+ * A territory finish compares raw piece counts (`victory.js` uses `black > white`, with the komi
  * hook `WHITE_TERRITORY_BONUS` still at 0), so the margin here is exactly `features.material`.
  * What the evaluation lacked was any notion of how close that comparison is to being the final
  * word: a +1 margin on move 5 and a +1 margin on move 80 scored identically, though the second
@@ -92,7 +92,7 @@ function evaluationModelFlags(settings = {}) {
 }
 
 function rawStateFeatures(state, perspective, settings = {}) {
-  const enemy = perspective === "red" ? "blue" : "red";
+  const enemy = perspective === "black" ? "white" : "black";
   const models = evaluationModelFlags(settings);
   // Same slot, different measure: Stage 1c replaces the blending that consumes it, so the key
   // stays put until then and a disabled flag leaves the old path byte-identical.
@@ -129,7 +129,7 @@ function rawStateFeatures(state, perspective, settings = {}) {
       filledCells += 1;
       features.material += sign;
       features.center += sign * (8 - (Math.abs(row - 4) + Math.abs(col - 4)));
-      const homeValue = piece.owner === "red" ? SIZE - 1 - row : row;
+      const homeValue = piece.owner === "black" ? SIZE - 1 - row : row;
       features.home += sign * homeValue;
 
       const key = `${row}:${col}`;

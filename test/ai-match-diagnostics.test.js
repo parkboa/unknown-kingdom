@@ -5,8 +5,8 @@ import { playDeterministicAiMatch } from "../scripts/lib/ai-match.mjs";
 test("AI match decision diagnostics expose the pre-deployment special planting context", () => {
   const decisions = [];
   playDeterministicAiMatch({
-    redTier: "novice",
-    blueTier: "intermediate",
+    blackTier: "novice",
+    whiteTier: "intermediate",
     seed: 7,
     gameId: "decision-context-test",
     maxDeployments: 1,

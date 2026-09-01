@@ -2,6 +2,7 @@ import {
   DEPLOY_ORDER,
   PVE_AI,
   PVE_HUMAN,
+  PROTOCOL_VERSION,
   SIZE,
   SPECIALS,
   createUnitLabels,
@@ -194,10 +195,10 @@ const PVE_TURN_LIMIT_MS = 30000;
 const PVE_JOURNAL_STORAGE_KEY = "unknown-kingdom-latest-pve-jsonl";
 
 const TUTORIAL_STEPS = [
-  { unitType: "king", owner: "blue", row: 7, col: 4, message: "tutorialKing", placedMessage: "tutorialKingPlaced" },
+  { unitType: "king", owner: "white", row: 7, col: 4, message: "tutorialKing", placedMessage: "tutorialKingPlaced" },
   {
     unitType: "soldier",
-    owner: "blue",
+    owner: "white",
     row: 4,
     col: 4,
     message: "tutorialCapture",
@@ -206,7 +207,7 @@ const TUTORIAL_STEPS = [
   },
   {
     unitType: "soldier",
-    owner: "blue",
+    owner: "white",
     row: 0,
     col: 2,
     message: "tutorialWallDefense",
@@ -215,7 +216,7 @@ const TUTORIAL_STEPS = [
   },
   {
     unitType: "soldier",
-    owner: "blue",
+    owner: "white",
     row: 8,
     col: 2,
     message: "tutorialWallCapture",
@@ -224,7 +225,7 @@ const TUTORIAL_STEPS = [
   },
   {
     unitType: "general",
-    owner: "blue",
+    owner: "white",
     row: 2,
     col: 5,
     message: "tutorialGeneral",
@@ -237,7 +238,7 @@ const TUTORIAL_STEPS = [
   },
   {
     unitType: "diplomat",
-    owner: "blue",
+    owner: "white",
     row: 0,
     col: 3,
     message: "tutorialDiplomat",
@@ -250,7 +251,7 @@ const TUTORIAL_STEPS = [
   },
   {
     unitType: "wizard",
-    owner: "blue",
+    owner: "white",
     row: 4,
     col: 6,
     message: "tutorialWizard",
@@ -266,52 +267,52 @@ const TUTORIAL_STEPS = [
 ];
 
 const TUTORIAL_SANCTUARY_ACTIONS = [
-  { player: "red", row: 0, col: 4 },
-  { player: "blue", row: 6, col: 4 },
-  { player: "red", row: 1, col: 3 },
-  { player: "blue", row: 7, col: 3 },
-  { player: "red", row: 1, col: 5 },
-  { player: "blue", row: 7, col: 5 },
-  { player: "red", row: 2, col: 4 },
-  { player: "blue", row: 8, col: 4 },
+  { player: "black", row: 0, col: 4 },
+  { player: "white", row: 6, col: 4 },
+  { player: "black", row: 1, col: 3 },
+  { player: "white", row: 7, col: 3 },
+  { player: "black", row: 1, col: 5 },
+  { player: "white", row: 7, col: 5 },
+  { player: "black", row: 2, col: 4 },
+  { player: "white", row: 8, col: 4 },
 ];
 
 const TUTORIAL_CAPTURE_SETUP_ACTIONS = [
-  { player: "red", row: 5, col: 4 },
-  { player: "blue", row: 5, col: 3 },
-  { player: "red", row: 0, col: 1 },
-  { player: "blue", row: 5, col: 5 },
-  { player: "red", row: 8, col: 1 },
+  { player: "black", row: 5, col: 4 },
+  { player: "white", row: 5, col: 3 },
+  { player: "black", row: 0, col: 1 },
+  { player: "white", row: 5, col: 5 },
+  { player: "black", row: 8, col: 1 },
 ];
 
 const TUTORIAL_OWN_WALL_ACTIONS = [
-  { player: "red", row: 4, col: 5 },
-  { player: "blue", row: 0, col: 0 },
-  { player: "red", row: 5, col: 6 },
-  { player: "blue", row: 1, col: 1 },
-  { player: "red", row: 6, col: 5 },
+  { player: "black", row: 4, col: 5 },
+  { player: "white", row: 0, col: 0 },
+  { player: "black", row: 5, col: 6 },
+  { player: "white", row: 1, col: 1 },
+  { player: "black", row: 6, col: 5 },
 ];
 
 const TUTORIAL_ENEMY_WALL_ACTIONS = [
-  { player: "red", row: 6, col: 3 },
-  { player: "blue", row: 8, col: 0 },
-  { player: "red", row: 8, col: 5 },
-  { player: "blue", row: 7, col: 1 },
-  { player: "red", row: 7, col: 6 },
+  { player: "black", row: 6, col: 3 },
+  { player: "white", row: 8, col: 0 },
+  { player: "black", row: 8, col: 5 },
+  { player: "white", row: 7, col: 1 },
+  { player: "black", row: 7, col: 6 },
 ];
 
 const TUTORIAL_GENERAL_SETUP_ACTIONS = [
-  { player: "red", row: 2, col: 6 },
+  { player: "black", row: 2, col: 6 },
 ];
 
 const TUTORIAL_DIPLOMAT_SETUP_ACTIONS = [
-  { player: "blue", row: 2, col: 3 },
-  { player: "red", row: 2, col: 4 },
+  { player: "white", row: 2, col: 3 },
+  { player: "black", row: 2, col: 4 },
 ];
 
 const TUTORIAL_WIZARD_SETUP_ACTIONS = [
-  { player: "blue", row: 3, col: 4 },
-  { player: "red", row: 3, col: 6 },
+  { player: "white", row: 3, col: 4 },
+  { player: "black", row: 3, col: 6 },
 ];
 
 const boardEl = document.querySelector("#board");
@@ -324,8 +325,8 @@ const modeInfo = document.querySelector("#modeInfo");
 const connectionInfo = document.querySelector("#connectionInfo");
 const connectionInfoText = document.querySelector("#connectionInfoText");
 const rankInfo = document.querySelector("#rankInfo");
-const redCount = document.querySelector("#redCount");
-const blueCount = document.querySelector("#blueCount");
+const blackCount = document.querySelector("#blackCount");
+const whiteCount = document.querySelector("#whiteCount");
 const confirmTeleportBtn = document.querySelector("#confirmTeleportBtn");
 const cancelTeleportBtn = document.querySelector("#cancelTeleportBtn");
 const undoBtn = document.querySelector("#undoBtn");
@@ -646,8 +647,8 @@ function applyLanguage() {
   cancelTeleportBtn.textContent = text("cancelAbility");
   setIconButtonLabel(nextTutorialBtn, "nextTutorial");
   setIconButtonLabel(exitTutorialBtn, "backToChallenges");
-  document.querySelector(".red-counter").setAttribute("aria-label", text("redUnits"));
-  document.querySelector(".blue-counter").setAttribute("aria-label", text("blueUnits"));
+  document.querySelector(".black-counter").setAttribute("aria-label", text("blackUnits"));
+  document.querySelector(".white-counter").setAttribute("aria-label", text("whiteUnits"));
   if (rematchToastTitle) rematchToastTitle.textContent = text("rematchOfferedToast");
   if (toastAcceptRematchBtn) toastAcceptRematchBtn.textContent = text("acceptRematch");
   if (toastDeclineRematchBtn) toastDeclineRematchBtn.textContent = text("declineRematch");
@@ -802,14 +803,14 @@ function applyNoMoveDemo() {
   state.board = Array.from({ length: SIZE }, (_, row) =>
     Array.from({ length: SIZE }, (_, col) => {
       if (row === 4 && col === 4) return null;
-      return createOccupiedSoldier("red");
+      return createOccupiedSoldier("black");
     }),
   );
-  state.board[8][4] = createPiece("blue", "king");
-  state.turn = "blue";
-  state.firstDeployDone = { red: true, blue: true };
-  state.stock.blue = { soldier: 0, king: 0, general: 0, diplomat: 0, wizard: 0 };
-  state.stock.red = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.board[8][4] = createPiece("white", "king");
+  state.turn = "white";
+  state.firstDeployDone = { black: true, white: true };
+  state.stock.white = { soldier: 0, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.stock.black = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
   state.log = ["No-move demo: White has no legal deployment, but the board is not full."];
   return true;
 }
@@ -819,25 +820,25 @@ function applyWizardTeleportDemo() {
   if (new URLSearchParams(location.search).get("demo") !== "wizard-teleport") return false;
 
   selectModeChoice("pve");
-  pveHumanPlayer = "blue";
-  pveAiPlayer = "red";
+  pveHumanPlayer = "white";
+  pveAiPlayer = "black";
   state = createInitialState("pve", pveHumanPlayer);
   state.aiDifficulty = pveDifficulty;
   state.aiRank = selectedPveRank;
-  state.board[4][4] = createPiece("blue", "soldier");
+  state.board[4][4] = createPiece("white", "soldier");
   state.board[4][4].originalType = "wizard";
   state.board[4][4].abilityUsed = true;
   state.board[4][4].revealed = true;
-  state.board[3][4] = createOccupiedSoldier("red");
-  state.board[4][3] = createOccupiedSoldier("red");
-  state.board[4][5] = createOccupiedSoldier("red");
-  state.teleporting = { row: 4, col: 4, owner: "blue", reaction: true };
+  state.board[3][4] = createOccupiedSoldier("black");
+  state.board[4][3] = createOccupiedSoldier("black");
+  state.board[4][5] = createOccupiedSoldier("black");
+  state.teleporting = { row: 4, col: 4, owner: "white", reaction: true };
   wizardMovePromptDismissed = false;
-  state.turn = "blue";
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 5, blue: 5 };
-  state.stock.blue = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
-  state.stock.red = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.turn = "white";
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 5, white: 5 };
+  state.stock.white = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.stock.black = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
   state.log = ["Wizard move demo: choose an empty cell or stay in place."];
   modeModal.hidden = true;
   pveSideModal.hidden = true;
@@ -849,12 +850,12 @@ function applySpecialPendingDemo() {
   const params = new URLSearchParams(location.search);
   if (params.get("demo") !== "special-pending") return false;
   // ?owner=ai surrounds the AI's own special instead of the player's.
-  const specialOwner = params.get("owner") === "ai" ? "red" : "blue";
-  const surroundingSide = specialOwner === "blue" ? "red" : "blue";
+  const specialOwner = params.get("owner") === "ai" ? "black" : "white";
+  const surroundingSide = specialOwner === "white" ? "black" : "white";
 
   selectModeChoice("pve");
-  pveHumanPlayer = "blue";
-  pveAiPlayer = "red";
+  pveHumanPlayer = "white";
+  pveAiPlayer = "black";
   state = createInitialState("pve", pveHumanPlayer);
   state.aiDifficulty = pveDifficulty;
   state.aiRank = selectedPveRank;
@@ -865,15 +866,15 @@ function applySpecialPendingDemo() {
   state.board[4][3] = createOccupiedSoldier(surroundingSide);
   state.board[4][5] = createOccupiedSoldier(surroundingSide);
   // Reserves off the strike zone so the demo does not end by elimination.
-  state.board[0][0] = createOccupiedSoldier("red");
-  state.board[8][8] = createOccupiedSoldier("blue");
+  state.board[0][0] = createOccupiedSoldier("black");
+  state.board[8][8] = createOccupiedSoldier("white");
   state.pendingSpecial = { row: 4, col: 4, owner: specialOwner, type: "general", captor: surroundingSide };
   state.resumeTurn = surroundingSide;
   state.turn = specialOwner;
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 5, blue: 5 };
-  state.stock.blue = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
-  state.stock.red = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 5, white: 5 };
+  state.stock.white = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.stock.black = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
   state.log = ["Special activation demo: the surrounded General activates on its own."];
   modeModal.hidden = true;
   pveSideModal.hidden = true;
@@ -885,20 +886,20 @@ function applySuicideWarningDemo() {
   if (new URLSearchParams(location.search).get("demo") !== "suicide-warning") return false;
 
   selectModeChoice("pve");
-  pveHumanPlayer = "blue";
-  pveAiPlayer = "red";
+  pveHumanPlayer = "white";
+  pveAiPlayer = "black";
   state = createInitialState("pve", pveHumanPlayer);
   state.board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
-  state.board[8][0] = createPiece("blue", "king");
-  state.board[3][4] = createOccupiedSoldier("red");
-  state.board[5][4] = createOccupiedSoldier("red");
-  state.board[4][3] = createOccupiedSoldier("red");
-  state.board[4][5] = createOccupiedSoldier("red");
-  state.turn = "blue";
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 5, blue: 5 };
-  state.stock.blue = { soldier: 1, king: 0, general: 0, diplomat: 0, wizard: 0 };
-  state.stock.red = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.board[8][0] = createPiece("white", "king");
+  state.board[3][4] = createOccupiedSoldier("black");
+  state.board[5][4] = createOccupiedSoldier("black");
+  state.board[4][3] = createOccupiedSoldier("black");
+  state.board[4][5] = createOccupiedSoldier("black");
+  state.turn = "white";
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 5, white: 5 };
+  state.stock.white = { soldier: 1, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.stock.black = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
   state.log = ["Suicide warning demo: place the White Soldier at E5."];
   modeModal.hidden = true;
   pveSideModal.hidden = true;
@@ -910,31 +911,31 @@ function applyCapture38Demo() {
   if (new URLSearchParams(location.search).get("demo") !== "capture-38") return false;
 
   selectModeChoice("pve");
-  pveHumanPlayer = "red";
-  pveAiPlayer = "blue";
+  pveHumanPlayer = "black";
+  pveAiPlayer = "white";
   state = createInitialState("pve", pveHumanPlayer);
   state.board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
   const pieces = [
-    ["blue", "soldier", 0, 4], ["blue", "soldier", 0, 5], ["blue", "soldier", 0, 6],
-    ["red", "soldier", 0, 7], ["blue", "soldier", 1, 3], ["red", "soldier", 1, 4],
-    ["blue", "soldier", 1, 5], ["red", "soldier", 1, 6], ["blue", "soldier", 1, 7],
-    ["red", "soldier", 2, 2], ["blue", "soldier", 2, 3], ["red", "soldier", 2, 4],
-    ["red", "soldier", 2, 5], ["red", "soldier", 2, 6], ["blue", "soldier", 2, 7],
-    ["blue", "soldier", 3, 3], ["red", "soldier", 3, 4], ["red", "soldier", 3, 5],
-    ["red", "soldier", 3, 6], ["blue", "soldier", 3, 7], ["blue", "general", 4, 3],
-    ["red", "king", 4, 4], ["blue", "wizard", 4, 5], ["red", "soldier", 5, 2],
-    ["red", "soldier", 5, 3], ["blue", "soldier", 5, 4], ["red", "soldier", 6, 2],
-    ["blue", "soldier", 6, 3], ["blue", "soldier", 6, 4], ["blue", "soldier", 6, 5],
-    ["red", "soldier", 7, 1], ["red", "soldier", 7, 2], ["blue", "soldier", 7, 3],
-    ["blue", "king", 7, 4], ["red", "soldier", 7, 5], ["red", "soldier", 7, 6],
-    ["blue", "soldier", 8, 3], ["red", "soldier", 8, 4],
+    ["white", "soldier", 0, 4], ["white", "soldier", 0, 5], ["white", "soldier", 0, 6],
+    ["black", "soldier", 0, 7], ["white", "soldier", 1, 3], ["black", "soldier", 1, 4],
+    ["white", "soldier", 1, 5], ["black", "soldier", 1, 6], ["white", "soldier", 1, 7],
+    ["black", "soldier", 2, 2], ["white", "soldier", 2, 3], ["black", "soldier", 2, 4],
+    ["black", "soldier", 2, 5], ["black", "soldier", 2, 6], ["white", "soldier", 2, 7],
+    ["white", "soldier", 3, 3], ["black", "soldier", 3, 4], ["black", "soldier", 3, 5],
+    ["black", "soldier", 3, 6], ["white", "soldier", 3, 7], ["white", "general", 4, 3],
+    ["black", "king", 4, 4], ["white", "wizard", 4, 5], ["black", "soldier", 5, 2],
+    ["black", "soldier", 5, 3], ["white", "soldier", 5, 4], ["black", "soldier", 6, 2],
+    ["white", "soldier", 6, 3], ["white", "soldier", 6, 4], ["white", "soldier", 6, 5],
+    ["black", "soldier", 7, 1], ["black", "soldier", 7, 2], ["white", "soldier", 7, 3],
+    ["white", "king", 7, 4], ["black", "soldier", 7, 5], ["black", "soldier", 7, 6],
+    ["white", "soldier", 8, 3], ["black", "soldier", 8, 4],
   ];
   for (const [owner, type, row, col] of pieces) state.board[row][col] = createPiece(owner, type);
-  state.turn = "red";
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 19, blue: 19 };
-  state.stock.red = { soldier: 61, king: 0, general: 0, diplomat: 1, wizard: 1 };
-  state.stock.blue = { soldier: 61, king: 0, general: 0, diplomat: 1, wizard: 0 };
+  state.turn = "black";
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 19, white: 19 };
+  state.stock.black = { soldier: 61, king: 0, general: 0, diplomat: 1, wizard: 1 };
+  state.stock.white = { soldier: 61, king: 0, general: 0, diplomat: 1, wizard: 0 };
   state.log = [LANGUAGE === "ko"
     ? "39번째 액션 직전: D1은 E1·F1·G1·F2 백돌 무리의 유일한 활로입니다. D1에 흑 병사를 놓아보세요."
     : "Before action 39: D1 is the only liberty of the White group at E1, F1, G1, and F2. Place a Black Soldier at D1."];
@@ -950,27 +951,27 @@ function applyMatchResultDemo() {
   const onlineDemo = demoName === "match-result-online";
 
   selectModeChoice(onlineDemo ? "pvp" : "pve");
-  pveHumanPlayer = "blue";
-  pveAiPlayer = "red";
+  pveHumanPlayer = "white";
+  pveAiPlayer = "black";
   state = createInitialState(onlineDemo ? "pvp" : "pve", pveHumanPlayer);
   state.aiRank = selectedPveRank;
-  state.board[4][4] = createPiece("red", "king");
-  state.board[5][4] = createOccupiedSoldier("red");
-  state.board[6][4] = createOccupiedSoldier("blue");
+  state.board[4][4] = createPiece("black", "king");
+  state.board[5][4] = createOccupiedSoldier("black");
+  state.board[6][4] = createOccupiedSoldier("white");
   state.capturedKing = {
-    pieceId: "demo-captured-blue-king",
-    owner: "blue",
+    pieceId: "demo-captured-white-king",
+    owner: "white",
     row: 5,
     col: 4,
   };
-  state.deploymentCount = { red: 19, blue: 19 };
-  state.stats.captures = { red: 7, blue: 4 };
-  state.stats.specialsUsed = { red: 2, blue: 1 };
+  state.deploymentCount = { black: 19, white: 19 };
+  state.stats.captures = { black: 7, white: 4 };
+  state.stats.specialsUsed = { black: 2, white: 1 };
   state.aiRank = selectedPveRank || "novice";
-  state.winner = "red";
-  state.resultReason = "blue King was captured.";
+  state.winner = "black";
+  state.resultReason = "white King was captured.";
   if (onlineDemo) {
-    networkSession.player = "blue";
+    networkSession.player = "white";
     networkSession.ready = true;
   }
   modeModal.hidden = true;
@@ -1175,7 +1176,7 @@ function runTutorialScriptedDeployments(actions) {
     if (!action) {
       tutorialScriptTimer = null;
       tutorialScriptRunning = false;
-      state.turn = TUTORIAL_STEPS[tutorialStep]?.owner || "blue";
+      state.turn = TUTORIAL_STEPS[tutorialStep]?.owner || "white";
       render();
       return;
     }
@@ -1206,17 +1207,17 @@ function runTutorialScriptedDeployments(actions) {
 function resetTutorialBoard() {
   state.lastMove = null;
   state.board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 5, blue: 5 };
-  state.stock.red = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
-  state.stock.blue = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 5, white: 5 };
+  state.stock.black = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
+  state.stock.white = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
 }
 
 function setTutorialSpecialBoard() {
   resetTutorialBoard();
-  state.board[3][4] = createOccupiedSoldier("red");
-  state.board[5][4] = createOccupiedSoldier("red");
-  state.board[4][3] = createOccupiedSoldier("red");
+  state.board[3][4] = createOccupiedSoldier("black");
+  state.board[5][4] = createOccupiedSoldier("black");
+  state.board[4][3] = createOccupiedSoldier("black");
 }
 
 function advanceTutorial() {
@@ -1234,7 +1235,7 @@ function advanceTutorial() {
   if (!expected) {
     if (activePuzzle?.type === "tutorial") {
       markPuzzleComplete(puzzleIndex);
-      state.winner = "blue";
+      state.winner = "white";
     }
     return;
   }
@@ -1273,9 +1274,9 @@ function beginTutorialSpecialReaction() {
   tutorialReactionPhase = "preparing";
   render();
   tutorialTimer = window.setTimeout(() => {
-    state.turn = "red";
+    state.turn = "black";
     const expected = TUTORIAL_STEPS[tutorialStep];
-    const surrounded = commitSharedLocalAction("red", {
+    const surrounded = commitSharedLocalAction("black", {
       type: "deploy",
       unitType: "soldier",
       row: expected?.reactionRow ?? 4,
@@ -1307,7 +1308,7 @@ function getTutorialIntroCutscene(pageIndex) {
   const unitType = pageIndex === 0 ? "guide" : "rules";
   return {
     unitType,
-    owner: "blue",
+    owner: "white",
     persistent: true,
     nameplate: pageIndex === 0 ? text("tutorialGuideName") : "",
     message: text(pageKeys[pageIndex] || "tutorialIntroPage1"),
@@ -1343,10 +1344,10 @@ function proceedFromTutorialIntro() {
   tutorialIntroReady = false;
   visibleCutscene = null;
   if (tutorialStep === 0) {
-    state.board[1][4] = createPiece("red", "king");
-    state.firstDeployDone.red = true;
-    state.deploymentCount.red = 1;
-    state.stock.red.king = 0;
+    state.board[1][4] = createPiece("black", "king");
+    state.firstDeployDone.black = true;
+    state.deploymentCount.black = 1;
+    state.stock.black.king = 0;
   }
   render();
 }
@@ -1365,9 +1366,9 @@ function startTutorial({ puzzleEntry = false, index = 0 } = {}) {
   puzzleCompleted = false;
   undoStack = [];
   state = createInitialState("tutorial");
-  state.turn = "blue";
-  state.stock.blue = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
-  state.stock.red = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
+  state.turn = "white";
+  state.stock.white = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
+  state.stock.black = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
   tutorialStep = 0;
   tutorialIntro = true;
   tutorialIntroPage = 0;
@@ -1426,8 +1427,8 @@ function loadPuzzle(index = 0) {
   state.turn = activePuzzle.player;
   state.board = Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => null));
   state.stock = normalizePuzzleStock(activePuzzle.stock);
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 5, blue: 5 };
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 5, white: 5 };
   if (activePuzzle.unit === "king") {
     state.firstDeployDone[activePuzzle.player] = false;
     state.deploymentCount[activePuzzle.player] = 0;
@@ -1510,7 +1511,7 @@ function completeTutorialPuzzleIfNeeded() {
   if (tutorialStep < TUTORIAL_STEPS.length || state.winner) return;
   puzzleCompleted = true;
   markPuzzleComplete(puzzleIndex);
-  state.winner = "blue";
+  state.winner = "white";
   state.resultReason = text("tutorialPuzzleSolvedReason");
   addLog(state.resultReason);
 }
@@ -1540,7 +1541,7 @@ function applySharedPveAction(player, action, options = {}) {
 }
 
 function commitSharedLocalAction(player, action, options = {}) {
-  const viewer = state.mode === "tutorial" ? "blue" : pveHumanPlayer;
+  const viewer = state.mode === "tutorial" ? "white" : pveHumanPlayer;
   const dispatchOptions = { ...options, advanceTurn: state.mode === "pve" };
   const result = dispatchSharedLocalAction(
     state,
@@ -1567,7 +1568,7 @@ function pveJournalOutcome() {
   return {
     winner: state.winner,
     reason: state.resultReason || null,
-    finalPieces: { red: countPieces("red"), blue: countPieces("blue") },
+    finalPieces: { black: countPieces("black"), white: countPieces("white") },
   };
 }
 
@@ -1704,8 +1705,8 @@ function sharedMatchResultReason(event) {
   if (event.reason === "elimination") return text("allEliminated");
   if (event.reason === "territory") {
     return text(event.trigger === "board_filled" ? "boardFilled" : "noLegalMoves", {
-      red: event.red,
-      blue: event.blue,
+      black: event.black,
+      white: event.white,
       bonus: event.secondPlayerBonus,
     });
   }
@@ -2073,7 +2074,7 @@ function render() {
     : state.mode === "pve" || state.mode === "puzzle"
       ? pveHumanPlayer
       : PVE_HUMAN;
-  fortressFrame.classList.toggle("view-red", viewerSide === "red");
+  fortressFrame.classList.toggle("view-black", viewerSide === "black");
   pveTurnDeadline = resolvePveTurnDeadline({
     currentDeadline: pveTurnDeadline,
     now: Date.now(),
@@ -2105,8 +2106,8 @@ function render() {
     connectionInfo,
     connectionInfoText,
     rankInfo,
-    redCount,
-    blueCount,
+    blackCount,
+    whiteCount,
     deployDock,
     confirmTeleportBtn,
     cancelTeleportBtn,
@@ -2224,12 +2225,12 @@ function render() {
   );
   const challengeResultActive = Boolean(state.winner && (puzzleActive || (tutorialActive && activePuzzle?.type === "tutorial")));
   const challengeResultSolved = challengeResultActive && (tutorialActive
-    ? state.winner === "blue"
+    ? state.winner === "white"
     : state.winner === activePuzzle?.player);
   const tutorialVictoryReady = Boolean(
     tutorialActive
       && !activePuzzle
-      && state.winner === "blue"
+      && state.winner === "white"
       && tutorialStep >= TUTORIAL_STEPS.length - 1
       && tutorialAwaitingContinue,
   );
@@ -2268,14 +2269,14 @@ function render() {
     }
     if (resultSide) metaParts.push(sideName(resultSide));
     matchResultMeta.textContent = metaParts.join(" · ");
-    resultRedUnits.textContent = countPieces("red");
-    resultBlueUnits.textContent = countPieces("blue");
+    resultRedUnits.textContent = countPieces("black");
+    resultBlueUnits.textContent = countPieces("white");
     resultFinishMethod.textContent = localizeResultReason(state.resultReason);
     resultTotalDeployments.textContent = text("deploymentTotalValue", {
-      count: (state.deploymentCount?.red || 0) + (state.deploymentCount?.blue || 0),
+      count: (state.deploymentCount?.black || 0) + (state.deploymentCount?.white || 0),
     });
-    resultRedCaptures.textContent = state.stats?.captures?.red || 0;
-    resultBlueCaptures.textContent = state.stats?.captures?.blue || 0;
+    resultRedCaptures.textContent = state.stats?.captures?.black || 0;
+    resultBlueCaptures.textContent = state.stats?.captures?.white || 0;
     startTutorialBtn.hidden = true;
     tutorialLobbyBtn.hidden = true;
     exitTutorialBtn.hidden = true;
@@ -2428,12 +2429,12 @@ function localizeResultReason(reason) {
   if (reason === "All enemy units were eliminated.") return text("allEliminated");
   if (reason === "Time limit exceeded (30s).") return text("timeExpired");
   if (reason.includes("resigned.")) {
-    const side = reason.startsWith("Black") || reason.startsWith("red") ? text("red") : text("blue");
+    const side = reason.startsWith("Black") || reason.startsWith("black") ? text("black") : text("white");
     return text("resignReason", { side });
   }
   const localizedSides = reason
-    .replace(/\bred\b/gi, text("red"))
-    .replace(/\bblue\b/gi, text("blue"));
+    .replace(/\bred\b/gi, text("black"))
+    .replace(/\bblue\b/gi, text("white"));
   if (LANGUAGE !== "ko") return localizedSides;
   return localizedSides
     .replaceAll("King", text("king"))
@@ -2477,7 +2478,7 @@ if (confirmResignBtn) {
     const winningSide = opponent(resigningSide);
     state.phase = "complete";
     state.winner = winningSide;
-    state.resultReason = `${resigningSide === "red" ? "Black" : "White"} resigned.`;
+    state.resultReason = `${resigningSide === "black" ? "Black" : "White"} resigned.`;
     recordMatchHistory();
     render();
   });
@@ -2727,11 +2728,11 @@ function startPve(side) {
   state.aiDifficulty = pveDifficulty;
   state.aiRank = selectedPveRank;
   state.pveTimerEnabled = activePveTimerEnabled;
-  pveTurnDeadline = activePveTimerEnabled && !DEVELOPER_MODE && side === "red"
+  pveTurnDeadline = activePveTimerEnabled && !DEVELOPER_MODE && side === "black"
     ? Date.now() + PVE_TURN_LIMIT_MS
     : null;
   render();
-  if (side === "blue") scheduleAiTurn();
+  if (side === "white") scheduleAiTurn();
 }
 
 function showNetworkRoomControls() {
@@ -2787,7 +2788,7 @@ function returnToNetworkLobby() {
   hideRematchToast();
   rematchRequested = false;
   rematchOfferedBy = null;
-  state = createInitialState("pvp", "red");
+  state = createInitialState("pvp", "black");
   state.mode = "pvp";
   networkModal.hidden = false;
   showNetworkRoomControls();
@@ -2837,7 +2838,7 @@ function handleNetworkMessage(message) {
     return;
   }
 
-  if (message.type === "rps_start" || message.type === "side_selection") {
+  if (message.type === "rps_start") {
     networkSession.roomCode = message.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
     resultModal.hidden = true;
@@ -2861,7 +2862,7 @@ function handleNetworkMessage(message) {
         setNetworkStatus(text("rpsPrompt"));
       }, 1200);
     } else if (message.result === "win") {
-      const won = message.yourSide === "red";
+      const won = message.yourSide === "black";
       setNetworkStatus(won ? text("rpsWin") : text("rpsLose"));
       if (won) playPlacementSound();
     }
@@ -3002,7 +3003,7 @@ function joinNetworkRoom(roomCode) {
   connectNetwork({
     type: "join_room",
     roomCode,
-    protocolVersion: 2,
+    protocolVersion: PROTOCOL_VERSION,
   });
 }
 
@@ -3073,7 +3074,7 @@ toastDeclineRematchBtn?.addEventListener("click", () => {
 });
 createRoomBtn.addEventListener("click", () => connectNetwork({
   type: "create_room",
-  protocolVersion: 2,
+  protocolVersion: PROTOCOL_VERSION,
 }));
 refreshRoomListBtn.addEventListener("click", requestRoomList);
 rpsButtons.forEach((button) => {
@@ -3239,12 +3240,12 @@ const fxLoopToggleBtn = document.querySelector("#fxLoopToggleBtn");
 
 fxPreviewBar?.toggleAttribute("hidden", !DEVELOPER_MODE);
 
-let fxPreviewSide = "red";
+let fxPreviewSide = "black";
 let fxLoopActive = false;
 let fxLoopInterval = null;
 
-function setupGeneralDemoBoard(side = "red", shouldRender = true) {
-  const opponent = side === "red" ? "blue" : "red";
+function setupGeneralDemoBoard(side = "black", shouldRender = true) {
+  const opponent = side === "black" ? "white" : "black";
   if (modeModal) modeModal.hidden = true;
   state.mode = "pve";
   state.board = Array.from({ length: 9 }, () => Array(9).fill(null));
@@ -3260,7 +3261,7 @@ function setupGeneralDemoBoard(side = "red", shouldRender = true) {
 
 function playGeneralDemo() {
   setupGeneralDemoBoard(fxPreviewSide, false);
-  const opponent = fxPreviewSide === "red" ? "blue" : "red";
+  const opponent = fxPreviewSide === "black" ? "white" : "black";
   const removedEvents = [
     { row: 3, col: 4, owner: opponent, unitType: "soldier", pieceId: "demo-enemy-1", reason: "general_reaction" },
     { row: 5, col: 4, owner: opponent, unitType: "soldier", pieceId: "demo-enemy-2", reason: "general_reaction" },
@@ -3280,8 +3281,8 @@ function playGeneralDemo() {
   }, removedEvents);
 }
 
-function setupDiplomatDemoBoard(side = "red", shouldRender = true) {
-  const opponent = side === "red" ? "blue" : "red";
+function setupDiplomatDemoBoard(side = "black", shouldRender = true) {
+  const opponent = side === "black" ? "white" : "black";
   if (modeModal) modeModal.hidden = true;
   state.mode = "pve";
   state.board = Array.from({ length: 9 }, () => Array(9).fill(null));
@@ -3297,7 +3298,7 @@ function setupDiplomatDemoBoard(side = "red", shouldRender = true) {
 
 function playDiplomatDemo() {
   setupDiplomatDemoBoard(fxPreviewSide, false);
-  const opponent = fxPreviewSide === "red" ? "blue" : "red";
+  const opponent = fxPreviewSide === "black" ? "white" : "black";
   const convertedPieces = [
     { row: 3, col: 4, fromOwner: opponent, toOwner: fxPreviewSide, pieceId: "demo-enemy-1" },
     { row: 5, col: 4, fromOwner: opponent, toOwner: fxPreviewSide, pieceId: "demo-enemy-2" },
@@ -3317,8 +3318,8 @@ function playDiplomatDemo() {
   }, convertedPieces);
 }
 
-function setupWizardDemoBoard(side = "red", shouldRender = true) {
-  const opponent = side === "red" ? "blue" : "red";
+function setupWizardDemoBoard(side = "black", shouldRender = true) {
+  const opponent = side === "black" ? "white" : "black";
   if (modeModal) modeModal.hidden = true;
   state.mode = "pve";
   state.board = Array.from({ length: 9 }, () => Array(9).fill(null));
@@ -3334,7 +3335,7 @@ function setupWizardDemoBoard(side = "red", shouldRender = true) {
 
 function playWizardDemo() {
   setupWizardDemoBoard(fxPreviewSide, false);
-  const opponent = fxPreviewSide === "red" ? "blue" : "red";
+  const opponent = fxPreviewSide === "black" ? "white" : "black";
   const removedEvents = [
     { row: 3, col: 4, owner: opponent, unitType: "soldier", pieceId: "demo-enemy-1", reason: "wizard_reaction" },
     { row: 5, col: 4, owner: opponent, unitType: "soldier", pieceId: "demo-enemy-2", reason: "wizard_reaction" },
@@ -3396,9 +3397,9 @@ fxKingTauntBtn?.addEventListener("click", () => {
 });
 
 fxSideToggleBtn?.addEventListener("click", () => {
-  fxPreviewSide = fxPreviewSide === "red" ? "blue" : "red";
-  fxSideToggleBtn.textContent = fxPreviewSide === "red" ? "진영: 흑 (Black)" : "진영: 백 (White)";
-  if (fxPreviewSide === "blue") {
+  fxPreviewSide = fxPreviewSide === "black" ? "white" : "black";
+  fxSideToggleBtn.textContent = fxPreviewSide === "black" ? "진영: 흑 (Black)" : "진영: 백 (White)";
+  if (fxPreviewSide === "white") {
     fxSideToggleBtn.classList.add("fx-btn-active");
   } else {
     fxSideToggleBtn.classList.remove("fx-btn-active");

@@ -44,7 +44,7 @@ function chooseMove(state, settings, allowed) {
   const view = structuredClone(state);
   view.aiSettings = { ...AI_RANK_SETTINGS.grandmaster, ...settings };
   const player = view.turn;
-  const enemy = player === "red" ? "blue" : "red";
+  const enemy = player === "black" ? "white" : "black";
   return findAiDeployMove(view, {
     aiPlayer: player,
     humanPlayer: enemy,
@@ -88,25 +88,25 @@ function terminalTerritoryFixture() {
     for (let col = 0; col < 9; col += 1) {
       const compact = source.board[row][col];
       if (!compact) continue;
-      const owner = compact[0] === "R" ? "red" : "blue";
+      const owner = compact[0] === "R" ? "black" : "white";
       const type = compact.slice(1);
       state.board[row][col] = piece(owner, type, `piece-${id++}`, true);
     }
   }
   state.turn = source.turn;
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 50, blue: 50 };
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 50, white: 50 };
   state.stock = {
-    red: { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 },
-    blue: { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 },
+    black: { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 },
+    white: { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 },
   };
-  state.stats.specialsUsed = { red: 3, blue: 3 };
+  state.stats.specialsUsed = { black: 3, white: 3 };
 
   // Three empty points leave an exact three-ply ending. These six ownership changes narrow the
-  // count without changing the rule: exhaustive engine play proves that only 4,7 wins for Blue.
+  // count without changing the rule: exhaustive engine play proves that only 4,7 wins for White.
   state.board[4][7] = null;
   for (const [row, col] of [[5, 3], [7, 5], [6, 2], [2, 2], [3, 7], [6, 7]]) {
-    state.board[row][col].owner = "red";
+    state.board[row][col].owner = "black";
     state.board[row][col].id = `piece-${id++}`;
   }
   return state;
@@ -147,25 +147,25 @@ function evaluateTerritoryFixture() {
 
 function anchorMineFixture(hiddenType, specialsSpent = false) {
   const state = createGameState("pve", { aiRank: "grandmaster" });
-  state.turn = "red";
-  state.firstDeployDone = { red: true, blue: true };
-  state.deploymentCount = { red: 20, blue: 20 };
+  state.turn = "black";
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 20, white: 20 };
   state.stock = {
-    red: { soldier: 70, king: 0, general: 0, diplomat: 0, wizard: 0 },
-    blue: { soldier: 70, king: 0, general: 0, diplomat: 0, wizard: 0 },
+    black: { soldier: 70, king: 0, general: 0, diplomat: 0, wizard: 0 },
+    white: { soldier: 70, king: 0, general: 0, diplomat: 0, wizard: 0 },
   };
-  state.stats.specialsUsed = { red: 3, blue: specialsSpent ? 3 : 0 };
-  state.board[0][4] = piece("red", "king", "piece-20", true);
-  state.board[0][3] = piece("red", "soldier", "piece-21", true);
-  state.board[1][3] = piece("red", "soldier", "piece-22", true);
-  state.board[1][5] = piece("red", "soldier", "piece-23", true);
-  state.board[1][4] = piece("blue", hiddenType, "piece-30", specialsSpent);
+  state.stats.specialsUsed = { black: 3, white: specialsSpent ? 3 : 0 };
+  state.board[0][4] = piece("black", "king", "piece-20", true);
+  state.board[0][3] = piece("black", "soldier", "piece-21", true);
+  state.board[1][3] = piece("black", "soldier", "piece-22", true);
+  state.board[1][5] = piece("black", "soldier", "piece-23", true);
+  state.board[1][4] = piece("white", hiddenType, "piece-30", specialsSpent);
   return state;
 }
 
 function evaluateAnchorFixture(hiddenType) {
   const state = anchorMineFixture(hiddenType);
-  const threat = kingSafetyProfile(state, "red", { specialsBreakAnchors: true });
+  const threat = kingSafetyProfile(state, "black", { specialsBreakAnchors: true });
   const risky = { type: "deploy", unitType: "soldier", row: 2, col: 4 };
   const safe = { type: "deploy", unitType: "soldier", row: 8, col: 8 };
   const riskyResult = applyDeployment(state, risky);
@@ -208,7 +208,7 @@ function evaluateAnchorFixture(hiddenType) {
     production: { baseline: productionBaseline, model: productionModel },
     modelFixesIsolatedDecision: baseline !== actionKey(safe) && model === actionKey(safe),
     modelImprovesProductionDecision: productionBaseline !== actionKey(safe) && productionModel === actionKey(safe),
-    groundTruthVerified: riskyResult.winner === "blue"
+    groundTruthVerified: riskyResult.winner === "white"
       && !safeResult.winner
       && threat.wallAnchors > 0
       && threat.soldierCaptureDistance === Infinity
