@@ -610,14 +610,6 @@ body.iphone-preview .lobby-logo {
   text-align: right;
 }
 
-.match-result-card .captures-score-note {
-  margin: -4px 0 16px;
-  color: rgb(247 239 224 / 46%);
-  font-size: 10px;
-  line-height: 1.4;
-  text-align: center;
-}
-
 .result-actions {
   display: grid;
   gap: 8px;
@@ -2426,77 +2418,6 @@ body.iphone-preview .lobby-logo {
   margin: 16px 0 24px;
 }
 
-.special-notice-card,
-.help-card {
-  width: min(calc(var(--card-content-width) + 58px), 100%);
-  max-width: 360px;
-  padding: 28px 24px;
-  border: 1px solid rgb(216 165 50 / 42%);
-  border-radius: var(--radius);
-  color: rgb(247 239 224 / 88%);
-  text-align: center;
-  background: linear-gradient(180deg, rgb(18 20 20 / 98%), rgb(10 11 12 / 99%));
-  box-shadow:
-    0 24px 70px rgb(0 0 0 / 48%),
-    inset 0 0 0 1px rgb(255 225 130 / 8%);
-  backdrop-filter: blur(10px);
-}
-
-.special-notice-card .eyebrow {
-  margin: 0 0 8px;
-  color: #d9ad5d;
-  font-size: var(--font-size-meta);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.special-notice-card h2 {
-  margin: 0 0 12px;
-  font-size: var(--font-size-heading);
-  color: rgb(247 239 224 / 94%);
-}
-
-.special-notice-card .result-reason {
-  margin: 0 0 24px;
-  font-size: var(--font-size-body);
-  line-height: 1.55;
-  color: rgb(247 239 224 / 78%);
-  text-align: left;
-}
-
-.special-notice-card .result-actions {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-.special-notice-card .result-primary-button {
-  width: 100%;
-  min-height: var(--card-button-height);
-  border: 1px solid rgb(216 165 50 / 78%);
-  border-radius: var(--radius);
-  color: #efd37a;
-  background: linear-gradient(180deg, rgb(44 38 23 / 96%), rgb(20 17 11 / 98%));
-  font-family: var(--font-ui);
-  font-size: var(--font-size-body);
-  font-weight: 700;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.special-notice-card .result-primary-button:hover {
-  border-color: #ffd768;
-  background: linear-gradient(180deg, rgb(56 48 29 / 98%), rgb(26 22 14 / 99%));
-}
-
-.special-notice-card .result-primary-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  border-color: rgb(216 165 50 / 28%);
-  color: rgb(247 239 224 / 40%);
-}
-
 .taunt-overlay {
   position: absolute;
   z-index: 12;
@@ -3961,8 +3882,10 @@ body.iphone-preview .game-status-bar {
 }
 
 .game-status-bar > .tutorial-panel.match-result-announcement .tutorial-guide-content {
+  align-self: stretch;
   align-items: center;
   justify-content: center;
+  height: 100%;
 }
 
 .game-status-bar > .tutorial-panel.match-result-announcement {
@@ -3972,11 +3895,10 @@ body.iphone-preview .game-status-bar {
 }
 
 .game-status-bar > .tutorial-panel .match-result-summary {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  gap: 3px;
+  gap: 10px;
   width: 100%;
   height: 100%;
 }
@@ -3985,39 +3907,75 @@ body.iphone-preview .game-status-bar {
   display: none;
 }
 
-.game-status-bar > .tutorial-panel .match-result-summary div {
+.game-status-bar > .tutorial-panel .match-result-identity {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 0 92px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 0;
-  height: auto;
+  gap: 6px;
+  width: 92px;
+  height: 100%;
+  padding: 4px;
+  box-sizing: border-box;
 }
 
-.game-status-bar > .tutorial-panel .match-result-summary div span {
+.game-status-bar > .tutorial-panel .match-result-identity strong {
   max-width: 100%;
   overflow: hidden;
-  color: rgb(247 239 224 / 62%);
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 14px;
+  color: #efd37a;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 19px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.game-status-bar > .tutorial-panel .match-result-summary strong {
-  color: #efd37a;
-  font-size: 14px;
+.game-status-bar > .tutorial-panel .match-result-verdict {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  height: 100%;
+}
+
+.game-status-bar > .tutorial-panel .match-result-headline {
+  max-width: 100%;
+  overflow: hidden;
+  color: rgb(247 239 224 / 94%);
+  font-size: clamp(15px, 5vw, 20px);
   font-weight: 700;
-  line-height: 18px;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 6px rgb(0 0 0 / 45%);
+}
+
+.game-status-bar > .tutorial-panel .match-result-reason {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  color: rgb(247 239 224 / 84%);
+  font-size: var(--font-size-body);
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+  text-wrap: balance;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .game-status-bar > .tutorial-panel .match-result-stone {
   position: relative;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
   border: 2px solid rgb(255 255 255 / 42%);
   border-radius: 50%;
   box-shadow: 0 4px 10px rgb(0 0 0 / 30%);
@@ -4060,8 +4018,17 @@ body.iphone-preview .game-status-bar {
   height: 32px;
   min-height: 32px;
   padding-inline: 6px;
+  border: 1px solid rgb(247 239 224 / 24%);
   border-radius: 6px;
+  color: rgb(247 239 224 / 88%);
+  background: rgb(247 239 224 / 6%);
   font-size: 10px;
+}
+
+.game-status-bar > .tutorial-panel.match-result-announcement .match-result-action:hover,
+.game-status-bar > .tutorial-panel.match-result-announcement .match-result-action:active {
+  border-color: rgb(247 239 224 / 44%);
+  background: rgb(247 239 224 / 12%);
 }
 
 .game-status-bar > .tutorial-panel .match-result-actions-frame {

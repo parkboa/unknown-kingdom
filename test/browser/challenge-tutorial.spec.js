@@ -99,7 +99,7 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await expectPiece(page, "G6", "red");
   await expectPiece(page, "F7", "red");
   await ownWallCell.click();
-  await expect(page.locator("#tutorialMessage")).toHaveText("흑 병사는 자기 성벽에서 활로를 얻어 포획되지 않았습니다.");
+  await expect(page.locator("#tutorialMessage")).toHaveText("흑 병사는 흑 성벽에서 활로를 얻어 포획되지 않았습니다.");
   await expectPiece(page, "B1", "red");
   await sanctuaryNext.click();
 

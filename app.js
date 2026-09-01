@@ -125,6 +125,8 @@ let tauntTimer = null;
 let visibleTaunt = null;
 let cutsceneTimer = null;
 let visibleCutscene = null;
+let pendingSpecialTimer = null;
+let pendingSpecialAutoKey = null;
 let activeSkillEffect = null;
 let skillEffectTimer = null;
 let lastTauntEventId = 0;
@@ -169,10 +171,10 @@ let pendingDeploymentAnimation = null;
 let matchResultDetailsOpen = false;
 
 const AI_MOVE_DELAY_MS = 600;
-const AI_SPECIAL_REVEAL_DELAY_MS = 1500;
+// One beat between "surrounded" and the ability firing, shared by every mode.
+const SPECIAL_ACTIVATE_DELAY_MS = 1200;
 const AI_WIZARD_TELEPORT_DELAY_MS = 900;
 const TUTORIAL_SPECIAL_SURROUND_DELAY_MS = 1200;
-const TUTORIAL_SPECIAL_ACTIVATE_DELAY_MS = 1600;
 const TUTORIAL_SCRIPT_ACTION_DELAY_MS = 180;
 const TAUNT_DISPLAY_MS = 3000;
 const CUTSCENE_DISPLAY_MS = 2000;
@@ -366,10 +368,6 @@ const rematchToast = document.querySelector("#rematchToast");
 const rematchToastTitle = document.querySelector("#rematchToastTitle");
 const toastAcceptRematchBtn = document.querySelector("#toastAcceptRematchBtn");
 const toastDeclineRematchBtn = document.querySelector("#toastDeclineRematchBtn");
-const pendingSpecialModal = document.querySelector("#pendingSpecialModal");
-const pendingSpecialTitle = document.querySelector("#pendingSpecialTitle");
-const pendingSpecialText = document.querySelector("#pendingSpecialText");
-const activateSpecialBtn = document.querySelector("#activateSpecialBtn");
 const suicideConfirmModal = document.querySelector("#suicideConfirmModal");
 const suicideConfirmTitle = document.querySelector("#suicideConfirmTitle");
 const suicideConfirmText = document.querySelector("#suicideConfirmText");
@@ -398,7 +396,8 @@ const tutorialStepLabel = document.querySelector("#tutorialStepLabel");
 const tutorialMessage = document.querySelector("#tutorialMessage");
 const matchResultSummary = document.querySelector("#matchResultSummary");
 const matchResultOutcome = document.querySelector("#matchResultOutcome");
-const matchResultScore = document.querySelector("#matchResultScore");
+const matchResultHeadline = document.querySelector("#matchResultHeadline");
+const matchResultReason = document.querySelector("#matchResultReason");
 const matchResultActions = document.querySelector("#matchResultActions");
 const matchResultMeta = document.querySelector("#matchResultMeta");
 const resultRedUnits = document.querySelector("#resultRedUnits");
@@ -407,8 +406,6 @@ const resultFinishMethod = document.querySelector("#resultFinishMethod");
 const resultTotalDeployments = document.querySelector("#resultTotalDeployments");
 const resultRedCaptures = document.querySelector("#resultRedCaptures");
 const resultBlueCaptures = document.querySelector("#resultBlueCaptures");
-const resultRedSpecials = document.querySelector("#resultRedSpecials");
-const resultBlueSpecials = document.querySelector("#resultBlueSpecials");
 const startTutorialBtn = document.querySelector("#startTutorialBtn");
 const tutorialLobbyBtn = document.querySelector("#tutorialLobbyBtn");
 const exitTutorialBtn = document.querySelector("#exitTutorialBtn");
@@ -843,6 +840,42 @@ function applyWizardTeleportDemo() {
   return true;
 }
 
+function applySpecialPendingDemo() {
+  if (location.hostname !== "127.0.0.1" && location.hostname !== "localhost") return false;
+  const params = new URLSearchParams(location.search);
+  if (params.get("demo") !== "special-pending") return false;
+  // ?owner=ai surrounds the AI's own special instead of the player's.
+  const specialOwner = params.get("owner") === "ai" ? "red" : "blue";
+  const surroundingSide = specialOwner === "blue" ? "red" : "blue";
+
+  selectModeChoice("pve");
+  pveHumanPlayer = "blue";
+  pveAiPlayer = "red";
+  state = createInitialState("pve", pveHumanPlayer);
+  state.aiDifficulty = pveDifficulty;
+  state.aiRank = selectedPveRank;
+  state.board[4][4] = createPiece(specialOwner, "general");
+  state.board[4][4].revealed = true;
+  state.board[3][4] = createOccupiedSoldier(surroundingSide);
+  state.board[5][4] = createOccupiedSoldier(surroundingSide);
+  state.board[4][3] = createOccupiedSoldier(surroundingSide);
+  state.board[4][5] = createOccupiedSoldier(surroundingSide);
+  // Reserves off the strike zone so the demo does not end by elimination.
+  state.board[0][0] = createOccupiedSoldier("red");
+  state.board[8][8] = createOccupiedSoldier("blue");
+  state.pendingSpecial = { row: 4, col: 4, owner: specialOwner, type: "general", captor: surroundingSide };
+  state.resumeTurn = surroundingSide;
+  state.turn = specialOwner;
+  state.firstDeployDone = { red: true, blue: true };
+  state.deploymentCount = { red: 5, blue: 5 };
+  state.stock.blue = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.stock.red = { soldier: 77, king: 0, general: 0, diplomat: 0, wizard: 0 };
+  state.log = ["Special activation demo: the surrounded General activates on its own."];
+  modeModal.hidden = true;
+  pveSideModal.hidden = true;
+  return true;
+}
+
 function applySuicideWarningDemo() {
   if (location.hostname !== "127.0.0.1" && location.hostname !== "localhost") return false;
   if (new URLSearchParams(location.search).get("demo") !== "suicide-warning") return false;
@@ -942,7 +975,7 @@ function applyMatchResultDemo() {
 }
 
 function applyLocalDemo() {
-  return applyCapture38Demo() || applyMatchResultDemo() || applyNoMoveDemo() || applyWizardTeleportDemo() || applySuicideWarningDemo();
+  return applyCapture38Demo() || applyMatchResultDemo() || applyNoMoveDemo() || applyWizardTeleportDemo() || applySpecialPendingDemo() || applySuicideWarningDemo();
 }
 
 function currentUnitChoice() {
@@ -1251,14 +1284,11 @@ function beginTutorialSpecialReaction() {
       render();
       return;
     }
+    tutorialTimer = null;
     tutorialReactionPhase = "surrounded";
     render();
-    tutorialTimer = window.setTimeout(() => {
-      tutorialTimer = null;
-      tutorialReactionPhase = null;
-      commitSharedLocalAction("blue", { type: "activate_special" });
-      render();
-    }, TUTORIAL_SPECIAL_ACTIVATE_DELAY_MS);
+    // scheduleSpecialAutoActivation() fires the ability from here, on the same
+    // timer every other mode uses.
   }, TUTORIAL_SPECIAL_SURROUND_DELAY_MS);
   return true;
 }
@@ -1982,17 +2012,6 @@ function teleportWizard(row, col) {
 function scheduleAiTurn() {
   if (new URLSearchParams(location.search).get("demo") === "capture-38") return;
   if (visibleTaunt) return;
-  if (state.mode === "pve" && state.pendingSpecial?.owner === pveAiPlayer && !state.aiThinking) {
-    state.aiThinking = true;
-    render();
-    aiTimer = window.setTimeout(() => {
-      aiTimer = null;
-      state.aiThinking = false;
-      activatePendingSpecial(pveAiPlayer);
-    }, AI_SPECIAL_REVEAL_DELAY_MS);
-    return;
-  }
-
   if (state.mode === "pve" && state.teleporting?.owner === pveAiPlayer && !state.aiThinking) {
     state.aiThinking = true;
     render();
@@ -2233,10 +2252,9 @@ function render() {
     matchResultOutcome.textContent = state.winner === "draw"
       ? text("resultDraw")
       : text("resultWin", { side: sideName(state.winner) });
-    matchResultScore.textContent = text("matchEndScore", {
-      red: countPieces("red"),
-      blue: countPieces("blue"),
-    });
+    matchResultHeadline.textContent = text("matchComplete");
+    matchResultReason.textContent = localizeResultReason(state.resultReason);
+    fitMatchResultVerdict();
     const resultSide = state.mode === "pvp" ? networkSession.player : pveHumanPlayer;
     const metaParts = [state.mode === "pve" ? text("matchMetaPve") : currentModeLabel()];
     if (state.mode === "pve") {
@@ -2253,8 +2271,6 @@ function render() {
     });
     resultRedCaptures.textContent = state.stats?.captures?.red || 0;
     resultBlueCaptures.textContent = state.stats?.captures?.blue || 0;
-    resultRedSpecials.textContent = state.stats?.specialsUsed?.red || 0;
-    resultBlueSpecials.textContent = state.stats?.specialsUsed?.blue || 0;
     startTutorialBtn.hidden = true;
     tutorialLobbyBtn.hidden = true;
     exitTutorialBtn.hidden = true;
@@ -2339,31 +2355,68 @@ function render() {
     confirmTeleportBtn.hidden = true;
     cancelTeleportBtn.hidden = true;
   }
-  renderPendingSpecialModal(viewerSide);
+  scheduleSpecialAutoActivation(viewerSide);
 }
 
-function renderPendingSpecialModal(viewerSide) {
+// A surrounded special has no decline option, so the old confirmation card was
+// a forced tap. It activates on its own after a beat and the character cut-in
+// announces it, the way the tutorial script and the PvE AI already do.
+function scheduleSpecialAutoActivation(viewerSide) {
   const pending = state.pendingSpecial;
-  if (!pending || state.winner || state.mode === "tutorial") {
-    pendingSpecialModal.hidden = true;
+  if (!pending || state.winner || visibleTaunt) {
+    cancelSpecialAutoActivation();
     return;
   }
+  // Only the client that controls the surrounded unit's side may fire it. In
+  // PvP that is its owner alone; every other mode drives both sides locally.
+  if (state.mode === "pvp" && (pending.owner !== viewerSide || !networkSession.ready)) return;
 
-  const unitLabel = pending.type ? UNIT_LABELS[pending.type] : text("hiddenUnit");
-  const canActivate = pending.owner === viewerSide
-    && (state.mode !== "pvp" || networkSession.ready);
-  pendingSpecialTitle.textContent = canActivate
-    ? text("activateSpecialTitle", { unit: unitLabel })
-    : text("specialUnit");
-  pendingSpecialText.textContent = canActivate
-    ? text("activateSpecialPrompt", { side: sideName(pending.owner), unit: unitLabel })
-    : text("waitingSpecialPrompt", { side: sideName(pending.owner) });
-  activateSpecialBtn.textContent = canActivate
-    ? text("activateSpecialButton", { unit: unitLabel })
-    : text("waitingSpecialPrompt", { side: sideName(pending.owner) });
-  activateSpecialBtn.disabled = !canActivate;
-  pendingSpecialModal.hidden = false;
+  const key = `${pending.owner}:${pending.row}:${pending.col}`;
+  if (pendingSpecialAutoKey === key) return;
+  cancelSpecialAutoActivation();
+  pendingSpecialAutoKey = key;
+  pendingSpecialTimer = window.setTimeout(() => {
+    pendingSpecialTimer = null;
+    pendingSpecialAutoKey = null;
+    const current = state.pendingSpecial;
+    if (!current || state.winner) return;
+    if (`${current.owner}:${current.row}:${current.col}` !== key) return;
+    tutorialReactionPhase = null;
+    if (state.mode === "pvp") {
+      sendNetworkAction({ type: "activate_special" });
+    } else {
+      activatePendingSpecial(current.owner);
+    }
+  }, SPECIAL_ACTIVATE_DELAY_MS);
 }
+
+function cancelSpecialAutoActivation() {
+  if (pendingSpecialTimer !== null) window.clearTimeout(pendingSpecialTimer);
+  pendingSpecialTimer = null;
+  pendingSpecialAutoKey = null;
+}
+
+// The verdict sits in a fixed-height bar and both lines vary by language, so
+// each steps down from its CSS size until it fits instead of being clipped:
+// the headline stays on one line, the reason within its clamped line count.
+function fitMatchResultVerdict() {
+  matchResultHeadline.style.fontSize = "";
+  let headlineSize = parseFloat(getComputedStyle(matchResultHeadline).fontSize);
+  while (headlineSize > 13 && matchResultHeadline.scrollWidth > matchResultHeadline.clientWidth) {
+    headlineSize -= 1;
+    matchResultHeadline.style.fontSize = `${headlineSize}px`;
+  }
+  matchResultReason.style.fontSize = "";
+  let reasonSize = parseFloat(getComputedStyle(matchResultReason).fontSize);
+  while (reasonSize > 9 && matchResultReason.scrollHeight > matchResultReason.clientHeight) {
+    reasonSize -= 1;
+    matchResultReason.style.fontSize = `${reasonSize}px`;
+  }
+}
+
+window.addEventListener("resize", () => {
+  if (!matchResultSummary.hidden) fitMatchResultVerdict();
+});
 
 function localizeResultReason(reason) {
   if (!reason) return "";
@@ -2467,14 +2520,6 @@ cancelTeleportBtn.addEventListener("click", () => {
     return;
   }
 });
-activateSpecialBtn.addEventListener("click", () => {
-  if (!state.pendingSpecial) return;
-  if (state.mode === "pvp") {
-    if (state.pendingSpecial.owner === networkSession.player) sendNetworkAction({ type: "activate_special" });
-  } else {
-    activatePendingSpecial(state.pendingSpecial.owner);
-  }
-});
 cancelSuicideBtn.addEventListener("click", () => closeSuicideConfirmation());
 confirmSuicideBtn.addEventListener("click", () => {
   const confirmation = pendingSuicideConfirmation;
@@ -2515,6 +2560,7 @@ function resetGame() {
   if (skillEffectTimer !== null) window.clearTimeout(skillEffectTimer);
   if (tutorialTimer !== null) window.clearTimeout(tutorialTimer);
   if (tutorialIntroTimer !== null) window.clearTimeout(tutorialIntroTimer);
+  cancelSpecialAutoActivation();
   tutorialIntroTimer = null;
   tutorialTimer = null;
   aiTimer = null;
@@ -2557,6 +2603,7 @@ function startNewGame() {
   if (skillEffectTimer !== null) window.clearTimeout(skillEffectTimer);
   if (tutorialTimer !== null) window.clearTimeout(tutorialTimer);
   if (tutorialIntroTimer !== null) window.clearTimeout(tutorialIntroTimer);
+  cancelSpecialAutoActivation();
   tutorialIntroTimer = null;
   tutorialTimer = null;
   aiTimer = null;

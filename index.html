@@ -55,10 +55,13 @@
               <strong id="tutorialStepLabel" hidden></strong>
               <p id="tutorialMessage"></p>
               <div id="matchResultSummary" class="match-result-summary" hidden>
-                <span class="match-result-stone" aria-hidden="true"></span>
-                <div>
+                <div class="match-result-identity">
+                  <span class="match-result-stone" aria-hidden="true"></span>
                   <strong id="matchResultOutcome">Black Wins</strong>
-                  <span id="matchResultScore"></span>
+                </div>
+                <div class="match-result-verdict">
+                  <strong id="matchResultHeadline" class="match-result-headline" data-i18n="matchComplete">대국 종료</strong>
+                  <span id="matchResultReason" class="match-result-reason"></span>
                 </div>
               </div>
             </div>
@@ -247,17 +250,6 @@
       </section>
     </div>
 
-    <div id="pendingSpecialModal" class="result-modal" hidden>
-      <section class="result-card special-notice-card help-card" role="dialog" aria-modal="true" aria-labelledby="pendingSpecialTitle">
-        <p class="eyebrow" data-i18n="specialUnit">Special Unit</p>
-        <h2 id="pendingSpecialTitle">Special ability ready</h2>
-        <p id="pendingSpecialText" class="result-reason"></p>
-        <div class="result-actions">
-          <button id="activateSpecialBtn" class="result-primary-button" type="button">Activate ability</button>
-        </div>
-      </section>
-    </div>
-
     <div id="suicideConfirmModal" class="result-modal" hidden>
       <section class="result-card suicide-confirm-card" role="dialog" aria-modal="true" aria-labelledby="suicideConfirmTitle" aria-describedby="suicideConfirmText">
         <h2 id="suicideConfirmTitle" data-i18n="suicideWarningTitle">Confirm Suicide Move</h2>
@@ -336,21 +328,18 @@
       <section class="result-card match-result-card" role="dialog" aria-modal="true" aria-labelledby="resultHeading">
         <h2 id="resultHeading" data-i18n="matchDetails">Match Results</h2>
         <p id="matchResultMeta" class="match-result-meta"></p>
+        <dl class="match-result-facts">
+          <div><dt data-i18n="totalDeployments">Total deployments</dt><dd id="resultTotalDeployments"></dd></div>
+          <div><dt data-i18n="finishMethod">Finish</dt><dd id="resultFinishMethod"></dd></div>
+        </dl>
         <div class="result-grid result-units-grid">
           <div><strong id="resultRedUnits">0</strong><span data-i18n="redUnits">Black units</span></div>
           <div><strong id="resultBlueUnits">0</strong><span data-i18n="blueUnits">White units</span></div>
         </div>
-        <dl class="match-result-facts">
-          <div><dt data-i18n="finishMethod">Finish</dt><dd id="resultFinishMethod"></dd></div>
-          <div><dt data-i18n="totalDeployments">Total deployments</dt><dd id="resultTotalDeployments"></dd></div>
-        </dl>
         <div class="result-grid result-record-grid">
           <div><strong id="resultRedCaptures">0</strong><span data-i18n="redCaptures">Black captures</span></div>
           <div><strong id="resultBlueCaptures">0</strong><span data-i18n="blueCaptures">White captures</span></div>
-          <div><strong id="resultRedSpecials">0</strong><span data-i18n="redSkills">Black skills used</span></div>
-          <div><strong id="resultBlueSpecials">0</strong><span data-i18n="blueSkills">White skills used</span></div>
         </div>
-        <p class="captures-score-note" data-i18n="capturesNotScored">Captures are match records and do not count toward the score.</p>
         <p id="resultRematchNotice" class="result-rematch-notice" aria-live="polite" hidden></p>
         <div class="result-actions">
           <button id="resultDownloadJournalBtn" class="card-simple-button" type="button" data-developer-only data-i18n="downloadPveJournal" hidden>Download PvE record</button>
