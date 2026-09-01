@@ -87,6 +87,10 @@ import {
   showNetworkRoomControls as uiShowNetworkRoomControls,
   showNetworkRpsPicker as uiShowNetworkRpsPicker,
 } from "./js/online-ui.js";
+import {
+  pveDeadlineAction,
+  resolvePveTurnDeadline,
+} from "./js/pve-timer-controller.js";
 
 const LANGUAGE = getSavedLanguage("ko");
 const ASSET_VERSION = "progression-2";
@@ -2070,17 +2074,18 @@ function render() {
       ? pveHumanPlayer
       : PVE_HUMAN;
   fortressFrame.classList.toggle("view-red", viewerSide === "red");
-  if (DEVELOPER_MODE || (state.mode === "pve" && !activePveTimerEnabled)) {
-    pveTurnDeadline = null;
-  } else if (state.mode === "pve" && !state.winner && isGameActive()) {
-    if (state.turn === pveHumanPlayer && pveTurnDeadline === null) {
-      pveTurnDeadline = Date.now() + PVE_TURN_LIMIT_MS;
-    } else if (state.turn !== pveHumanPlayer) {
-      pveTurnDeadline = null;
-    }
-  } else if (state.mode !== "pve" || state.winner || !isGameActive()) {
-    pveTurnDeadline = null;
-  }
+  pveTurnDeadline = resolvePveTurnDeadline({
+    currentDeadline: pveTurnDeadline,
+    now: Date.now(),
+    limitMs: PVE_TURN_LIMIT_MS,
+    developerMode: DEVELOPER_MODE,
+    timerEnabled: activePveTimerEnabled,
+    mode: state.mode,
+    winner: state.winner,
+    gameActive: isGameActive(),
+    turn: state.turn,
+    humanPlayer: pveHumanPlayer,
+  });
 
   const deploymentAnimation = pendingDeploymentAnimation;
   pendingDeploymentAnimation = null;
@@ -3201,11 +3206,8 @@ window.setInterval(() => {
   } else if (activePveTimerEnabled && !DEVELOPER_MODE && state.mode === "pve" && state.turn === pveHumanPlayer && pveTurnDeadline) {
     if (Date.now() >= pveTurnDeadline) {
       pveTurnDeadline = null;
-      if (!hasLegalDeployment(state, pveHumanPlayer)) {
-        applySharedPveAction(pveHumanPlayer, { type: "pass" });
-      } else {
-        applySharedPveAction(pveHumanPlayer, { type: "timeout" }, { authoritative: true });
-      }
+      const { action, options } = pveDeadlineAction(hasLegalDeployment(state, pveHumanPlayer));
+      applySharedPveAction(pveHumanPlayer, action, options);
       render();
     } else {
       updateTurnTimerPill(turnPill, {

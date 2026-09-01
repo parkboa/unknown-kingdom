@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 class MemoryStorage {
@@ -86,12 +85,4 @@ test("audio settings default on and persist explicit changes", async () => {
     delete globalThis.localStorage;
     delete globalThis.document;
   }
-});
-
-test("app delegates audio toggles to the audio module setters", async () => {
-  const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
-
-  assert.match(appSource, /setMusicEnabled\(musicToggle\.checked\)/);
-  assert.match(appSource, /setSfxEnabled\(sfxToggle\.checked\)/);
-  assert.doesNotMatch(appSource, /saveToggleSetting/);
 });

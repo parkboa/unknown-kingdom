@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
@@ -33,59 +32,4 @@ test("special character dialogues are configured in en and ko", () => {
   assert.equal(TEXT.en.diplomatTauntBubble, "Name your price");
   assert.equal(TEXT.en.wizardTauntBubble, "Abracadabra");
   assert.equal(TEXT.en.tauntBubble, "Coward");
-});
-
-test("app.js handles special_activated event with non-blocking cutscene presentation", async () => {
-  const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
-
-  // Verify general special_activated invokes triggerGeneralSkillSequence
-  assert.match(
-    appSource,
-    /triggerGeneralSkillSequence\(generalActivation,\s*removedEvents\);/,
-    "general special activation must invoke triggerGeneralSkillSequence",
-  );
-
-  // Verify showSpecialCutscene function is defined
-  assert.match(
-    appSource,
-    /function showSpecialCutscene\(event\)/,
-    "showSpecialCutscene function must be defined",
-  );
-
-  // Verify visibleTaunt (blocking) vs visibleCutscene (non-blocking)
-  assert.match(
-    appSource,
-    /if \(state\.winner \|\| visibleTaunt\) return;/,
-    "selectCell should block on visibleTaunt (king lock) but not on visibleCutscene",
-  );
-
-  // Verify renderContext receives visibleCutscene and activeSkillEffect
-  assert.match(
-    appSource,
-    /visibleCutscene,/,
-    "renderContext must receive visibleCutscene",
-  );
-  assert.match(
-    appSource,
-    /activeSkillEffect,/,
-    "renderContext must receive activeSkillEffect",
-  );
-});
-
-test("FX preview controls stay hidden outside developer mode", async () => {
-  const [appSource, htmlSource] = await Promise.all([
-    readFile(new URL("../app.js", import.meta.url), "utf8"),
-    readFile(new URL("../index.html", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(
-    htmlSource,
-    /<aside id="fxPreviewBar"[^>]*data-developer-only[^>]*hidden>/,
-    "FX preview must be hidden before JavaScript loads",
-  );
-  assert.match(
-    appSource,
-    /fxPreviewBar\?\.toggleAttribute\("hidden", !DEVELOPER_MODE\);/,
-    "FX preview must only be revealed in developer mode",
-  );
 });

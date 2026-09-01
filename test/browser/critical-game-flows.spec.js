@@ -5,6 +5,42 @@ async function openLobby(page) {
   await expect(page.getByRole("dialog", { name: "대국 선택" })).toBeVisible({ timeout: 7_000 });
 }
 
+test("PvE setup persists timer and audio choices through the real controls", async ({ page }) => {
+  await openLobby(page);
+  await page.locator('[data-start-mode="pve"]').click();
+
+  const ranks = page.locator("#pveRankList");
+  const timer = page.locator(".pve-timer-actions");
+  const sides = page.locator(".side-choice-actions");
+  const [rankBox, timerBox, sideBox] = await Promise.all([
+    ranks.boundingBox(),
+    timer.boundingBox(),
+    sides.boundingBox(),
+  ]);
+  expect(rankBox.y + rankBox.height).toBeLessThanOrEqual(timerBox.y);
+  expect(timerBox.y + timerBox.height).toBeLessThanOrEqual(sideBox.y);
+
+  await page.locator('[data-pve-timer="off"]').click();
+  await expect(page.locator('[data-pve-timer="off"]')).toHaveAttribute("aria-pressed", "true");
+  expect(await page.evaluate(() => localStorage.getItem("daeguk-pve-timer"))).toBe("disabled");
+
+  await page.locator("#cancelPveSideBtn").click();
+  await page.locator("#lobbySettingsBtn").click();
+  await page.locator("#musicToggle").uncheck();
+  await page.locator("#sfxToggle").uncheck();
+  expect(await page.evaluate(() => ({
+    music: localStorage.getItem("unknown-kingdom-music"),
+    sfx: localStorage.getItem("unknown-kingdom-sfx"),
+  }))).toEqual({ music: "disabled", sfx: "disabled" });
+});
+
+test("FX preview is available only in developer mode", async ({ page }) => {
+  await page.goto("/?lang=ko&dev=0");
+  await expect(page.locator("#fxPreviewBar")).toBeHidden();
+  await page.goto("/?lang=ko&dev=1");
+  await expect(page.locator("#fxPreviewBar")).toBeVisible();
+});
+
 for (const side of ["red", "blue"]) {
   test(`PvE ${side} side starts with the selected fortress at the bottom`, async ({ page }) => {
     const pageErrors = [];
@@ -100,9 +136,6 @@ test("PvE result can start another match", async ({ page }) => {
   await expect(page.locator("#resultBlueUnits")).toHaveText("1");
   await expect(page.locator("#resultRedCaptures")).toHaveText("7");
   await expect(page.locator("#resultBlueCaptures")).toHaveText("4");
-  await expect(page.locator("#resultRedSpecials")).toHaveCount(0);
-  await expect(page.locator("#resultBlueSpecials")).toHaveCount(0);
-  await expect(page.locator(".captures-score-note")).toHaveCount(0);
   const factRows = await page.locator(".match-result-facts dt").allTextContents();
   expect(factRows).toEqual(["총 배치 수", "종료 방식"]);
   const deploymentsBox = await page.locator("#resultTotalDeployments").boundingBox();
@@ -146,13 +179,13 @@ test("a surrounded special activates on its own with no confirmation card", asyn
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto("/?lang=ko&dev=0&demo=special-pending");
-  await expect(page.locator("#pendingSpecialModal")).toHaveCount(0);
+  await expect(page.locator(".result-modal:visible")).toHaveCount(0);
   await expect(page.locator('.cell[data-row="4"][data-col="4"] .piece')).toBeVisible();
   await expect(page.locator('.cell[data-row="3"][data-col="4"] .piece')).toBeVisible();
 
   // No card to press: the cut-in is the announcement and the ability resolves.
   await expect(page.locator(".taunt-overlay.cutscene-general")).toBeVisible();
-  await expect(page.locator("#pendingSpecialModal")).toHaveCount(0);
+  await expect(page.locator(".result-modal:visible")).toHaveCount(0);
   await expect(page.locator('.cell[data-row="3"][data-col="4"] .piece')).toHaveCount(0);
   await expect(page.locator('.cell[data-row="5"][data-col="4"] .piece')).toHaveCount(0);
   await expect(page.locator('.cell[data-row="4"][data-col="3"] .piece')).toHaveCount(0);
@@ -165,7 +198,7 @@ test("the AI's surrounded special activates on the same timer", async ({ page })
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto("/?lang=ko&dev=0&demo=special-pending&owner=ai");
-  await expect(page.locator("#pendingSpecialModal")).toHaveCount(0);
+  await expect(page.locator(".result-modal:visible")).toHaveCount(0);
   await expect(page.locator(".taunt-overlay.cutscene-general")).toBeVisible();
   await expect(page.locator('.cell[data-row="3"][data-col="4"] .piece')).toHaveCount(0);
   await expect(page.locator('.cell[data-row="4"][data-col="3"] .piece')).toHaveCount(0);

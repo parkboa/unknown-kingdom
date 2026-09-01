@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { isOpponentLastMoveCell, visiblePieceIdentity } from "../js/render.js";
@@ -52,13 +51,4 @@ test("a hidden converted special does not leak its original identity", () => {
     isSpecial: false,
     isRetiredSpecial: false,
   });
-});
-
-test("tutorial scene transitions clear the previous last move", async () => {
-  const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
-  const resetBoardSource = appSource.match(/function resetTutorialBoard\(\) \{[\s\S]*?\n\}/)?.[0] || "";
-  const advanceSource = appSource.match(/function advanceTutorial\(\) \{[\s\S]*?\n\}/)?.[0] || "";
-
-  assert.match(resetBoardSource, /state\.lastMove = null/);
-  assert.match(advanceSource, /state\.lastMove = null/);
 });

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
+
+import {
+  pveDeadlineAction,
+  resolvePveTurnDeadline,
+} from "../js/pve-timer-controller.js";
 
 class MemoryStorage {
   constructor() {
@@ -39,32 +43,37 @@ test("AI timer defaults on and persists an explicit choice", async () => {
   }
 });
 
-test("AI timer UI is placed between difficulty and side selection", async () => {
-  const indexSource = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  const difficultyIndex = indexSource.indexOf('id="pveRankList"');
-  const timerIndex = indexSource.indexOf('class="pve-timer-actions"');
-  const sideIndex = indexSource.indexOf('data-i18n="choosePreferredSide"');
+test("AI timer deadline exists only during the human PvE turn", () => {
+  const base = {
+    currentDeadline: null,
+    now: 1_000,
+    limitMs: 30_000,
+    developerMode: false,
+    timerEnabled: true,
+    mode: "pve",
+    winner: null,
+    gameActive: true,
+    turn: "red",
+    humanPlayer: "red",
+  };
 
-  assert.ok(difficultyIndex >= 0);
-  assert.ok(timerIndex > difficultyIndex);
-  assert.ok(sideIndex > timerIndex);
-  assert.match(indexSource, /data-pve-timer="on"[\s\S]*data-pve-timer="off"/);
+  assert.equal(resolvePveTurnDeadline(base), 31_000);
+  assert.equal(resolvePveTurnDeadline({ ...base, currentDeadline: 15_000 }), 15_000);
+  assert.equal(resolvePveTurnDeadline({ ...base, timerEnabled: false }), null);
+  assert.equal(resolvePveTurnDeadline({ ...base, developerMode: true }), null);
+  assert.equal(resolvePveTurnDeadline({ ...base, turn: "blue" }), null);
+  assert.equal(resolvePveTurnDeadline({ ...base, mode: "tutorial" }), null);
+  assert.equal(resolvePveTurnDeadline({ ...base, winner: "red" }), null);
+  assert.equal(resolvePveTurnDeadline({ ...base, gameActive: false }), null);
 });
 
-test("AI timer preference gates both deadline creation and timeout checks", async () => {
-  const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
-
-  assert.match(appSource, /state\.mode === "pve" && !activePveTimerEnabled/);
-  assert.match(appSource, /activePveTimerEnabled && !DEVELOPER_MODE && side === "red"/);
-  assert.match(appSource, /activePveTimerEnabled && !DEVELOPER_MODE && state\.mode === "pve"/);
-});
-
-test("AI timer expiry is committed through the journaled shared action path", async () => {
-  const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
-
-  assert.match(
-    appSource,
-    /applySharedPveAction\(pveHumanPlayer, \{ type: "timeout" \}, \{ authoritative: true \}\)/,
-  );
-  assert.doesNotMatch(appSource, /declareWinner\([\s\S]{0,200}"timeout"/);
+test("AI timer expiry chooses the authoritative timeout or a legal pass", () => {
+  assert.deepEqual(pveDeadlineAction(true), {
+    action: { type: "timeout" },
+    options: { authoritative: true },
+  });
+  assert.deepEqual(pveDeadlineAction(false), {
+    action: { type: "pass" },
+    options: undefined,
+  });
 });
