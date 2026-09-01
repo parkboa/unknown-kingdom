@@ -30,7 +30,7 @@ async function startTutorial(page) {
 }
 
 async function finishTutorialIntro(page) {
-  const nextDialogueBtn = page.locator(".dialogue-arrow-btn.down");
+  const nextDialogueBtn = page.locator(".dialogue-arrow-btn.next");
   while (await nextDialogueBtn.isVisible()) {
     await nextDialogueBtn.click();
   }

@@ -200,13 +200,26 @@ export function createTauntOverlay(context) {
     dialogueBox.append(dialogueText);
 
     if (typeof item.introPage === "number" && item.totalPages > 1) {
+      if (item.introPage > 0) {
+        const previousBtn = document.createElement("button");
+        previousBtn.type = "button";
+        previousBtn.className = `dialogue-arrow-btn previous${item.introPage === item.totalPages - 1 ? " only-btn" : ""}`;
+        previousBtn.setAttribute("aria-label", context.text("dialoguePrev") || "Back");
+        previousBtn.title = context.text("dialoguePrev") || "Back";
+        previousBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="15 6 7 12 15 18"></polygon></svg>';
+        previousBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (typeof context.onDialoguePrev === "function") context.onDialoguePrev();
+        });
+        dialogueBox.append(previousBtn);
+      }
       if (item.introPage < item.totalPages - 1) {
         const nextBtn = document.createElement("button");
         nextBtn.type = "button";
-        nextBtn.className = "dialogue-arrow-btn down";
+        nextBtn.className = "dialogue-arrow-btn next";
         nextBtn.setAttribute("aria-label", context.text("dialogueNext") || "Next");
         nextBtn.title = context.text("dialogueNext") || "Next";
-        nextBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 9 12 17 18 9"></polygon></svg>';
+        nextBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="9 6 17 12 9 18"></polygon></svg>';
         nextBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           if (typeof context.onDialogueNext === "function") context.onDialogueNext();

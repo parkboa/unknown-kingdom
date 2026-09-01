@@ -352,6 +352,7 @@ const challengeRankList = document.querySelector("#challengeRankList");
 const closeChallengeBtn = document.querySelector("#closeChallengeBtn");
 const pveSideModal = document.querySelector("#pveSideModal");
 const cancelPveSideBtn = document.querySelector("#cancelPveSideBtn");
+const pveRankList = document.querySelector("#pveRankList");
 const pveDifficultyButtons = document.querySelectorAll("[data-pve-difficulty]");
 const pveTimerButtons = document.querySelectorAll("[data-pve-timer]");
 const networkModal = document.querySelector("#networkModal");
@@ -719,7 +720,7 @@ function newState() {
 }
 
 function renderPveRankOptions() {
-  const container = document.getElementById("pveRankList") || document.querySelector(".difficulty-choice-actions");
+  const container = pveRankList || document.querySelector(".difficulty-choice-actions");
   if (!container) return;
   const rankKeys = AI_RANK_ORDER;
   if (!selectedPveRank || !rankKeys.includes(selectedPveRank)) selectedPveRank = rankKeys[0];
@@ -741,13 +742,24 @@ function renderPveRankOptions() {
     if (selectedBtn) {
       container.scrollTop = Math.max(0, selectedBtn.offsetTop - container.offsetTop);
     }
+    updatePveRankScrollCues(container);
   });
+}
+
+function updatePveRankScrollCues(container = pveRankList) {
+  const frame = container?.closest(".ai-rank-frame");
+  if (!container || !frame) return;
+  frame.classList.toggle("can-scroll-up", container.scrollTop > 1);
+  frame.classList.toggle(
+    "can-scroll-down",
+    container.scrollTop + container.clientHeight < container.scrollHeight - 1,
+  );
 }
 
 function applyPveRank(rankKey) {
   selectedPveRank = rankKey || AI_RANK_ORDER[0];
   pveDifficulty = selectedPveRank;
-  const container = document.getElementById("pveRankList") || document.querySelector(".difficulty-choice-actions");
+  const container = pveRankList || document.querySelector(".difficulty-choice-actions");
   if (container) {
     const buttons = container.querySelectorAll("[data-pve-rank]");
     buttons.forEach((button) => {
@@ -3148,6 +3160,7 @@ pveDifficultyButtons.forEach((button) => {
 pveTimerButtons.forEach((button) => {
   button.addEventListener("click", () => applyPveTimerSetting(button.dataset.pveTimer === "on"));
 });
+pveRankList?.addEventListener("scroll", () => updatePveRankScrollCues(pveRankList));
 cancelPveSideBtn.addEventListener("click", () => {
   resetPveRps();
   pveSideModal.hidden = true;

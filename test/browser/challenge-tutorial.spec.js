@@ -12,11 +12,18 @@ async function startTutorial(page) {
   await expect(page.locator("#tutorialMessage")).toBeEmpty();
   await expect(page.locator("#startTutorialBtn")).toBeHidden();
 
-  const nextDialogueBtn = page.locator(".dialogue-arrow-btn.down");
+  const nextDialogueBtn = page.locator(".dialogue-arrow-btn.next");
   const multiLineDialogueTop = (await page.locator(".taunt-dialogue-text").boundingBox())?.y;
   await expect(page.locator(".taunt-overlay.persistent-dialogue")).toHaveCSS("animation-name", "none");
   expect(await page.locator(".taunt-dialogue-box").evaluate((element) => getComputedStyle(element, "::before").display)).toBe("none");
-  await expect(nextDialogueBtn.locator("svg")).toHaveCSS("animation-name", "dialogue-arrow-bounce-down");
+  await expect(nextDialogueBtn.locator("svg")).toHaveCSS("animation-name", "dialogue-arrow-bounce-next");
+  await expect(nextDialogueBtn.locator("polygon")).toHaveAttribute("points", "9 6 17 12 9 18");
+  await nextDialogueBtn.click();
+  const previousDialogueBtn = page.locator(".dialogue-arrow-btn.previous");
+  await expect(previousDialogueBtn).toBeVisible();
+  await expect(previousDialogueBtn.locator("svg")).toHaveCSS("animation-name", "dialogue-arrow-bounce-previous");
+  await expect(previousDialogueBtn.locator("polygon")).toHaveAttribute("points", "15 6 7 12 15 18");
+  await previousDialogueBtn.click();
   while (await nextDialogueBtn.isVisible()) {
     await nextDialogueBtn.click();
     await page.waitForTimeout(100);
@@ -55,6 +62,7 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await kingCell.click();
   const sanctuaryNext = page.getByRole("button", { name: "다음", exact: true });
   await expect(sanctuaryNext).toBeVisible();
+  await expect(sanctuaryNext.locator("polygon")).toHaveAttribute("points", "9 6 17 12 9 18");
   await expect(page.locator("#tutorialMessage")).toHaveText("왕이 배치되면 왕을 둘러싼 성역이 나타납니다. 왕과 주변 8칸이 성역입니다.");
   const multiLineMessageTop = (await page.locator("#tutorialMessage").boundingBox())?.y;
   expect(multiLineMessageTop).toBe(singleLineMessageTop);
@@ -98,6 +106,14 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await expect(fortressFrame).not.toHaveClass(/tutorial-highlight-white-wall/);
   await expect.poll(() => blackWall.evaluate((wall) => getComputedStyle(wall, "::before").opacity)).toBe("1");
   await expect.poll(() => whiteWall.evaluate((wall) => getComputedStyle(wall, "::before").opacity)).toBe("0");
+  const blackWallAlignment = await page.evaluate(() => {
+    const wall = document.querySelector(".black-wall");
+    const target = document.querySelector('.cell[data-row="0"][data-col="1"]');
+    const wallBox = wall.getBoundingClientRect();
+    const targetBox = target.getBoundingClientRect();
+    return Math.abs(parseFloat(getComputedStyle(wall, "::before").left) - (targetBox.left - wallBox.left));
+  });
+  expect(blackWallAlignment).toBeLessThanOrEqual(1);
   await expect(page.locator("#tutorialMessage")).toHaveText("자기 성벽에 닿은 돌은 성벽 쪽에 활로 하나를 얻습니다. 표시된 칸에 병사를 놓아보세요.");
   await expectPiece(page, "A1", "white");
   await expectPiece(page, "B1", "black");
@@ -117,6 +133,7 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await expect(fortressFrame).toHaveClass(/tutorial-highlight-white-wall/);
   await expect.poll(() => blackWall.evaluate((wall) => getComputedStyle(wall, "::before").opacity)).toBe("0");
   await expect.poll(() => whiteWall.evaluate((wall) => getComputedStyle(wall, "::before").opacity)).toBe("1");
+  await expect.poll(() => whiteWall.evaluate((wall) => getComputedStyle(wall, "::before").borderTopColor)).toBe("rgb(104, 67, 15)");
   await expect(page.locator("#tutorialMessage")).toHaveText("상대 성벽에 닿은 돌은 어떻게 될까요? 표시된 칸에 병사를 놓아보세요.");
   await expectPiece(page, "A9", "white");
   await expectPiece(page, "B9", "black");

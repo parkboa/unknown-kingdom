@@ -27,6 +27,12 @@ test("PvE setup persists timer and audio choices through the real controls", asy
     }).length;
   });
   expect(fullyVisibleRanks).toBe(3);
+  const rankFrame = page.locator(".ai-rank-frame");
+  await expect(rankFrame).toHaveClass(/can-scroll-down/);
+  await expect(rankFrame).not.toHaveClass(/can-scroll-up/);
+  await ranks.locator("button").last().click();
+  await expect(rankFrame).toHaveClass(/can-scroll-up/);
+  await expect(rankFrame).not.toHaveClass(/can-scroll-down/);
 
   await page.locator('[data-pve-timer="off"]').click();
   await expect(page.locator('[data-pve-timer="off"]')).toHaveAttribute("aria-pressed", "true");
