@@ -90,7 +90,14 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await sanctuaryNext.click();
 
   const ownWallCell = page.getByRole("gridcell", { name: "C1", exact: true });
+  const fortressFrame = page.locator(".fortress-frame");
+  const blackWall = page.locator(".black-wall");
+  const whiteWall = page.locator(".white-wall");
   await expect(ownWallCell).toHaveClass(/valid/);
+  await expect(fortressFrame).toHaveClass(/tutorial-highlight-black-wall/);
+  await expect(fortressFrame).not.toHaveClass(/tutorial-highlight-white-wall/);
+  await expect.poll(() => blackWall.evaluate((wall) => getComputedStyle(wall, "::before").opacity)).toBe("1");
+  await expect.poll(() => whiteWall.evaluate((wall) => getComputedStyle(wall, "::before").opacity)).toBe("0");
   await expect(page.locator("#tutorialMessage")).toHaveText("자기 성벽에 닿은 돌은 성벽 쪽에 활로 하나를 얻습니다. 표시된 칸에 병사를 놓아보세요.");
   await expectPiece(page, "A1", "white");
   await expectPiece(page, "B1", "black");
@@ -100,11 +107,16 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await expectPiece(page, "F7", "black");
   await ownWallCell.click();
   await expect(page.locator("#tutorialMessage")).toHaveText("흑 병사는 흑의 성벽에서 활로를 얻어 포획되지 않았습니다.");
+  await expect(fortressFrame).toHaveClass(/tutorial-highlight-black-wall/);
   await expectPiece(page, "B1", "black");
   await sanctuaryNext.click();
 
   const enemyWallCell = page.getByRole("gridcell", { name: "C9", exact: true });
   await expect(enemyWallCell).toHaveClass(/valid/);
+  await expect(fortressFrame).not.toHaveClass(/tutorial-highlight-black-wall/);
+  await expect(fortressFrame).toHaveClass(/tutorial-highlight-white-wall/);
+  await expect.poll(() => blackWall.evaluate((wall) => getComputedStyle(wall, "::before").opacity)).toBe("0");
+  await expect.poll(() => whiteWall.evaluate((wall) => getComputedStyle(wall, "::before").opacity)).toBe("1");
   await expect(page.locator("#tutorialMessage")).toHaveText("상대 성벽에 닿은 돌은 어떻게 될까요? 표시된 칸에 병사를 놓아보세요.");
   await expectPiece(page, "A9", "white");
   await expectPiece(page, "B9", "black");
@@ -113,10 +125,12 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await expectPiece(page, "F9", "black");
   await expectPiece(page, "G8", "black");
   await enemyWallCell.click();
+  await expect(fortressFrame).toHaveClass(/tutorial-highlight-white-wall/);
   await expect(page.locator("#tutorialMessage")).toHaveText("흑 병사는 백의 성벽에 막혀 포획되었습니다.");
   await expect(page.getByRole("gridcell", { name: "B9", exact: true }).locator(".piece.black")).toHaveCount(0);
   await expectPiece(page, "B9", "white");
   await sanctuaryNext.click();
+  await expect(fortressFrame).not.toHaveClass(/tutorial-highlight-black-wall|tutorial-highlight-white-wall/);
 
   await expect(page.locator("#tutorialMessage")).toHaveText("특수 유닛을 배워 봅시다. 대국 시작 후 자신의 돌을 다섯 번 놓은 후부터 특수 유닛을 사용할 수 있습니다.");
   await expect(sanctuaryNext).toBeVisible();

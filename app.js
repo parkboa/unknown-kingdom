@@ -2201,6 +2201,15 @@ function render() {
   }
   const tutorialActive = state.mode === "tutorial";
   const puzzleActive = state.mode === "puzzle" && activePuzzle;
+  const tutorialWallHighlight = tutorialActive && !tutorialIntro && !activePuzzle
+    ? tutorialStep === 2
+      ? "black"
+      : tutorialStep === 3
+        ? "white"
+        : null
+    : null;
+  fortressFrame.classList.toggle("tutorial-highlight-black-wall", tutorialWallHighlight === "black");
+  fortressFrame.classList.toggle("tutorial-highlight-white-wall", tutorialWallHighlight === "white");
   const teleportActive = Boolean(state.teleporting);
   const teleportUi = teleportUiState(state, viewerSide, wizardMovePromptDismissed);
   const matchResultAnnouncementActive = Boolean(

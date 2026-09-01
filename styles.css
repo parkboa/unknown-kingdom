@@ -2047,6 +2047,29 @@ body.iphone-preview .lobby-logo {
   content: none;
 }
 
+.horizontal-wall::before {
+  position: absolute;
+  z-index: 3;
+  top: 3px;
+  bottom: 3px;
+  left: calc(var(--wall-size) + var(--board-border) + var(--cell) * 2);
+  width: var(--cell);
+  box-sizing: border-box;
+  border: 2px solid #ffd866;
+  border-radius: 6px;
+  background: rgb(255 216 102 / 18%);
+  box-shadow: 0 0 8px 2px rgb(255 216 102 / 72%), inset 0 0 7px rgb(255 244 178 / 45%);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.fortress-frame.tutorial-highlight-black-wall .black-wall::before,
+.fortress-frame.tutorial-highlight-white-wall .white-wall::before {
+  opacity: 1;
+}
+
 .black-wall {
   border-radius: 7px 7px 0 0;
   background: transparent;
@@ -3473,6 +3496,14 @@ body.iphone-preview .horizontal-wall {
   pointer-events: none;
 }
 
+body.iphone-preview .horizontal-wall::before {
+  top: 1px;
+  bottom: 1px;
+  border-width: 1px;
+  border-radius: 3px;
+  box-shadow: 0 0 5px 1px rgb(255 216 102 / 82%);
+}
+
 body.iphone-preview .vertical-wall {
   width: var(--wall-size);
   height: calc(var(--cell) * 9 + var(--board-border) * 2);
@@ -3554,6 +3585,14 @@ body.iphone-preview .piece {
   .horizontal-wall {
     height: 10px;
     pointer-events: none;
+  }
+
+  .horizontal-wall::before {
+    top: 1px;
+    bottom: 1px;
+    border-width: 1px;
+    border-radius: 3px;
+    box-shadow: 0 0 5px 1px rgb(255 216 102 / 82%);
   }
 
   .vertical-wall {
