@@ -376,7 +376,7 @@ test("does not leak a hidden special through the suicide warning", () => {
   assert.equal(isSuicideDeployment(publicState, "blue", "soldier", 4, 5), false);
 });
 
-test("queues a surrounded special until its owner activates it", () => {
+test("engine queues a surrounded special and accepts activation only from its owner", () => {
   const state = createGameState();
   state.firstDeployDone = { red: true, blue: true };
   state.deploymentCount = { red: 5, blue: 5 };

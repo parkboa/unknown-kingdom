@@ -3,7 +3,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 
 const PROGRESS_KEY = "daeguk-challenge-progress-v1";
-const OUTPUT_DIR = path.resolve("test-results/visual-sweep");
+const OUTPUT_DIR = path.resolve("test-results/layout-sweep");
 const LANGUAGES = ["ko", "en"];
 const VIEWPORTS = [
   { name: "mobile", width: 375, height: 812 },
@@ -110,7 +110,7 @@ test.beforeAll(async () => {
 
 for (const viewport of VIEWPORTS) {
   for (const language of LANGUAGES) {
-    test(`${viewport.name} ${language} UI sweep`, async ({ page }, testInfo) => {
+    test(`${viewport.name} ${language} layout sweep`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.addInitScript((key) => localStorage.removeItem(key), PROGRESS_KEY);
       await page.goto(`/?lang=${language}&dev=0`);

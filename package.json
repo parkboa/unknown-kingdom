@@ -17,7 +17,7 @@
     "test": "npm run test:web && npm test --workspace=packages/game-engine && npm test --workspace=server",
     "test:web": "node --test test/*.test.js",
     "test:browser": "playwright test",
-    "test:visual": "playwright test test/browser/visual-sweep.spec.js",
+    "test:layout": "playwright test test/browser/layout-sweep.spec.js",
     "ai:promotion": "node scripts/ai-promotion-gate.mjs",
     "ai:reproduce-losses": "node scripts/reproduce-is-mcts-losses.mjs",
     "ai:open-spiel-crosscheck": "node scripts/crosscheck-open-spiel-tactics.mjs",
