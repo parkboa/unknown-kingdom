@@ -138,11 +138,12 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await expect(generalOption).not.toHaveClass(/tutorial-target/);
   await expect(generalCell).toHaveClass(/valid/);
   await generalCell.click();
-  await expect(generalCell).toHaveClass(/latest-move/);
-
-  await expectPiece(page, "F4", "black");
-  await expect(page.locator(".taunt-overlay.cutscene-general")).toBeVisible({ timeout: 5_000 });
-  await expect(page.locator(".general-slash-emitter")).toBeVisible({ timeout: 5_000 });
+  await Promise.all([
+    expect(generalCell).toHaveClass(/latest-move/),
+    expectPiece(page, "F4", "black"),
+    expect(page.locator(".taunt-overlay.cutscene-general")).toBeVisible({ timeout: 5_000 }),
+    expect(page.locator(".general-slash-emitter")).toBeVisible({ timeout: 5_000 }),
+  ]);
   const retiredGeneral = generalCell.locator(".piece.retired-special");
   await expect(retiredGeneral).toHaveCount(1);
   await expect(retiredGeneral.locator(".piece-icon")).toHaveCSS("--piece-icon-image", 'url("./assets/units/general.svg")');
