@@ -1861,6 +1861,10 @@ body.iphone-preview .lobby-logo {
   white-space: nowrap;
 }
 
+.info-pill[hidden] {
+  display: none;
+}
+
 .connection-info {
   gap: 5px;
 }

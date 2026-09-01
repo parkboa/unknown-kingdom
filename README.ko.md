@@ -16,14 +16,28 @@
 
 ## 실행
 
+저장소 루트에서 처음 한 번 의존성을 설치합니다.
+
 ```bash
-python3 -m http.server 4173 --directory outputs/unknown-kingdom-prototype
+npm ci
+```
+
+첫 번째 터미널에서 WebSocket 서버를 실행합니다.
+
+```bash
+npm start
+```
+
+두 번째 터미널에서 브라우저 클라이언트를 실행합니다.
+
+```bash
+node scripts/serve.mjs
 ```
 
 다음 주소를 엽니다.
 
 ```text
-http://127.0.0.1:4173/
+http://127.0.0.1:4185/
 ```
 
 ## 구현된 기능
@@ -87,7 +101,6 @@ http://127.0.0.1:4173/
 
 ```json
 { "type": "room_created", "roomCode": "ABC123" }
-{ "type": "waiting", "roomCode": "ABC123" }
 { "type": "rps_start", "roomCode": "ABC123" }
 { "type": "rps_result", "result": "win", "yourSide": "black", "choices": { "black": "rock", "white": "scissors" } }
 { "type": "match_start", "roomCode": "ABC123", "player": "white", "state": {} }

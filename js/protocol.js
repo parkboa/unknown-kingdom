@@ -2,7 +2,6 @@ import { AI_PROFILES, DEPLOY_ORDER, SIZE } from "./config.js";
 
 const MESSAGE_TYPES = new Set([
   "room_created",
-  "waiting",
   "room_list",
   "match_start",
   "state",
@@ -139,7 +138,7 @@ export function validateGameState(value) {
 export function validateNetworkMessage(message) {
   if (!isPlainObject(message) || !MESSAGE_TYPES.has(message.type)) return false;
 
-  if (message.type === "room_created" || message.type === "waiting") {
+  if (message.type === "room_created") {
     return isRoomCode(message.roomCode)
       && hasOptionalBoardNumber(message)
       && (message.player === undefined || PLAYERS.has(message.player));

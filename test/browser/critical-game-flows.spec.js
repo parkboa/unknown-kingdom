@@ -41,6 +41,16 @@ test("FX preview is available only in developer mode", async ({ page }) => {
   await expect(page.locator("#fxPreviewBar")).toBeVisible();
 });
 
+test("Online lobby shows connection status without an unrelated challenge rank", async ({ page }) => {
+  await openLobby(page);
+  await page.locator('[data-start-mode="pvp"]').click();
+
+  await expect(page.locator("#networkModal")).toBeVisible();
+  await expect(page.locator("#connectionInfo")).toBeVisible();
+  await expect(page.locator("#rankInfo")).toBeHidden();
+  await expect(page.locator("#networkStatus")).toContainText(/서버|대국판|연결/);
+});
+
 for (const side of ["black", "white"]) {
   test(`PvE ${side} side starts with the selected fortress at the bottom`, async ({ page }) => {
     const pageErrors = [];
@@ -132,10 +142,10 @@ test("PvE result can start another match", async ({ page }) => {
   await expect(page.locator("#matchResultMeta")).toHaveText("AI 대전 · 삼류 고수 · 백");
   await expect(page.locator("#resultTotalDeployments")).toHaveText("38수");
   await expect(page.locator("#resultFinishMethod")).toHaveText("백 왕이 포획되었습니다.");
-  await expect(page.locator("#resultRedUnits")).toHaveText("2");
-  await expect(page.locator("#resultBlueUnits")).toHaveText("1");
-  await expect(page.locator("#resultRedCaptures")).toHaveText("7");
-  await expect(page.locator("#resultBlueCaptures")).toHaveText("4");
+  await expect(page.locator("#resultBlackUnits")).toHaveText("2");
+  await expect(page.locator("#resultWhiteUnits")).toHaveText("1");
+  await expect(page.locator("#resultBlackCaptures")).toHaveText("7");
+  await expect(page.locator("#resultWhiteCaptures")).toHaveText("4");
   const factRows = await page.locator(".match-result-facts dt").allTextContents();
   expect(factRows).toEqual(["총 배치 수", "종료 방식"]);
   const deploymentsBox = await page.locator("#resultTotalDeployments").boundingBox();

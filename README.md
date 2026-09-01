@@ -45,13 +45,13 @@ npm start
 In a second terminal, serve the browser client:
 
 ```bash
-python3 -m http.server 4173 --bind 127.0.0.1
+node scripts/serve.mjs
 ```
 
 Open:
 
 ```text
-http://127.0.0.1:4173/
+http://127.0.0.1:4185/
 ```
 
 ## Current Game Modes
@@ -205,7 +205,6 @@ The selected server URL is stored in the browser for later matches.
 
 ```json
 { "type": "room_created", "roomCode": "ABC123" }
-{ "type": "waiting", "roomCode": "ABC123" }
 { "type": "rps_start", "roomCode": "ABC123" }
 { "type": "rps_result", "result": "win", "yourSide": "black", "choices": { "black": "rock", "white": "scissors" } }
 { "type": "match_start", "roomCode": "ABC123", "player": "white", "state": {} }

@@ -405,12 +405,12 @@ const matchResultHeadline = document.querySelector("#matchResultHeadline");
 const matchResultReason = document.querySelector("#matchResultReason");
 const matchResultActions = document.querySelector("#matchResultActions");
 const matchResultMeta = document.querySelector("#matchResultMeta");
-const resultRedUnits = document.querySelector("#resultRedUnits");
-const resultBlueUnits = document.querySelector("#resultBlueUnits");
+const resultBlackUnits = document.querySelector("#resultBlackUnits");
+const resultWhiteUnits = document.querySelector("#resultWhiteUnits");
 const resultFinishMethod = document.querySelector("#resultFinishMethod");
 const resultTotalDeployments = document.querySelector("#resultTotalDeployments");
-const resultRedCaptures = document.querySelector("#resultRedCaptures");
-const resultBlueCaptures = document.querySelector("#resultBlueCaptures");
+const resultBlackCaptures = document.querySelector("#resultBlackCaptures");
+const resultWhiteCaptures = document.querySelector("#resultWhiteCaptures");
 const startTutorialBtn = document.querySelector("#startTutorialBtn");
 const tutorialLobbyBtn = document.querySelector("#tutorialLobbyBtn");
 const exitTutorialBtn = document.querySelector("#exitTutorialBtn");
@@ -427,10 +427,6 @@ function visiblePveRanks() {
   const unresolved = firstUnresolvedRankIndex();
   const startIndex = Math.max(0, Math.min(unresolved, RANK_ORDER.length - 4));
   return RANK_ORDER.slice(startIndex, startIndex + 4);
-}
-
-function primaryModesUnlocked() {
-  return true;
 }
 
 function markPuzzleComplete(index) {
@@ -516,26 +512,6 @@ function createRankStatusIcon(type) {
 }
 
 function renderProgressionUi() {
-  const unlocked = primaryModesUnlocked();
-  for (const mode of ["pve", "pvp"]) {
-    const button = document.querySelector(`[data-start-mode="${mode}"]`);
-    if (!button) continue;
-    button.disabled = !unlocked;
-    button.classList.toggle("locked", !unlocked);
-    button.querySelector(".mode-lock-icon")?.remove();
-    button.removeAttribute("title");
-    button.removeAttribute("data-lock-label");
-    if (unlocked) {
-      button.removeAttribute("aria-label");
-      continue;
-    }
-    const lockIcon = createRankStatusIcon("locked");
-    lockIcon.classList.add("mode-lock-icon");
-    lockIcon.setAttribute("aria-hidden", "true");
-    button.append(lockIcon);
-    const modeLabel = button.querySelector("strong")?.textContent || "";
-    button.setAttribute("aria-label", `${modeLabel}. ${text("modeLocked")}`);
-  }
   renderChallengeRanks();
   renderPveRankOptions();
 }
@@ -626,16 +602,9 @@ function applyLanguage() {
   lobbySettingsBtn.setAttribute("aria-label", text("settings"));
   lobbySettingsBtn.title = text("settings");
   const logoLanguage = LANGUAGE === "ko" ? "ko" : "en";
-  const isOldLogo = new URLSearchParams(window.location.search).get("logo") === "old";
-  if (isOldLogo) {
-    splashLogo.src = `./assets/ui/daeguk-logo-${logoLanguage}-old.svg?v=${ASSET_VERSION}`;
-    lobbyLogo.src = `./assets/ui/daeguk-logo-${logoLanguage}-old.svg?v=${ASSET_VERSION}`;
-    lobbyLogo.alt = text("appTitle");
-  } else {
-    splashLogo.src = `./assets/ui/daeguk-logo-${logoLanguage}.svg?v=${ASSET_VERSION}`;
-    lobbyLogo.src = `./assets/ui/daeguk-logo-lobby.svg?v=${ASSET_VERSION}`;
-    lobbyLogo.alt = "DAEGUK";
-  }
+  splashLogo.src = `./assets/ui/daeguk-logo-${logoLanguage}.svg?v=${ASSET_VERSION}`;
+  lobbyLogo.src = `./assets/ui/daeguk-logo-lobby.svg?v=${ASSET_VERSION}`;
+  lobbyLogo.alt = "DAEGUK";
   splashLogo.alt = text("appTitle");
   splashTitle.textContent = text("brandMain");
   splashSubtitle.textContent = text("brandSubtitle");
@@ -2269,14 +2238,14 @@ function render() {
     }
     if (resultSide) metaParts.push(sideName(resultSide));
     matchResultMeta.textContent = metaParts.join(" · ");
-    resultRedUnits.textContent = countPieces("black");
-    resultBlueUnits.textContent = countPieces("white");
+    resultBlackUnits.textContent = countPieces("black");
+    resultWhiteUnits.textContent = countPieces("white");
     resultFinishMethod.textContent = localizeResultReason(state.resultReason);
     resultTotalDeployments.textContent = text("deploymentTotalValue", {
       count: (state.deploymentCount?.black || 0) + (state.deploymentCount?.white || 0),
     });
-    resultRedCaptures.textContent = state.stats?.captures?.black || 0;
-    resultBlueCaptures.textContent = state.stats?.captures?.white || 0;
+    resultBlackCaptures.textContent = state.stats?.captures?.black || 0;
+    resultWhiteCaptures.textContent = state.stats?.captures?.white || 0;
     startTutorialBtn.hidden = true;
     tutorialLobbyBtn.hidden = true;
     exitTutorialBtn.hidden = true;
@@ -2433,8 +2402,8 @@ function localizeResultReason(reason) {
     return text("resignReason", { side });
   }
   const localizedSides = reason
-    .replace(/\bred\b/gi, text("black"))
-    .replace(/\bblue\b/gi, text("white"));
+    .replace(/\b(?:red|black)\b/gi, text("black"))
+    .replace(/\b(?:blue|white)\b/gi, text("white"));
   if (LANGUAGE !== "ko") return localizedSides;
   return localizedSides
     .replaceAll("King", text("king"))
@@ -2828,7 +2797,7 @@ function handleNetworkMessage(message) {
     return;
   }
 
-  if (message.type === "room_created" || message.type === "waiting") {
+  if (message.type === "room_created") {
     networkSession.roomCode = message.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
     state.mode = "pvp";

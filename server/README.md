@@ -11,7 +11,7 @@ dependency instead of a relative sibling-repository import.
 From the monorepo root:
 
 ```bash
-npm install
+npm ci
 npm start --workspace=server
 ```
 
@@ -29,6 +29,10 @@ Endpoints:
 - `WS /ws`
 
 The server owns room state, validates actions, resolves captures and abilities, and sends each player a sanitized state that hides unrevealed enemy special units.
+
+Online clients must use WebSocket protocol version 3. After two clients join,
+rock-paper-scissors assigns the winner to Black and the other player to White.
+Older protocol versions are rejected explicitly.
 
 Current King rules:
 

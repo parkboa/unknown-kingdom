@@ -467,7 +467,10 @@ function renderPanel(context) {
   context.blackCount.textContent = context.countPieces("black");
   context.whiteCount.textContent = context.countPieces("white");
   if (context.modeInfo) context.modeInfo.textContent = context.modeLabel;
-  if (context.rankInfo) context.rankInfo.textContent = context.rankLabel;
+  if (context.rankInfo) {
+    context.rankInfo.textContent = context.rankLabel;
+    context.rankInfo.hidden = context.state.mode === "pvp";
+  }
   if (context.connectionInfo) {
     context.connectionInfo.hidden = context.state.mode !== "pvp";
     context.connectionInfo.classList.toggle("connected", context.networkReady);
