@@ -55,6 +55,27 @@ test("FX preview is available only in developer mode", async ({ page }) => {
   await expect(page.locator("#fxPreviewBar")).toBeVisible();
 });
 
+test("deployment buttons keep their fixed positions when a unit is exhausted", async ({ page }) => {
+  await page.goto("/?lang=ko&dev=0&demo=capture-38");
+
+  const units = ["soldier", "general", "diplomat", "wizard"];
+  const positions = await page.locator(".unit-picker label:not(.king-deploy-option)").evaluateAll((labels) => (
+    Object.fromEntries(labels.map((label) => {
+      const box = label.getBoundingClientRect();
+      return [label.dataset.unit, { x: box.x, y: box.y }];
+    }))
+  ));
+
+  expect(Object.keys(positions)).toEqual(units);
+  expect(positions.general.x).toBeGreaterThan(positions.soldier.x);
+  expect(positions.general.y).toBe(positions.soldier.y);
+  expect(positions.diplomat.x).toBe(positions.soldier.x);
+  expect(positions.diplomat.y).toBeGreaterThan(positions.soldier.y);
+  expect(positions.wizard.x).toBe(positions.general.x);
+  expect(positions.wizard.y).toBe(positions.diplomat.y);
+  await expect(page.locator('.unit-picker label[data-unit="general"]')).toHaveClass(/used/);
+});
+
 test("Online lobby shows connection status without an unrelated challenge rank", async ({ page }) => {
   await openLobby(page);
   await page.locator('[data-start-mode="pvp"]').click();

@@ -1,4 +1,4 @@
-import { DEPLOY_ORDER, SPECIALS } from "./config.js";
+import { SPECIALS } from "./config.js";
 
 export function teleportUiState(state, viewerSide, promptDismissed = false) {
   const canControl = Boolean(
@@ -416,9 +416,6 @@ function renderDeployPicker(context) {
     label.classList.toggle("used", exhausted);
     label.classList.toggle("locked", locked && !exhausted);
     label.classList.toggle("tutorial-target", context.tutorialUnitHighlight === input.value && !input.checked);
-    const baseOrder = DEPLOY_ORDER.indexOf(input.value);
-    label.style.order = exhausted ? 200 + baseOrder : locked ? 100 + baseOrder : baseOrder;
-
     if (exhausted) {
       status.textContent = context.text("used");
     } else if (specialLocked || (firstMoveLocked && isSpecial)) {
