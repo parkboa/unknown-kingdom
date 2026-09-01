@@ -26,6 +26,16 @@ async function assertLocalizedLockLabel(page, language) {
 async function startTutorial(page) {
   await page.locator('[data-start-mode="tutorial"]').click();
   await expect(page.locator("#challengeModal")).toBeHidden();
+  await expect(page.locator(".taunt-overlay")).toBeVisible();
+}
+
+async function finishTutorialIntro(page) {
+  const nextDialogueBtn = page.locator(".dialogue-arrow-btn.down");
+  while (await nextDialogueBtn.isVisible()) {
+    await nextDialogueBtn.click();
+  }
+  await page.locator("#startTutorialBtn").click();
+  await expect(page.locator(".taunt-overlay")).toHaveCount(0);
   await expect(page.locator("#tutorialPanel")).toBeVisible();
 }
 
@@ -103,7 +113,7 @@ for (const viewport of VIEWPORTS) {
     test(`${viewport.name} ${language} UI sweep`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.addInitScript((key) => localStorage.removeItem(key), PROGRESS_KEY);
-      await page.goto(`/?lang=${language}&dev=1`);
+      await page.goto(`/?lang=${language}&dev=0`);
       await waitForLobby(page);
       await assertLocalizedLockLabel(page, language);
       await capture(page, testInfo, language, viewport, "lobby");
@@ -121,6 +131,7 @@ for (const viewport of VIEWPORTS) {
       await startTutorial(page);
       await capture(page, testInfo, language, viewport, "tutorial-start");
 
+      await finishTutorialIntro(page);
       await page.getByRole("gridcell", { name: "E8", exact: true }).click();
       await expect(page.locator("#nextTutorialBtn")).toBeVisible();
       await capture(page, testInfo, language, viewport, "tutorial-sanctuary");

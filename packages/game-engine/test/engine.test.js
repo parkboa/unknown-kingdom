@@ -269,6 +269,14 @@ test("ends the match when a King is captured once", () => {
   assert.equal(state.winner, "blue");
   assert.match(state.resultReason, /King was captured/);
   assert.equal(state.pendingKingSwap, null);
+  assert.deepEqual(state.capturedKing, {
+    pieceId: "piece-1",
+    owner: "red",
+    row: 4,
+    col: 4,
+  });
+  assert.equal(state.board[4][4].owner, "blue");
+  assert.equal(state.board[4][4].type, "soldier");
 });
 
 test("automatically emits one taunt when a King starts against its own wall", () => {

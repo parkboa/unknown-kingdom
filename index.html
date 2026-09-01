@@ -54,11 +54,23 @@
             <div class="tutorial-guide-content">
               <strong id="tutorialStepLabel" hidden></strong>
               <p id="tutorialMessage"></p>
+              <div id="matchResultSummary" class="match-result-summary" hidden>
+                <span class="match-result-stone" aria-hidden="true"></span>
+                <div>
+                  <strong id="matchResultOutcome">Black Wins</strong>
+                  <span id="matchResultScore"></span>
+                </div>
+              </div>
             </div>
             <div class="tutorial-actions">
               <button id="confirmTeleportBtn" type="button" hidden>Move</button>
               <button id="cancelTeleportBtn" type="button" hidden>Cancel Ability</button>
               <button id="startTutorialBtn" class="tutorial-start-button" type="button" data-i18n="startTutorialAction" hidden>시작하기</button>
+              <button id="tutorialLobbyBtn" class="tutorial-start-button" type="button" data-i18n="exitTutorialAction" hidden>나가기</button>
+              <div id="matchResultActions" class="match-result-actions-frame" hidden>
+                <button id="matchDetailsBtn" class="tutorial-start-button match-result-action" type="button" data-i18n="matchDetails" hidden>경기 결과</button>
+                <button id="playAgainBtn" class="tutorial-start-button match-result-action" type="button" data-i18n="playAgain" hidden>다시 대국</button>
+              </div>
               <button id="nextTutorialBtn" class="tutorial-icon-button" type="button" aria-label="Next" title="Next" hidden>
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <polygon points="6 9 12 17 18 9"></polygon>
@@ -322,27 +334,27 @@
 
     <div id="resultModal" class="result-modal" hidden>
       <section class="result-card match-result-card" role="dialog" aria-modal="true" aria-labelledby="resultHeading">
-        <h2 id="resultHeading" data-i18n="matchComplete">Match Complete</h2>
-        <span class="result-stone" aria-hidden="true"></span>
-        <p id="resultTitle" class="result-outcome">Black Wins</p>
-        <p id="resultReason" class="result-reason"></p>
-        <div class="result-grid">
-          <div><strong id="resultRedTerritory">0</strong><span data-i18n="redUnits">Black units</span></div>
-          <div><strong id="resultBlueTerritory">0</strong><span data-i18n="blueUnits">White units</span></div>
+        <h2 id="resultHeading" data-i18n="matchDetails">Match Results</h2>
+        <p id="matchResultMeta" class="match-result-meta"></p>
+        <div class="result-grid result-units-grid">
+          <div><strong id="resultRedUnits">0</strong><span data-i18n="redUnits">Black units</span></div>
+          <div><strong id="resultBlueUnits">0</strong><span data-i18n="blueUnits">White units</span></div>
+        </div>
+        <dl class="match-result-facts">
+          <div><dt data-i18n="finishMethod">Finish</dt><dd id="resultFinishMethod"></dd></div>
+          <div><dt data-i18n="totalDeployments">Total deployments</dt><dd id="resultTotalDeployments"></dd></div>
+        </dl>
+        <div class="result-grid result-record-grid">
           <div><strong id="resultRedCaptures">0</strong><span data-i18n="redCaptures">Black captures</span></div>
           <div><strong id="resultBlueCaptures">0</strong><span data-i18n="blueCaptures">White captures</span></div>
+          <div><strong id="resultRedSpecials">0</strong><span data-i18n="redSkills">Black skills used</span></div>
+          <div><strong id="resultBlueSpecials">0</strong><span data-i18n="blueSkills">White skills used</span></div>
         </div>
+        <p class="captures-score-note" data-i18n="capturesNotScored">Captures are match records and do not count toward the score.</p>
         <p id="resultRematchNotice" class="result-rematch-notice" aria-live="polite" hidden></p>
         <div class="result-actions">
-          <button id="playAgainBtn" class="result-primary-button" type="button" data-i18n="playAgain">Play Again</button>
           <button id="resultDownloadJournalBtn" class="card-simple-button" type="button" data-developer-only data-i18n="downloadPveJournal" hidden>Download PvE record</button>
-          <button id="resultLobbyBtn" class="card-back-button result-home-button" type="button" aria-label="Lobby" title="Lobby">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 10.5 12 4l8 6.5" />
-              <path d="M6.5 9.5V20h11V9.5" />
-              <path d="M10 20v-6h4v6" />
-            </svg>
-          </button>
+          <button id="closeMatchDetailsBtn" class="result-primary-button" type="button" data-i18n="close">Close</button>
         </div>
       </section>
     </div>

@@ -45,14 +45,16 @@ Language: 언어
 [EN]
 Title: Choose your side
 Prompt: Choose an AI difficulty, then choose your side. Your side will appear at the bottom of the board.
-Beginner: Beginner
-Beginner Description: For Third-rate to First-rate Masters.
+Novice: Novice
+Novice Description: Level 1: Basic tactical maneuvers and special units.
 Intermediate: Intermediate
-Intermediate Description: For Peak, Transcendent, and Harmony Masters.
+Intermediate Description: Level 2: Strategic positioning and diplomatic pressure.
 Advanced: Advanced
-Advanced Description: For Profound and Life-and-Death Masters.
+Advanced Description: Level 3: Teleportation tricks and unpredictable attacks.
 Expert: Expert
-Expert Description: For players who want the AI to hunt the King aggressively.
+Expert Description: Level 4: Multi-step foresight and coordinated trapping.
+Grandmaster: Grandmaster
+Grandmaster Description: Level 5: Fortified King play and precise finishing tactics.
 Black Side: Black
 White Side: White
 Back: Back
@@ -60,14 +62,16 @@ Back: Back
 [KO]
 Title: 진영 선택
 Prompt: AI 난이도를 선택한 뒤 진영을 선택하세요. 선택한 내 진영이 보드 아래쪽에 표시됩니다.
-Beginner: 초급
-Beginner Description: 삼류 고수부터 일류 고수를 위한 난이도입니다.
-Intermediate: 중급
-Intermediate Description: 절정 고수, 초절정 고수, 화경고수를 위한 난이도입니다.
-Advanced: 고급
-Advanced Description: 현경고수, 생사경고수를 위한 난이도입니다.
-Expert: 초고급
-Expert Description: AI가 왕 포획을 적극적으로 노리는 초고난도입니다.
+Novice: 삼류 고수
+Novice Description: 1단계: 특수 기물 기본 활용 및 전술 공방
+Intermediate: 이류 고수
+Intermediate Description: 2단계: 외교관 및 진형 장악 중심 전략
+Advanced: 일류 고수
+Advanced Description: 3단계: 마법사 도약 및 기습 침투 전술
+Expert: 절정 고수
+Expert Description: 4단계: 2~3수를 내다보는 연계 수읽기
+Grandmaster: 초절정 고수
+Grandmaster Description: 5단계: 견고한 왕 방어와 정밀한 마무리 전술
 Black Side: 흑
 White Side: 백
 Back: 뒤로

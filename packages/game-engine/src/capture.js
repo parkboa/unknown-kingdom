@@ -61,6 +61,12 @@ function occupyGroup(state, group, captor, events) {
     if (!piece) continue;
     captured.push({ pieceId: piece.id, row, col });
     if (piece.type === "king") {
+      state.capturedKing = {
+        pieceId: piece.id,
+        owner: piece.owner,
+        row,
+        col,
+      };
       state.board[row][col] = occupiedSoldier(state, captor);
       state.stats.captures[captor] += 1;
       emitEvent(state, events, { type: "group_captured", captor, defender, pieces: captured });

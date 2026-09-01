@@ -29,11 +29,11 @@ export const RANK_LABELS = {
   },
   ko: {
     thirdRateMaster: "튜토리얼",
-    novice: "초급",
-    intermediate: "중급",
-    advanced: "상급",
-    expert: "달인",
-    grandmaster: "신의 한 수",
+    novice: "삼류 고수",
+    intermediate: "이류 고수",
+    advanced: "일류 고수",
+    expert: "절정 고수",
+    grandmaster: "초절정 고수",
   },
 };
 
@@ -48,11 +48,11 @@ export const AI_RANK_LABELS = {
     grandmaster: "Grandmaster",
   },
   ko: {
-    novice: "초급",
-    intermediate: "중급",
-    advanced: "상급",
-    expert: "달인",
-    grandmaster: "신의 한 수",
+    novice: "삼류 고수",
+    intermediate: "이류 고수",
+    advanced: "일류 고수",
+    expert: "절정 고수",
+    grandmaster: "초절정 고수",
   },
 };
 

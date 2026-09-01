@@ -41,6 +41,7 @@ export function createGameState(mode = "pvp", options = {}) {
     resumeTurn: null,
     pendingWizardTeleport: null,
     pendingKingSwap: null,
+    capturedKing: null,
     tauntEvent: null,
     tauntSerial: 0,
     tauntUntil: 0,

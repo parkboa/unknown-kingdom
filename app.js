@@ -111,10 +111,11 @@ const text = createTranslator(LANGUAGE);
 
 document.body.classList.toggle("iphone-preview", PREVIEW_MODE === "iphone");
 
-function lastDeploymentKey(move) {
+function lastDeploymentKey(move, board) {
   if (!move || move.action) return "";
   if (!Number.isInteger(move.row) || !Number.isInteger(move.col)) return "";
-  return `${move.player}:${move.unitType}:${move.row}:${move.col}`;
+  const pieceId = board?.[move.row]?.[move.col]?.id || "";
+  return `${move.player}:${move.unitType}:${move.row}:${move.col}:${pieceId}`;
 }
 
 let state;
@@ -147,6 +148,10 @@ let tutorialKingPosition = null;
 let tutorialReactionPending = false;
 let tutorialReactionPhase = null;
 let tutorialTimer = null;
+let tutorialScriptTimer = null;
+let tutorialScriptRunning = false;
+let tutorialSanctuaryPhase = null;
+let tutorialSpecialIntroPhase = null;
 let puzzleIndex = 0;
 let activePuzzle = null;
 let puzzleMoves = 0;
@@ -160,12 +165,15 @@ let pendingSuicideConfirmation = null;
 let suicideConfirmReturnFocus = null;
 let pveJournalRecorder = null;
 let pveJournalGameId = null;
+let pendingDeploymentAnimation = null;
+let matchResultDetailsOpen = false;
 
 const AI_MOVE_DELAY_MS = 600;
 const AI_SPECIAL_REVEAL_DELAY_MS = 1500;
 const AI_WIZARD_TELEPORT_DELAY_MS = 900;
 const TUTORIAL_SPECIAL_SURROUND_DELAY_MS = 1200;
 const TUTORIAL_SPECIAL_ACTIVATE_DELAY_MS = 1600;
+const TUTORIAL_SCRIPT_ACTION_DELAY_MS = 180;
 const TAUNT_DISPLAY_MS = 3000;
 const CUTSCENE_DISPLAY_MS = 2000;
 const GENERAL_CUTIN_MS = 2000;
@@ -185,60 +193,119 @@ const TUTORIAL_STEPS = [
     unitType: "soldier",
     owner: "blue",
     row: 4,
-    col: 5,
+    col: 4,
     message: "tutorialCapture",
     placedMessage: "tutorialCapturePlaced",
-    setup: "capture",
-    hideHint: true,
+    setup: "capture-script",
   },
   {
     unitType: "soldier",
-    owner: "red",
-    row: 8,
-    col: 3,
+    owner: "blue",
+    row: 0,
+    col: 2,
     message: "tutorialWallDefense",
     placedMessage: "tutorialWallDefensePlaced",
-    setup: "wall-defense",
+    setup: "own-wall-script",
   },
   {
     unitType: "soldier",
     owner: "blue",
     row: 8,
-    col: 7,
+    col: 2,
     message: "tutorialWallCapture",
     placedMessage: "tutorialWallCapturePlaced",
-    setup: "wall-capture",
+    setup: "enemy-wall-script",
   },
   {
     unitType: "general",
     owner: "blue",
-    row: 4,
-    col: 4,
+    row: 2,
+    col: 5,
     message: "tutorialGeneral",
     placedMessage: "tutorialGeneralPlaced",
-    setup: "special",
+    setup: "general-continuation",
+    reactionRow: 3,
+    reactionCol: 5,
+    requiresUnitSelection: true,
     reaction: true,
   },
   {
     unitType: "diplomat",
     owner: "blue",
-    row: 4,
-    col: 4,
+    row: 0,
+    col: 3,
     message: "tutorialDiplomat",
     placedMessage: "tutorialDiplomatPlaced",
-    setup: "special",
+    setup: "diplomat-continuation",
+    reactionRow: 1,
+    reactionCol: 2,
+    requiresUnitSelection: true,
     reaction: true,
   },
   {
     unitType: "wizard",
     owner: "blue",
     row: 4,
-    col: 4,
+    col: 6,
     message: "tutorialWizard",
     placedMessage: "tutorialWizardPlaced",
-    setup: "special",
+    setup: "wizard-continuation",
+    reactionRow: 4,
+    reactionCol: 7,
+    teleportRow: 1,
+    teleportCol: 5,
+    requiresUnitSelection: true,
     reaction: true,
   },
+];
+
+const TUTORIAL_SANCTUARY_ACTIONS = [
+  { player: "red", row: 0, col: 4 },
+  { player: "blue", row: 6, col: 4 },
+  { player: "red", row: 1, col: 3 },
+  { player: "blue", row: 7, col: 3 },
+  { player: "red", row: 1, col: 5 },
+  { player: "blue", row: 7, col: 5 },
+  { player: "red", row: 2, col: 4 },
+  { player: "blue", row: 8, col: 4 },
+];
+
+const TUTORIAL_CAPTURE_SETUP_ACTIONS = [
+  { player: "red", row: 5, col: 4 },
+  { player: "blue", row: 5, col: 3 },
+  { player: "red", row: 0, col: 1 },
+  { player: "blue", row: 5, col: 5 },
+  { player: "red", row: 8, col: 1 },
+];
+
+const TUTORIAL_OWN_WALL_ACTIONS = [
+  { player: "red", row: 4, col: 5 },
+  { player: "blue", row: 0, col: 0 },
+  { player: "red", row: 5, col: 6 },
+  { player: "blue", row: 1, col: 1 },
+  { player: "red", row: 6, col: 5 },
+];
+
+const TUTORIAL_ENEMY_WALL_ACTIONS = [
+  { player: "red", row: 6, col: 3 },
+  { player: "blue", row: 8, col: 0 },
+  { player: "red", row: 8, col: 5 },
+  { player: "blue", row: 7, col: 1 },
+  { player: "red", row: 7, col: 6 },
+];
+
+const TUTORIAL_GENERAL_SETUP_ACTIONS = [
+  { player: "red", row: 2, col: 6 },
+];
+
+const TUTORIAL_DIPLOMAT_SETUP_ACTIONS = [
+  { player: "blue", row: 2, col: 3 },
+  { player: "red", row: 2, col: 4 },
+];
+
+const TUTORIAL_WIZARD_SETUP_ACTIONS = [
+  { player: "blue", row: 3, col: 4 },
+  { player: "red", row: 3, col: 6 },
 ];
 
 const boardEl = document.querySelector("#board");
@@ -291,8 +358,9 @@ const createRoomBtn = document.querySelector("#createRoomBtn");
 const cancelNetworkBtn = document.querySelector("#cancelNetworkBtn");
 const resultModal = document.querySelector("#resultModal");
 const playAgainBtn = document.querySelector("#playAgainBtn");
+const matchDetailsBtn = document.querySelector("#matchDetailsBtn");
+const closeMatchDetailsBtn = document.querySelector("#closeMatchDetailsBtn");
 const resultRematchNotice = document.querySelector("#resultRematchNotice");
-const resultLobbyBtn = document.querySelector("#resultLobbyBtn");
 const resultDownloadJournalBtn = document.querySelector("#resultDownloadJournalBtn");
 const rematchToast = document.querySelector("#rematchToast");
 const rematchToastTitle = document.querySelector("#rematchToastTitle");
@@ -328,7 +396,21 @@ resultDownloadJournalBtn?.toggleAttribute("hidden", !DEVELOPER_MODE);
 const tutorialPanel = document.querySelector("#tutorialPanel");
 const tutorialStepLabel = document.querySelector("#tutorialStepLabel");
 const tutorialMessage = document.querySelector("#tutorialMessage");
+const matchResultSummary = document.querySelector("#matchResultSummary");
+const matchResultOutcome = document.querySelector("#matchResultOutcome");
+const matchResultScore = document.querySelector("#matchResultScore");
+const matchResultActions = document.querySelector("#matchResultActions");
+const matchResultMeta = document.querySelector("#matchResultMeta");
+const resultRedUnits = document.querySelector("#resultRedUnits");
+const resultBlueUnits = document.querySelector("#resultBlueUnits");
+const resultFinishMethod = document.querySelector("#resultFinishMethod");
+const resultTotalDeployments = document.querySelector("#resultTotalDeployments");
+const resultRedCaptures = document.querySelector("#resultRedCaptures");
+const resultBlueCaptures = document.querySelector("#resultBlueCaptures");
+const resultRedSpecials = document.querySelector("#resultRedSpecials");
+const resultBlueSpecials = document.querySelector("#resultBlueSpecials");
 const startTutorialBtn = document.querySelector("#startTutorialBtn");
+const tutorialLobbyBtn = document.querySelector("#tutorialLobbyBtn");
 const exitTutorialBtn = document.querySelector("#exitTutorialBtn");
 const nextTutorialBtn = document.querySelector("#nextTutorialBtn");
 const modeStartButtons = document.querySelectorAll("[data-start-mode]");
@@ -541,8 +623,6 @@ function applyLanguage() {
   if (settingsLabel) settingsLabel.textContent = text("settings");
   lobbySettingsBtn.setAttribute("aria-label", text("settings"));
   lobbySettingsBtn.title = text("settings");
-  resultLobbyBtn.setAttribute("aria-label", text("lobby"));
-  resultLobbyBtn.title = text("lobby");
   const logoLanguage = LANGUAGE === "ko" ? "ko" : "en";
   const isOldLogo = new URLSearchParams(window.location.search).get("logo") === "old";
   if (isOldLogo) {
@@ -838,10 +918,18 @@ function applyMatchResultDemo() {
   state = createInitialState(onlineDemo ? "pvp" : "pve", pveHumanPlayer);
   state.aiRank = selectedPveRank;
   state.board[4][4] = createPiece("red", "king");
-  state.board[3][4] = createOccupiedSoldier("red");
-  state.board[5][4] = createOccupiedSoldier("blue");
+  state.board[5][4] = createOccupiedSoldier("red");
+  state.board[6][4] = createOccupiedSoldier("blue");
+  state.capturedKing = {
+    pieceId: "demo-captured-blue-king",
+    owner: "blue",
+    row: 5,
+    col: 4,
+  };
+  state.deploymentCount = { red: 19, blue: 19 };
   state.stats.captures = { red: 7, blue: 4 };
   state.stats.specialsUsed = { red: 2, blue: 1 };
+  state.aiRank = selectedPveRank || "novice";
   state.winner = "red";
   state.resultReason = "blue King was captured.";
   if (onlineDemo) {
@@ -881,6 +969,7 @@ function canDeploy(player, unitType, row, col, options = {}) {
     const expected = TUTORIAL_STEPS[tutorialStep];
     return Boolean(expected)
       && !tutorialAwaitingContinue
+      && !tutorialScriptRunning
       && !(options.forHint && expected.hideHint)
       && player === expected.owner
       && unitType === expected.unitType
@@ -1020,6 +1109,11 @@ function deploy(row, col, options = {}) {
   const expected = TUTORIAL_STEPS[tutorialStep];
   tutorialReactionPending = Boolean(expected?.reaction);
   tutorialAwaitingContinue = true;
+  if (tutorialStep === 0) {
+    tutorialSanctuaryPhase = "overview";
+    render();
+    return;
+  }
   if (!beginTutorialSpecialReaction()) render();
 }
 
@@ -1028,12 +1122,48 @@ function selectTutorialUnit(unitType) {
   if (input) input.checked = true;
 }
 
-function setTutorialCaptureBoard() {
-  resetTutorialBoard();
-  state.board[3][4] = createOccupiedSoldier("blue");
-  state.board[5][4] = createOccupiedSoldier("blue");
-  state.board[4][3] = createOccupiedSoldier("blue");
-  state.board[4][4] = createOccupiedSoldier("red");
+function clearTutorialScript() {
+  if (tutorialScriptTimer !== null) window.clearTimeout(tutorialScriptTimer);
+  tutorialScriptTimer = null;
+  tutorialScriptRunning = false;
+}
+
+function runTutorialScriptedDeployments(actions) {
+  clearTutorialScript();
+  tutorialScriptRunning = true;
+  let actionIndex = 0;
+
+  const deployNext = () => {
+    const action = actions[actionIndex];
+    if (!action) {
+      tutorialScriptTimer = null;
+      tutorialScriptRunning = false;
+      state.turn = TUTORIAL_STEPS[tutorialStep]?.owner || "blue";
+      render();
+      return;
+    }
+
+    state.turn = action.player;
+    const result = commitSharedLocalAction(action.player, {
+      type: "deploy",
+      unitType: "soldier",
+      row: action.row,
+      col: action.col,
+    });
+    if (result !== "accepted") {
+      tutorialScriptTimer = null;
+      tutorialScriptRunning = false;
+      addLog(`Tutorial scripted deployment failed at ${coord(action.row, action.col)}.`);
+      render();
+      return;
+    }
+
+    actionIndex += 1;
+    render();
+    tutorialScriptTimer = window.setTimeout(deployNext, TUTORIAL_SCRIPT_ACTION_DELAY_MS);
+  };
+
+  deployNext();
 }
 
 function resetTutorialBoard() {
@@ -1043,20 +1173,6 @@ function resetTutorialBoard() {
   state.deploymentCount = { red: 5, blue: 5 };
   state.stock.red = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
   state.stock.blue = { soldier: 20, king: 1, general: 1, diplomat: 1, wizard: 1 };
-}
-
-function setTutorialWallDefenseBoard() {
-  resetTutorialBoard();
-  state.board[8][2] = createOccupiedSoldier("blue");
-  state.board[8][1] = createOccupiedSoldier("red");
-  state.board[7][2] = createOccupiedSoldier("red");
-}
-
-function setTutorialWallCaptureBoard() {
-  resetTutorialBoard();
-  state.board[8][6] = createOccupiedSoldier("red");
-  state.board[8][5] = createOccupiedSoldier("blue");
-  state.board[7][6] = createOccupiedSoldier("blue");
 }
 
 function setTutorialSpecialBoard() {
@@ -1070,6 +1186,8 @@ function advanceTutorial() {
   tutorialAwaitingContinue = false;
   tutorialReactionPending = false;
   tutorialReactionPhase = null;
+  tutorialSanctuaryPhase = null;
+  tutorialSpecialIntroPhase = null;
   tutorialStep += 1;
   state.selected = null;
   state.lastMove = null;
@@ -1083,12 +1201,33 @@ function advanceTutorial() {
     }
     return;
   }
-  if (expected.setup === "wall-defense") setTutorialWallDefenseBoard();
-  if (expected.setup === "wall-capture") setTutorialWallCaptureBoard();
-  if (expected.setup === "capture") setTutorialCaptureBoard();
   if (expected.setup === "special") setTutorialSpecialBoard();
   state.turn = expected.owner;
-  selectTutorialUnit(expected.unitType);
+  if (expected.setup === "general-continuation") {
+    tutorialSpecialIntroPhase = "overview";
+    tutorialAwaitingContinue = true;
+    selectTutorialUnit("soldier");
+  } else if (expected.setup === "diplomat-continuation" || expected.setup === "wizard-continuation") {
+    tutorialSpecialIntroPhase = "practice";
+    selectTutorialUnit("soldier");
+  } else {
+    selectTutorialUnit(expected.unitType);
+  }
+  if (expected.setup === "capture-script") {
+    runTutorialScriptedDeployments(TUTORIAL_CAPTURE_SETUP_ACTIONS);
+  }
+  if (expected.setup === "own-wall-script") {
+    runTutorialScriptedDeployments(TUTORIAL_OWN_WALL_ACTIONS);
+  }
+  if (expected.setup === "enemy-wall-script") {
+    runTutorialScriptedDeployments(TUTORIAL_ENEMY_WALL_ACTIONS);
+  }
+  if (expected.setup === "diplomat-continuation") {
+    runTutorialScriptedDeployments(TUTORIAL_DIPLOMAT_SETUP_ACTIONS);
+  }
+  if (expected.setup === "wizard-continuation") {
+    runTutorialScriptedDeployments(TUTORIAL_WIZARD_SETUP_ACTIONS);
+  }
 }
 
 function beginTutorialSpecialReaction() {
@@ -1098,11 +1237,12 @@ function beginTutorialSpecialReaction() {
   render();
   tutorialTimer = window.setTimeout(() => {
     state.turn = "red";
+    const expected = TUTORIAL_STEPS[tutorialStep];
     const surrounded = commitSharedLocalAction("red", {
       type: "deploy",
       unitType: "soldier",
-      row: 4,
-      col: 5,
+      row: expected?.reactionRow ?? 4,
+      col: expected?.reactionCol ?? 5,
     });
     if (surrounded !== "accepted") {
       tutorialTimer = null;
@@ -1178,6 +1318,7 @@ function proceedFromTutorialIntro() {
 }
 
 function startTutorial({ puzzleEntry = false, index = 0 } = {}) {
+  clearTutorialScript();
   if (tutorialTimer !== null) window.clearTimeout(tutorialTimer);
   tutorialTimer = null;
   if (tutorialIntroTimer !== null) window.clearTimeout(tutorialIntroTimer);
@@ -1201,6 +1342,8 @@ function startTutorial({ puzzleEntry = false, index = 0 } = {}) {
   tutorialKingPosition = null;
   tutorialReactionPending = false;
   tutorialReactionPhase = null;
+  tutorialSanctuaryPhase = null;
+  tutorialSpecialIntroPhase = null;
   visibleCutscene = getTutorialIntroCutscene(0);
   selectModeChoice(puzzleEntry ? "puzzle" : "tutorial");
   selectTutorialUnit(TUTORIAL_STEPS[0].unitType);
@@ -1216,6 +1359,7 @@ function selectPuzzleUnit(unitType) {
 
 function loadPuzzle(index = 0) {
   disconnectNetwork();
+  clearTutorialScript();
   if (tutorialTimer !== null) window.clearTimeout(tutorialTimer);
   tutorialTimer = null;
   if (tutorialIntroTimer !== null) window.clearTimeout(tutorialIntroTimer);
@@ -1228,6 +1372,8 @@ function loadPuzzle(index = 0) {
   tutorialKingPosition = null;
   tutorialReactionPending = false;
   tutorialReactionPhase = null;
+  tutorialSanctuaryPhase = null;
+  tutorialSpecialIntroPhase = null;
   undoStack = [];
   if (PUZZLES.length === 0) {
     startNewGame();
@@ -1473,6 +1619,7 @@ function presentSharedLocalEvents(events) {
 
   for (const event of events) {
     if (event.type === "piece_deployed") {
+      pendingDeploymentAnimation = { row: event.row, col: event.col };
       playPlacementSound();
       const unitName = event.player === pveAiPlayer && event.unitType !== "king"
         ? text("hiddenUnit")
@@ -1796,6 +1943,11 @@ function selectCell(row, col) {
   if (state.pendingSpecial) return;
 
   if (state.teleporting) {
+    const tutorialTarget = state.mode === "tutorial" ? TUTORIAL_STEPS[tutorialStep] : null;
+    if (
+      tutorialTarget
+      && (row !== tutorialTarget.teleportRow || col !== tutorialTarget.teleportCol)
+    ) return;
     teleportWizard(row, col);
     return;
   }
@@ -1911,6 +2063,14 @@ function render() {
     pveTurnDeadline = null;
   }
 
+  const deploymentAnimation = pendingDeploymentAnimation;
+  pendingDeploymentAnimation = null;
+  const matchEnded = Boolean(
+    state?.winner
+      && (state.mode === "pve" || state.mode === "pvp")
+      && !activeSkillEffect,
+  );
+  if (!matchEnded) matchResultDetailsOpen = false;
   renderGame({
     state,
     boardEl,
@@ -1929,7 +2089,7 @@ function render() {
     undoBtn,
     resignBtn,
     resultModal,
-    showMatchResult: state.mode === "pve" || state.mode === "pvp",
+    showMatchResult: matchEnded && matchResultDetailsOpen,
     networkModalHidden: networkModal ? networkModal.hidden : true,
     networkStatusGroup,
     unitInputs,
@@ -1946,6 +2106,7 @@ function render() {
     visibleTaunt,
     visibleCutscene,
     activeSkillEffect,
+    deploymentAnimation,
     undoCount: undoStack.length,
     unitLabels: UNIT_LABELS,
     text,
@@ -1953,6 +2114,18 @@ function render() {
     coord,
     currentUnitChoice,
     canDeploy,
+    tutorialUnitHighlight: state.mode === "tutorial"
+      && tutorialSpecialIntroPhase === "practice"
+      && !tutorialScriptRunning
+      && !tutorialAwaitingContinue
+      ? TUTORIAL_STEPS[tutorialStep]?.unitType
+      : null,
+    tutorialTeleportTarget: state.mode === "tutorial" && state.teleporting
+      ? {
+        row: TUTORIAL_STEPS[tutorialStep]?.teleportRow,
+        col: TUTORIAL_STEPS[tutorialStep]?.teleportCol,
+      }
+      : null,
     kingZones: activeKingZones,
     selectCell,
     countPieces,
@@ -1960,7 +2133,7 @@ function render() {
     onDialogueNext: handleDialogueNext,
     onDialoguePrev: handleDialoguePrev,
   });
-  const matchResultVisible = Boolean(state.winner && (state.mode === "pve" || state.mode === "pvp") && !activeSkillEffect);
+  const matchResultVisible = matchEnded;
   if (matchResultVisible) {
     if (state.mode === "pvp") {
       if (networkSession.opponentDisconnected) {
@@ -2022,25 +2195,80 @@ function render() {
   const puzzleActive = state.mode === "puzzle" && activePuzzle;
   const teleportActive = Boolean(state.teleporting);
   const teleportUi = teleportUiState(state, viewerSide, wizardMovePromptDismissed);
+  const matchResultAnnouncementActive = Boolean(
+    matchEnded && networkModal?.hidden !== false,
+  );
   const challengeResultActive = Boolean(state.winner && (puzzleActive || (tutorialActive && activePuzzle?.type === "tutorial")));
   const challengeResultSolved = challengeResultActive && (tutorialActive
     ? state.winner === "blue"
     : state.winner === activePuzzle?.player);
-  tutorialPanel.hidden = !tutorialActive && !puzzleActive && !teleportUi.showPrompt;
+  const tutorialVictoryReady = Boolean(
+    tutorialActive
+      && !activePuzzle
+      && state.winner === "blue"
+      && tutorialStep >= TUTORIAL_STEPS.length - 1
+      && tutorialAwaitingContinue,
+  );
+  tutorialPanel.hidden = !tutorialActive && !puzzleActive && !teleportUi.showPrompt && !matchResultAnnouncementActive;
   gameStatusBar.classList.toggle("guide-active", !tutorialPanel.hidden);
   tutorialPanel.classList.toggle("wizard-move-panel", teleportUi.showPrompt);
   tutorialPanel.classList.toggle("challenge-result", challengeResultActive);
+  tutorialPanel.classList.toggle("match-result-announcement", matchResultAnnouncementActive);
   tutorialPanel.classList.toggle("complete", challengeResultSolved);
   tutorialPanel.classList.toggle("incomplete", challengeResultActive && !challengeResultSolved);
+  tutorialPanel.toggleAttribute("data-outcome", matchResultAnnouncementActive);
+  if (matchResultAnnouncementActive) tutorialPanel.dataset.outcome = state.winner;
+  matchResultSummary.hidden = !matchResultAnnouncementActive;
+  matchResultActions.hidden = !matchResultAnnouncementActive;
+  tutorialMessage.hidden = matchResultAnnouncementActive;
+  matchDetailsBtn.hidden = !matchResultAnnouncementActive;
+  playAgainBtn.hidden = !matchResultAnnouncementActive;
   exitTutorialBtn.hidden = !challengeResultActive;
+  tutorialLobbyBtn.hidden = !tutorialVictoryReady;
   setIconButtonLabel(exitTutorialBtn, "backToChallenges");
   boardEl.classList.toggle("tutorial-active", tutorialActive);
-  if (tutorialActive) {
+  if (matchResultAnnouncementActive) {
+    tutorialStepLabel.hidden = true;
+    tutorialStepLabel.textContent = "";
+    matchResultOutcome.textContent = state.winner === "draw"
+      ? text("resultDraw")
+      : text("resultWin", { side: sideName(state.winner) });
+    matchResultScore.textContent = text("matchEndScore", {
+      red: countPieces("red"),
+      blue: countPieces("blue"),
+    });
+    const resultSide = state.mode === "pvp" ? networkSession.player : pveHumanPlayer;
+    const metaParts = [state.mode === "pve" ? text("matchMetaPve") : currentModeLabel()];
+    if (state.mode === "pve") {
+      const resultRank = state.aiRank || state.aiDifficulty;
+      metaParts.push(resultRank === "novice" ? text("matchMetaNoviceRank") : currentRankLabel());
+    }
+    if (resultSide) metaParts.push(sideName(resultSide));
+    matchResultMeta.textContent = metaParts.join(" · ");
+    resultRedUnits.textContent = countPieces("red");
+    resultBlueUnits.textContent = countPieces("blue");
+    resultFinishMethod.textContent = localizeResultReason(state.resultReason);
+    resultTotalDeployments.textContent = text("deploymentTotalValue", {
+      count: (state.deploymentCount?.red || 0) + (state.deploymentCount?.blue || 0),
+    });
+    resultRedCaptures.textContent = state.stats?.captures?.red || 0;
+    resultBlueCaptures.textContent = state.stats?.captures?.blue || 0;
+    resultRedSpecials.textContent = state.stats?.specialsUsed?.red || 0;
+    resultBlueSpecials.textContent = state.stats?.specialsUsed?.blue || 0;
+    startTutorialBtn.hidden = true;
+    tutorialLobbyBtn.hidden = true;
+    exitTutorialBtn.hidden = true;
+    nextTutorialBtn.hidden = true;
+    confirmTeleportBtn.hidden = true;
+    cancelTeleportBtn.hidden = true;
+    boardEl.classList.remove("tutorial-active");
+    boardEl.classList.remove("tutorial-complete");
+  } else if (tutorialActive) {
     const complete = tutorialStep >= TUTORIAL_STEPS.length;
     const tutorialPuzzleActive = activePuzzle?.type === "tutorial";
     if (tutorialIntro) {
-      tutorialPanel.hidden = !tutorialIntroReady;
-      gameStatusBar.classList.toggle("guide-active", !tutorialPanel.hidden);
+      tutorialPanel.hidden = false;
+      gameStatusBar.classList.toggle("guide-active", true);
       tutorialMessage.textContent = tutorialIntroReady ? text("tutorialIntroPrompt") : "";
       startTutorialBtn.hidden = !tutorialIntroReady;
       startTutorialBtn.textContent = text("startTutorialAction");
@@ -2052,20 +2280,26 @@ function render() {
       tutorialPanel.hidden = false;
       gameStatusBar.classList.toggle("guide-active", true);
       startTutorialBtn.hidden = true;
-      const tutorialMessageKey = tutorialReactionPhase === "preparing"
-        ? "tutorialBlackPreparing"
-        : tutorialReactionPhase === "surrounded"
-          ? "tutorialSurroundComplete"
-          : tutorialAwaitingContinue
-            ? state.teleporting
-              ? "tutorialWizardTeleport"
-              : TUTORIAL_STEPS[tutorialStep].placedMessage
-            : TUTORIAL_STEPS[tutorialStep]?.message;
-      const conciseTutorialMessage = text(complete && tutorialPuzzleActive ? "challengeComplete" : complete ? "tutorialComplete" : tutorialMessageKey);
+      const tutorialMessageKey = complete && !tutorialPuzzleActive
+        ? "tutorialWizardPlaced"
+        : tutorialReactionPhase === "preparing"
+          ? "tutorialBlackPreparing"
+          : tutorialReactionPhase === "surrounded"
+            ? "tutorialSurroundComplete"
+            : tutorialSpecialIntroPhase === "overview"
+              ? "tutorialSpecialIntro"
+              : tutorialAwaitingContinue
+                ? state.teleporting
+                  ? "tutorialWizardTeleport"
+                  : tutorialStep === 0 && tutorialSanctuaryPhase === "duration"
+                    ? "tutorialSanctuaryDuration"
+                    : TUTORIAL_STEPS[tutorialStep].placedMessage
+                : TUTORIAL_STEPS[tutorialStep]?.message;
+      const conciseTutorialMessage = text(complete && tutorialPuzzleActive ? "challengeComplete" : tutorialMessageKey);
       tutorialMessage.textContent = conciseTutorialMessage;
       nextTutorialBtn.hidden = complete
         ? true
-        : !tutorialAwaitingContinue || Boolean(state.teleporting) || Boolean(tutorialReactionPhase);
+        : tutorialVictoryReady || !tutorialAwaitingContinue || tutorialScriptRunning || Boolean(state.teleporting) || Boolean(tutorialReactionPhase);
       setIconButtonLabel(nextTutorialBtn, "nextTutorial");
       boardEl.classList.toggle("tutorial-complete", complete);
     }
@@ -2102,8 +2336,8 @@ function render() {
     boardEl.classList.remove("tutorial-complete");
   }
   if (tutorialActive && teleportUi.canControl) {
-    confirmTeleportBtn.hidden = wizardMovePromptDismissed;
-    cancelTeleportBtn.hidden = wizardMovePromptDismissed;
+    confirmTeleportBtn.hidden = true;
+    cancelTeleportBtn.hidden = true;
   }
   renderPendingSpecialModal(viewerSide);
 }
@@ -2274,6 +2508,7 @@ suicideConfirmModal.addEventListener("keydown", (event) => {
   }
 });
 function resetGame() {
+  clearTutorialScript();
   if (aiTimer !== null) window.clearTimeout(aiTimer);
   if (tauntTimer !== null) window.clearTimeout(tauntTimer);
   if (cutsceneTimer !== null) window.clearTimeout(cutsceneTimer);
@@ -2296,12 +2531,12 @@ function resetGame() {
   tutorialIntro = false;
   tutorialIntroPage = 0;
   tutorialIntroReady = false;
-  tutorialGoal = false;
-  tutorialGoalPage = 0;
   tutorialAwaitingContinue = false;
   tutorialKingPosition = null;
   tutorialReactionPending = false;
   tutorialReactionPhase = null;
+  tutorialSanctuaryPhase = null;
+  tutorialSpecialIntroPhase = null;
   closeSuicideConfirmation({ restoreFocus: false });
   closeResignConfirmation();
   if (state?.mode === "puzzle") {
@@ -2315,6 +2550,7 @@ function resetGame() {
 }
 
 function startNewGame() {
+  clearTutorialScript();
   if (aiTimer !== null) window.clearTimeout(aiTimer);
   if (tauntTimer !== null) window.clearTimeout(tauntTimer);
   if (cutsceneTimer !== null) window.clearTimeout(cutsceneTimer);
@@ -2341,6 +2577,8 @@ function startNewGame() {
   tutorialKingPosition = null;
   tutorialReactionPending = false;
   tutorialReactionPhase = null;
+  tutorialSanctuaryPhase = null;
+  tutorialSpecialIntroPhase = null;
   activePuzzle = null;
   puzzleMoves = 0;
   puzzleCompleted = false;
@@ -2580,7 +2818,7 @@ function handleNetworkMessage(message) {
   }
 
   if (message.type === "match_start" || message.type === "state") {
-    const previousDeploymentKey = lastDeploymentKey(state?.lastMove);
+    const previousDeploymentKey = lastDeploymentKey(state?.lastMove, state?.board);
     const previousTeleportKey = state?.teleporting
       ? `${state.teleporting.owner}:${state.teleporting.row}:${state.teleporting.col}`
       : "";
@@ -2592,8 +2830,11 @@ function handleNetworkMessage(message) {
     networkSession.ready = true;
     networkSession.opponentDisconnected = false;
     state = message.state;
-    const nextDeploymentKey = lastDeploymentKey(state.lastMove);
-    if (nextDeploymentKey && nextDeploymentKey !== previousDeploymentKey) playPlacementSound();
+    const nextDeploymentKey = lastDeploymentKey(state.lastMove, state.board);
+    if (nextDeploymentKey && nextDeploymentKey !== previousDeploymentKey) {
+      pendingDeploymentAnimation = { row: state.lastMove.row, col: state.lastMove.col };
+      playPlacementSound();
+    }
     const nextTeleportKey = state?.teleporting
       ? `${state.teleporting.owner}:${state.teleporting.row}:${state.teleporting.col}`
       : "";
@@ -2749,8 +2990,25 @@ closeSettingsBtn.addEventListener("click", () => {
   settingsModal.hidden = true;
 });
 initAudioGesture();
+matchDetailsBtn.addEventListener("click", () => {
+  if (!state.winner || (state.mode !== "pve" && state.mode !== "pvp")) return;
+  matchResultDetailsOpen = true;
+  render();
+  closeMatchDetailsBtn.focus();
+});
+closeMatchDetailsBtn.addEventListener("click", () => {
+  matchResultDetailsOpen = false;
+  render();
+  matchDetailsBtn.focus();
+});
+resultModal.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  event.preventDefault();
+  matchResultDetailsOpen = false;
+  render();
+  matchDetailsBtn.focus();
+});
 playAgainBtn.addEventListener("click", playAgain);
-resultLobbyBtn.addEventListener("click", startNewGame);
 toastAcceptRematchBtn?.addEventListener("click", () => {
   hideRematchToast();
   playAgain();
@@ -2809,6 +3067,7 @@ cancelNetworkBtn.addEventListener("click", () => {
 startTutorialBtn?.addEventListener("click", () => {
   proceedFromTutorialIntro();
 });
+tutorialLobbyBtn?.addEventListener("click", startNewGame);
 nextTutorialBtn.addEventListener("click", () => {
   if (state.mode === "puzzle") {
     const solved = state.winner === activePuzzle?.player;
@@ -2824,7 +3083,18 @@ nextTutorialBtn.addEventListener("click", () => {
     else loadPuzzle(puzzleIndex + 1);
     return;
   }
-  if (!tutorialAwaitingContinue || tutorialReactionPhase) return;
+  if (!tutorialAwaitingContinue || tutorialScriptRunning || tutorialReactionPhase) return;
+  if (tutorialStep === 0 && tutorialSanctuaryPhase === "overview") {
+    tutorialSanctuaryPhase = "duration";
+    runTutorialScriptedDeployments(TUTORIAL_SANCTUARY_ACTIONS);
+    return;
+  }
+  if (tutorialStep === 4 && tutorialSpecialIntroPhase === "overview") {
+    tutorialSpecialIntroPhase = "practice";
+    tutorialAwaitingContinue = false;
+    runTutorialScriptedDeployments(TUTORIAL_GENERAL_SETUP_ACTIONS);
+    return;
+  }
   if (beginTutorialSpecialReaction()) return;
   advanceTutorial();
   render();

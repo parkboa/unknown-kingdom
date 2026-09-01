@@ -14,7 +14,8 @@ export function teleportUiState(state, viewerSide, promptDismissed = false) {
 export function isOpponentLastMoveCell(state, viewerSide, row, col) {
   const lastMove = state?.lastMove;
   return Boolean(
-    lastMove?.player
+    state?.mode !== "tutorial"
+    && lastMove?.player
     && lastMove.player !== viewerSide
     && lastMove.row === row
     && lastMove.col === col,
@@ -41,15 +42,35 @@ function createPieceIcon(type) {
   return icon;
 }
 
+export function visiblePieceIdentity(piece, canSeeIdentity = false) {
+  const activeSpecialType = SPECIALS.has(piece.type)
+    && !piece.abilityUsed
+    && (canSeeIdentity || piece.revealed)
+    ? piece.type
+    : null;
+  const retiredSpecialType = piece.revealed
+    && piece.abilityUsed
+    && SPECIALS.has(piece.originalType)
+    ? piece.originalType
+    : null;
+  const specialType = activeSpecialType || retiredSpecialType;
+  return {
+    iconType: piece.type === "king" ? "king" : specialType || "soldier",
+    isSpecial: Boolean(specialType),
+    isRetiredSpecial: Boolean(retiredSpecialType),
+  };
+}
+
 function pieceElement(piece, row, col, context, options = {}) {
   const element = document.createElement("div");
   const canSeeIdentity = viewerOwnsPiece(context.state, context.networkPlayer, piece, context.pveHumanPlayer);
-  const specialIdentityVisible = SPECIALS.has(piece.type) && !piece.abilityUsed && (canSeeIdentity || piece.revealed);
-  const visibleType = piece.type === "king" || specialIdentityVisible
+  const identity = visiblePieceIdentity(piece, canSeeIdentity);
+  const visibleType = piece.type === "king" || identity.isSpecial
     ? piece.type === "king" ? "king" : "special"
     : "soldier";
   element.className = `piece ${piece.owner} ${visibleType}`;
-  if (specialIdentityVisible) element.classList.add("special");
+  if (identity.isSpecial) element.classList.add("special");
+  if (identity.isRetiredSpecial) element.classList.add("retired-special");
 
   if (options.isSliced) {
     element.classList.add("slash-sliced", `dir-${options.direction || "north"}`);
@@ -61,12 +82,9 @@ function pieceElement(piece, row, col, context, options = {}) {
     element.classList.add("wizard-vanishing");
   }
 
-  const visibleIconType = piece.type === "king"
-    ? "king"
-    : specialIdentityVisible ? piece.type : "soldier";
-  element.append(createPieceIcon(visibleIconType));
-  const visibleName = (canSeeIdentity || piece.revealed) && !piece.abilityUsed
-    ? context.unitLabels[piece.type] || context.unitLabels.soldier
+  element.append(createPieceIcon(identity.iconType));
+  const visibleName = identity.isSpecial
+    ? context.unitLabels[identity.iconType] || context.unitLabels.soldier
     : publicName(piece, context.unitLabels, context.text);
   element.title = `${context.sideName(piece.owner)} ${visibleName}`;
   return element;
@@ -208,6 +226,7 @@ export function createTauntOverlay(context) {
 function renderBoard(context) {
   context.boardEl.innerHTML = "";
   const { canControl: canControlTeleport } = teleportUiState(context.state, context.viewerSide);
+  const tutorialTeleportTarget = context.tutorialTeleportTarget;
   const kingZones = context.kingZones?.() || [];
   for (const zone of kingZones) {
     const overlay = document.createElement("div");
@@ -235,17 +254,40 @@ function renderBoard(context) {
       button.dataset.col = col;
 
       if (context.state.lastMove?.row === row && context.state.lastMove?.col === col) {
-        button.classList.add("latest-move");
+        if (context.deploymentAnimation?.row === row && context.deploymentAnimation?.col === col) {
+          button.classList.add("latest-move");
+        }
         if (isOpponentLastMoveCell(context.state, context.viewerSide, row, col)) {
           button.classList.add("last-move", `last-move-${context.state.lastMove.player}`);
         }
       }
       if (context.state.selected?.row === row && context.state.selected?.col === col) button.classList.add("selected");
       if (context.canDeploy(context.state.turn, context.currentUnitChoice(), row, col, { forHint: true })) button.classList.add("valid");
-      if (canControlTeleport && !context.state.board[row][col]) button.classList.add("teleport");
+      const isTutorialTeleportTarget = tutorialTeleportTarget
+        && tutorialTeleportTarget.row === row
+        && tutorialTeleportTarget.col === col;
+      const canTeleportHere = canControlTeleport
+        && !context.state.board[row][col]
+        && (!tutorialTeleportTarget || isTutorialTeleportTarget);
+      if (canTeleportHere) {
+        button.classList.add("teleport");
+        if (isTutorialTeleportTarget) button.classList.add("valid");
+      }
 
       let piece = context.state.board[row][col];
       let pieceOptions = {};
+      const capturedKing = context.state.winner ? context.state.capturedKing : null;
+      if (capturedKing?.row === row && capturedKing?.col === col) {
+        piece = {
+          id: capturedKing.pieceId || `captured-king-${row}-${col}`,
+          owner: capturedKing.owner,
+          type: "king",
+          originalType: "king",
+          revealed: true,
+          abilityUsed: false,
+          kingEscapeUsed: false,
+        };
+      }
       const skillEffect = context.activeSkillEffect;
       if (skillEffect?.type === "general_strike") {
         if (skillEffect.source.row === row && skillEffect.source.col === col && skillEffect.phase === "slash") {
@@ -360,6 +402,7 @@ function renderDeployPicker(context) {
     input.disabled = exhausted || locked || onlineLocked || context.state.aiThinking || Boolean(context.state.winner);
     label.classList.toggle("used", exhausted);
     label.classList.toggle("locked", locked && !exhausted);
+    label.classList.toggle("tutorial-target", context.tutorialUnitHighlight === input.value && !input.checked);
     const baseOrder = DEPLOY_ORDER.indexOf(input.value);
     label.style.order = exhausted ? 200 + baseOrder : locked ? 100 + baseOrder : baseOrder;
 
@@ -446,16 +489,6 @@ function renderPanel(context) {
     && context.networkModalHidden !== false
   );
   context.resultModal.hidden = !showMatchResult;
-  if (!showMatchResult) return;
-  context.resultModal.dataset.outcome = context.state.winner;
-  document.querySelector("#resultTitle").textContent = context.state.winner === "draw"
-    ? context.text("resultDraw")
-    : context.text("resultWin", { side: context.sideName(context.state.winner) });
-  document.querySelector("#resultReason").textContent = context.localizeResultReason(context.state.resultReason);
-  document.querySelector("#resultRedTerritory").textContent = context.countPieces("red");
-  document.querySelector("#resultBlueTerritory").textContent = context.countPieces("blue");
-  document.querySelector("#resultRedCaptures").textContent = context.state.stats.captures.red;
-  document.querySelector("#resultBlueCaptures").textContent = context.state.stats.captures.blue;
 }
 
 export function renderGame(context) {
