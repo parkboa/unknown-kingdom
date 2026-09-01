@@ -106,7 +106,7 @@
           </div>
         </section>
         <nav class="game-action-bar" aria-label="Game actions">
-          <button id="undoBtn" class="action-bar-button" type="button" aria-label="Undo Last Move" title="Undo Last Move" disabled>한수 물리기</button>
+          <button id="undoBtn" class="action-bar-button" type="button" aria-label="Undo Last Move" title="Undo Last Move" disabled>한 수 물리기</button>
           <button id="resignBtn" class="action-bar-button" type="button" aria-label="Resign" title="Resign">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path class="resign-flag-cloth" d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
@@ -194,12 +194,11 @@
           <button type="button" data-pve-timer="on" aria-pressed="true">ON</button>
           <button type="button" data-pve-timer="off" aria-pressed="false">OFF</button>
         </div>
-        <p class="side-choice-label" data-i18n="choosePreferredSide">Choose your side</p>
-        <div class="side-choice-actions">
-          <button type="button" data-pve-side="black" data-i18n="blackSide">Black</button>
-          <button type="button" data-pve-side="white" data-i18n="whiteSide">White</button>
-          <button id="cancelPveSideBtn" class="card-back-button" type="button" data-i18n="back">Back</button>
+        <p id="pveRpsStatus" class="side-choice-label" data-i18n="choosePreferredSide">Play Rock-Paper-Scissors for Black (1st).</p>
+        <div id="pveRpsPicker" class="network-rps-picker pve-rps-picker">
+          <div id="pveRpsButtons" class="rps-buttons"></div>
         </div>
+        <button id="cancelPveSideBtn" class="card-back-button" type="button" data-i18n="back">Back</button>
       </section>
     </div>
 

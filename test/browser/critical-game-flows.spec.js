@@ -11,7 +11,7 @@ test("PvE setup persists timer and audio choices through the real controls", asy
 
   const ranks = page.locator("#pveRankList");
   const timer = page.locator(".pve-timer-actions");
-  const sides = page.locator(".side-choice-actions");
+  const sides = page.locator("#pveRpsPicker");
   const [rankBox, timerBox, sideBox] = await Promise.all([
     ranks.boundingBox(),
     timer.boundingBox(),
@@ -19,6 +19,14 @@ test("PvE setup persists timer and audio choices through the real controls", asy
   ]);
   expect(rankBox.y + rankBox.height).toBeLessThanOrEqual(timerBox.y);
   expect(timerBox.y + timerBox.height).toBeLessThanOrEqual(sideBox.y);
+  const fullyVisibleRanks = await ranks.locator("button").evaluateAll((buttons) => {
+    const viewport = buttons[0].parentElement.getBoundingClientRect();
+    return buttons.filter((button) => {
+      const box = button.getBoundingClientRect();
+      return box.top >= viewport.top && box.bottom <= viewport.bottom + 0.5;
+    }).length;
+  });
+  expect(fullyVisibleRanks).toBe(3);
 
   await page.locator('[data-pve-timer="off"]').click();
   await expect(page.locator('[data-pve-timer="off"]')).toHaveAttribute("aria-pressed", "true");
@@ -56,6 +64,12 @@ for (const side of ["black", "white"]) {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
 
+    const rps = side === "black"
+      ? { random: 0, choice: "rock", result: "가위바위보 승리" }
+      : { random: 0.4, choice: "scissors", result: "가위바위보 패배" };
+    await page.addInitScript((random) => {
+      Math.random = () => random;
+    }, rps.random);
     await openLobby(page);
     await page.locator('[data-start-mode="pve"]').click();
     await expect(page.locator("#pveSideModal")).toBeVisible();
@@ -66,7 +80,8 @@ for (const side of ["black", "white"]) {
       "절정 고수",
       "초절정 고수",
     ]);
-    await page.locator(`[data-pve-side="${side}"]`).click();
+    await page.locator(`[data-pve-rps="${rps.choice}"]`).click();
+    await expect(page.locator("#pveRpsStatus")).toContainText(rps.result);
 
     await expect(page.locator("#pveSideModal")).toBeHidden();
     await expect(page.locator("#modeModal")).toBeHidden();

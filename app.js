@@ -159,6 +159,8 @@ let tutorialScriptTimer = null;
 let tutorialScriptRunning = false;
 let tutorialSanctuaryPhase = null;
 let tutorialSpecialIntroPhase = null;
+let tutorialCompletionPhase = null;
+let pveRpsResultTimer = null;
 let puzzleIndex = 0;
 let activePuzzle = null;
 let puzzleMoves = 0;
@@ -350,7 +352,6 @@ const challengeRankList = document.querySelector("#challengeRankList");
 const closeChallengeBtn = document.querySelector("#closeChallengeBtn");
 const pveSideModal = document.querySelector("#pveSideModal");
 const cancelPveSideBtn = document.querySelector("#cancelPveSideBtn");
-const pveSideButtons = document.querySelectorAll("[data-pve-side]");
 const pveDifficultyButtons = document.querySelectorAll("[data-pve-difficulty]");
 const pveTimerButtons = document.querySelectorAll("[data-pve-timer]");
 const networkModal = document.querySelector("#networkModal");
@@ -361,6 +362,15 @@ const refreshRoomListBtn = document.querySelector("#refreshRoomListBtn");
 const networkRoomControls = document.querySelector("#networkRoomControls");
 const networkRpsPicker = document.querySelector("#networkRpsPicker");
 const rpsButtons = document.querySelectorAll("[data-rps]");
+const pveRpsStatus = document.querySelector("#pveRpsStatus");
+const pveRpsButtonsContainer = document.querySelector("#pveRpsButtons");
+const pveRpsButtons = Array.from(rpsButtons, (sourceButton) => {
+  const button = sourceButton.cloneNode(true);
+  button.dataset.pveRps = sourceButton.dataset.rps;
+  button.removeAttribute("data-rps");
+  pveRpsButtonsContainer?.appendChild(button);
+  return button;
+});
 const createRoomBtn = document.querySelector("#createRoomBtn");
 const cancelNetworkBtn = document.querySelector("#cancelNetworkBtn");
 const resultModal = document.querySelector("#resultModal");
@@ -621,6 +631,7 @@ function applyLanguage() {
   if (rematchToastTitle) rematchToastTitle.textContent = text("rematchOfferedToast");
   if (toastAcceptRematchBtn) toastAcceptRematchBtn.textContent = text("acceptRematch");
   if (toastDeclineRematchBtn) toastDeclineRematchBtn.textContent = text("declineRematch");
+  updatePveRpsButtonLabels();
   syncSettingsControls();
   renderOpenRooms();
 }
@@ -1195,6 +1206,7 @@ function advanceTutorial() {
   tutorialReactionPhase = null;
   tutorialSanctuaryPhase = null;
   tutorialSpecialIntroPhase = null;
+  tutorialCompletionPhase = null;
   tutorialStep += 1;
   state.selected = null;
   state.lastMove = null;
@@ -1348,6 +1360,7 @@ function startTutorial({ puzzleEntry = false, index = 0 } = {}) {
   tutorialReactionPhase = null;
   tutorialSanctuaryPhase = null;
   tutorialSpecialIntroPhase = null;
+  tutorialCompletionPhase = null;
   visibleCutscene = getTutorialIntroCutscene(0);
   selectModeChoice(puzzleEntry ? "puzzle" : "tutorial");
   selectTutorialUnit(TUTORIAL_STEPS[0].unitType);
@@ -1979,6 +1992,7 @@ function teleportWizard(row, col) {
     if (!checkPuzzleResult()) render();
   } else if (result === "accepted" && state.mode === "tutorial") {
     tutorialAwaitingContinue = true;
+    if (tutorialStep === TUTORIAL_STEPS.length - 1) tutorialCompletionPhase = "summary";
     render();
   }
 }
@@ -2201,7 +2215,8 @@ function render() {
       && !activePuzzle
       && state.winner === "white"
       && tutorialStep >= TUTORIAL_STEPS.length - 1
-      && tutorialAwaitingContinue,
+      && tutorialAwaitingContinue
+      && !state.teleporting,
   );
   tutorialPanel.hidden = !tutorialActive && !puzzleActive && !teleportUi.showPrompt && !matchResultAnnouncementActive;
   gameStatusBar.classList.toggle("guide-active", !tutorialPanel.hidden);
@@ -2218,7 +2233,7 @@ function render() {
   matchDetailsBtn.hidden = !matchResultAnnouncementActive;
   playAgainBtn.hidden = !matchResultAnnouncementActive;
   exitTutorialBtn.hidden = !challengeResultActive;
-  tutorialLobbyBtn.hidden = !tutorialVictoryReady;
+  tutorialLobbyBtn.hidden = !(tutorialVictoryReady && tutorialCompletionPhase === "challenge");
   setIconButtonLabel(exitTutorialBtn, "backToChallenges");
   boardEl.classList.toggle("tutorial-active", tutorialActive);
   if (matchResultAnnouncementActive) {
@@ -2271,7 +2286,9 @@ function render() {
       tutorialPanel.hidden = false;
       gameStatusBar.classList.toggle("guide-active", true);
       startTutorialBtn.hidden = true;
-      const tutorialMessageKey = complete && !tutorialPuzzleActive
+      const tutorialMessageKey = tutorialVictoryReady && tutorialCompletionPhase === "challenge"
+        ? "tutorialAiChallengePrompt"
+        : complete && !tutorialPuzzleActive
         ? "tutorialWizardPlaced"
         : tutorialReactionPhase === "preparing"
           ? "tutorialBlackPreparing"
@@ -2288,9 +2305,9 @@ function render() {
                 : TUTORIAL_STEPS[tutorialStep]?.message;
       const conciseTutorialMessage = text(complete && tutorialPuzzleActive ? "challengeComplete" : tutorialMessageKey);
       tutorialMessage.textContent = conciseTutorialMessage;
-      nextTutorialBtn.hidden = complete
-        ? true
-        : tutorialVictoryReady || !tutorialAwaitingContinue || tutorialScriptRunning || Boolean(state.teleporting) || Boolean(tutorialReactionPhase);
+      nextTutorialBtn.hidden = tutorialVictoryReady
+        ? tutorialCompletionPhase !== "summary"
+        : complete || !tutorialAwaitingContinue || tutorialScriptRunning || Boolean(state.teleporting) || Boolean(tutorialReactionPhase);
       setIconButtonLabel(nextTutorialBtn, "nextTutorial");
       boardEl.classList.toggle("tutorial-complete", complete);
     }
@@ -2558,6 +2575,7 @@ function resetGame() {
   tutorialReactionPhase = null;
   tutorialSanctuaryPhase = null;
   tutorialSpecialIntroPhase = null;
+  tutorialCompletionPhase = null;
   closeSuicideConfirmation({ restoreFocus: false });
   closeResignConfirmation();
   if (state?.mode === "puzzle") {
@@ -2601,6 +2619,7 @@ function startNewGame() {
   tutorialReactionPhase = null;
   tutorialSanctuaryPhase = null;
   tutorialSpecialIntroPhase = null;
+  tutorialCompletionPhase = null;
   activePuzzle = null;
   puzzleMoves = 0;
   puzzleCompleted = false;
@@ -2666,6 +2685,7 @@ function selectGameMode(mode, closeModal = false) {
     modeModal.hidden = true;
     renderPveRankOptions();
     renderPveTimerOptions();
+    resetPveRps();
     pveSideModal.hidden = false;
     return;
   }
@@ -2687,6 +2707,7 @@ function selectGameMode(mode, closeModal = false) {
 }
 
 function startPve(side) {
+  clearPveRpsResultTimer();
   pveHumanPlayer = side;
   pveAiPlayer = opponent(side);
   activePveTimerEnabled = pveTimerEnabled;
@@ -2702,6 +2723,53 @@ function startPve(side) {
     : null;
   render();
   if (side === "white") scheduleAiTurn();
+}
+
+function updatePveRpsButtonLabels() {
+  pveRpsButtons.forEach((button) => {
+    const label = text(button.dataset.pveRps);
+    button.setAttribute("aria-label", label);
+    button.title = label;
+  });
+}
+
+function clearPveRpsResultTimer() {
+  if (pveRpsResultTimer !== null) window.clearTimeout(pveRpsResultTimer);
+  pveRpsResultTimer = null;
+}
+
+function resetPveRps() {
+  clearPveRpsResultTimer();
+  pveRpsButtons.forEach((button) => {
+    button.disabled = false;
+    button.classList.remove("selected");
+  });
+  if (pveRpsStatus) pveRpsStatus.textContent = text("choosePreferredSide");
+  updatePveRpsButtonLabels();
+}
+
+function pveRpsResult(playerChoice, aiChoice) {
+  if (playerChoice === aiChoice) return "draw";
+  const winningReply = { scissors: "rock", rock: "paper", paper: "scissors" };
+  return winningReply[aiChoice] === playerChoice ? "win" : "lose";
+}
+
+function choosePveRps(button) {
+  if (pveRpsResultTimer !== null) return;
+  const choices = ["scissors", "rock", "paper"];
+  const playerChoice = button.dataset.pveRps;
+  const aiChoice = choices[Math.floor(Math.random() * choices.length)];
+  const result = pveRpsResult(playerChoice, aiChoice);
+  pveRpsButtons.forEach((item) => {
+    item.classList.toggle("selected", item === button);
+    item.disabled = result !== "draw";
+  });
+  if (pveRpsStatus) pveRpsStatus.textContent = text(result === "draw" ? "rpsDraw" : result === "win" ? "rpsWin" : "rpsLose");
+  if (result === "draw") return;
+  pveRpsResultTimer = window.setTimeout(() => {
+    pveRpsResultTimer = null;
+    startPve(result === "win" ? "black" : "white");
+  }, 900);
 }
 
 function showNetworkRoomControls() {
@@ -3062,8 +3130,8 @@ rpsButtons.forEach((button) => {
     if (!sent) setNetworkStatus(text("notConnected"));
   });
 });
-pveSideButtons.forEach((button) => {
-  button.addEventListener("click", () => startPve(button.dataset.pveSide));
+pveRpsButtons.forEach((button) => {
+  button.addEventListener("click", () => choosePveRps(button));
 });
 pveDifficultyButtons.forEach((button) => {
   button.addEventListener("click", () => applyPveRank(button.dataset.pveRank));
@@ -3072,6 +3140,7 @@ pveTimerButtons.forEach((button) => {
   button.addEventListener("click", () => applyPveTimerSetting(button.dataset.pveTimer === "on"));
 });
 cancelPveSideBtn.addEventListener("click", () => {
+  resetPveRps();
   pveSideModal.hidden = true;
   modeModal.hidden = false;
 });
@@ -3103,6 +3172,17 @@ nextTutorialBtn.addEventListener("click", () => {
   if (state.mode === "tutorial" && activePuzzle?.type === "tutorial" && tutorialStep >= TUTORIAL_STEPS.length) {
     if (puzzleIndex + 1 >= PUZZLES.length) returnToChallengeSelection();
     else loadPuzzle(puzzleIndex + 1);
+    return;
+  }
+  if (
+    state.mode === "tutorial"
+    && !activePuzzle
+    && tutorialStep === TUTORIAL_STEPS.length - 1
+    && tutorialAwaitingContinue
+    && tutorialCompletionPhase === "summary"
+  ) {
+    tutorialCompletionPhase = "challenge";
+    render();
     return;
   }
   if (!tutorialAwaitingContinue || tutorialScriptRunning || tutorialReactionPhase) return;

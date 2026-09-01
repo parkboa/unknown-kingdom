@@ -64,7 +64,7 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await expect(page.locator(".white-king-zone-cell")).toHaveCount(9);
   await sanctuaryNext.click();
 
-  await expect(page.locator("#tutorialMessage")).toHaveText("자신이 돌을 네 개 더 놓을 때까지 상대는 성역 안에 배치할 수 없습니다.");
+  await expect(page.locator("#tutorialMessage")).toHaveText("자신의 돌을 네 개 더 놓을 때까지 상대는 성역 안에 배치할 수 없습니다.");
   await expect(page.locator(".tutorial-actions")).toHaveCSS("height", "32px");
   await expect(page.locator(".tutorial-actions")).toHaveCSS("min-height", "32px");
   await expect(sanctuaryNext).toBeVisible();
@@ -91,7 +91,7 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
 
   const ownWallCell = page.getByRole("gridcell", { name: "C1", exact: true });
   await expect(ownWallCell).toHaveClass(/valid/);
-  await expect(page.locator("#tutorialMessage")).toHaveText("자기 성벽에 닿은 돌은 성벽쪽에 활로 하나를 얻습니다. 표시된 칸에 병사를 놓아보세요.");
+  await expect(page.locator("#tutorialMessage")).toHaveText("자기 성벽에 닿은 돌은 성벽 쪽에 활로 하나를 얻습니다. 표시된 칸에 병사를 놓아보세요.");
   await expectPiece(page, "A1", "white");
   await expectPiece(page, "B1", "black");
   await expectPiece(page, "B2", "white");
@@ -99,7 +99,7 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await expectPiece(page, "G6", "black");
   await expectPiece(page, "F7", "black");
   await ownWallCell.click();
-  await expect(page.locator("#tutorialMessage")).toHaveText("흑 병사는 흑 성벽에서 활로를 얻어 포획되지 않았습니다.");
+  await expect(page.locator("#tutorialMessage")).toHaveText("흑 병사는 흑의 성벽에서 활로를 얻어 포획되지 않았습니다.");
   await expectPiece(page, "B1", "black");
   await sanctuaryNext.click();
 
@@ -118,7 +118,7 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await expectPiece(page, "B9", "white");
   await sanctuaryNext.click();
 
-  await expect(page.locator("#tutorialMessage")).toHaveText("특수 유닛을 배워 봅시다. 대국 시작 후 자신의 돌을 다섯 번 놓으면 특수 유닛을 사용할 수 있습니다.");
+  await expect(page.locator("#tutorialMessage")).toHaveText("특수 유닛을 배워 봅시다. 대국 시작 후 자신의 돌을 다섯 번 놓은 후부터 특수 유닛을 사용할 수 있습니다.");
   await expect(sanctuaryNext).toBeVisible();
   await sanctuaryNext.click();
 
@@ -204,7 +204,7 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   const retiredWizard = wizardCell.locator(".piece.retired-special");
   await expect(retiredWizard).toHaveCount(1);
   await expect(retiredWizard.locator(".piece-icon")).toHaveCSS("--piece-icon-image", 'url("./assets/units/wizard.svg")');
-  await expect(page.locator("#tutorialMessage")).toHaveText("마법사가 인접한 적을 모두 제거하였습니다. 마법사는 능력이 발동한 후, 즉시 1회 순간이동할 수 있습니다. 표시된 빈칸으로 이동하세요.");
+  await expect(page.locator("#tutorialMessage")).toHaveText("마법사가 인접한 적을 모두 제거하였습니다. 마법사는 능력이 발동한 후 즉시 한 번 순간이동할 수 있습니다. 표시된 빈칸으로 이동하세요.");
   await expect(page.getByRole("gridcell", { name: "H5", exact: true }).locator(".piece.black")).toHaveCount(0);
   const wizardDestination = page.getByRole("gridcell", { name: "F2", exact: true });
   await expect(page.locator(".cell.teleport")).toHaveCount(1);
@@ -217,9 +217,13 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await expect(page.getByRole("gridcell", { name: "G5", exact: true }).locator(".piece")).toHaveCount(0);
   await expect(page.getByRole("gridcell", { name: "E2", exact: true }).locator(".piece.black.king")).toHaveCount(1);
   await expectPiece(page, "E3", "white");
-  await expect(page.locator("#tutorialMessage")).toHaveText("튜토리얼 완료! 흑 왕을 포획하여 승리했습니다. 왕 배치, 포획, 성벽과 세 특수 유닛의 능력을 익혔습니다. 이제 AI 대전에서 삼류 고수에 도전해 보세요.");
+  await expect(page.locator("#tutorialMessage")).toHaveText("튜토리얼 완료! 흑 왕을 포획하여 승리했습니다. 왕 배치, 포획, 성벽과 세 특수 유닛의 능력을 익혔습니다.");
   const next = page.getByRole("button", { name: "다음", exact: true });
   const tutorialLobbyBtn = page.getByRole("button", { name: "나가기", exact: true });
+  await expect(next).toBeVisible();
+  await expect(tutorialLobbyBtn).toBeHidden();
+  await next.click();
+  await expect(page.locator("#tutorialMessage")).toHaveText("이제 AI 대전에서 삼류 고수에 도전해 보세요.");
   await expect(next).toBeHidden();
   await expect(tutorialLobbyBtn).toBeVisible();
   await expect(tutorialLobbyBtn).toHaveClass(/tutorial-start-button/);
