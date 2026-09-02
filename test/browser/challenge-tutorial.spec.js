@@ -57,11 +57,13 @@ async function expectPiece(page, coordinate, owner) {
 
 test("Lobby tutorial opens directly and completes all browser-owned steps", async ({ page }) => {
   await startTutorial(page);
+  await expect(page.locator("#undoBtn")).toBeDisabled();
 
   const singleLineMessageTop = (await page.locator("#tutorialMessage").boundingBox())?.y;
   const kingCell = page.getByRole("gridcell", { name: "E8", exact: true });
   await expect(kingCell).toHaveClass(/valid/);
   await kingCell.click();
+  await expect(page.locator("#undoBtn")).toBeDisabled();
   const sanctuaryNext = page.getByRole("button", { name: "다음", exact: true });
   await expect(sanctuaryNext).toBeVisible();
   await expect(sanctuaryNext).toHaveCSS("color", "rgb(255, 215, 0)");

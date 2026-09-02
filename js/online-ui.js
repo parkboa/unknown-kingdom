@@ -11,6 +11,12 @@ export function showNetworkRoomControls({ publicRoomList, networkRoomControls, n
   if (networkRpsPicker) networkRpsPicker.hidden = true;
 }
 
+export function showNetworkWaitingRoom({ publicRoomList, networkRoomControls, networkRpsPicker }) {
+  if (publicRoomList) publicRoomList.hidden = true;
+  if (networkRoomControls) networkRoomControls.hidden = true;
+  if (networkRpsPicker) networkRpsPicker.hidden = true;
+}
+
 export function showNetworkRpsPicker({ publicRoomList, networkRoomControls, networkRpsPicker, rpsButtons }) {
   if (publicRoomList) publicRoomList.hidden = true;
   if (networkRoomControls) networkRoomControls.hidden = true;

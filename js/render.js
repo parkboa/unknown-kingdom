@@ -489,7 +489,10 @@ function renderPanel(context) {
   if (context.connectionInfoText) context.connectionInfoText.textContent = context.connectionLabel;
   context.networkStatusGroup.hidden = context.state.mode !== "pvp";
   context.networkStatusGroup.classList.toggle("connected", context.networkReady);
-  context.undoBtn.disabled = context.state.mode === "pvp" || context.undoCount === 0 || Boolean(context.state.winner);
+  context.undoBtn.disabled = context.state.mode === "pvp"
+    || context.state.mode === "tutorial"
+    || context.undoCount === 0
+    || Boolean(context.state.winner);
   if (context.resignBtn) {
     context.resignBtn.disabled = Boolean(context.state.winner) || (context.state.mode === "pvp" && !context.networkReady);
   }

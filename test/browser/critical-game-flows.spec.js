@@ -101,6 +101,68 @@ test("Online lobby shows connection status without an unrelated challenge rank",
   await expect(page.locator("#networkStatus")).toContainText(/서버|대국판|연결/);
 });
 
+test("Creating an online room stays in the waiting-room card until RPS starts", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__mockSockets = [];
+    class MockWebSocket extends EventTarget {
+      static OPEN = 1;
+
+      constructor() {
+        super();
+        this.readyState = 0;
+        window.__mockSockets.push(this);
+        setTimeout(() => {
+          this.readyState = MockWebSocket.OPEN;
+          this.dispatchEvent(new Event("open"));
+        });
+      }
+
+      send(rawMessage) {
+        const message = JSON.parse(rawMessage);
+        if (message.type === "list_rooms") {
+          this.receive({ type: "room_list", rooms: [] });
+        } else if (message.type === "create_room") {
+          this.receive({ type: "room_created", roomCode: "ABC234", boardNumber: 7 });
+        }
+      }
+
+      receive(message) {
+        setTimeout(() => this.dispatchEvent(new MessageEvent("message", {
+          data: JSON.stringify(message),
+        })));
+      }
+
+      close() {
+        this.readyState = 3;
+        this.dispatchEvent(new Event("close"));
+      }
+    }
+    window.WebSocket = MockWebSocket;
+  });
+
+  await openLobby(page);
+  await page.locator('[data-start-mode="pvp"]').click();
+  await expect(page.locator("#createRoomBtn")).toBeVisible();
+  await page.locator("#createRoomBtn").click();
+
+  await expect(page.locator("#networkModal")).toBeVisible();
+  await expect(page.locator("#networkLobbyStatus")).toContainText("제7대국장에서 상대를 기다리는 중");
+  await expect(page.locator("#publicRoomList")).toBeHidden();
+  await expect(page.locator("#networkRoomControls")).toBeHidden();
+  await expect(page.locator("#networkRpsPicker")).toBeHidden();
+
+  await page.evaluate(() => {
+    window.__mockSockets.at(-1).receive({
+      type: "rps_start",
+      roomCode: "ABC234",
+      boardNumber: 7,
+    });
+  });
+  await expect(page.locator("#networkModal")).toBeVisible();
+  await expect(page.locator("#networkLobbyStatus")).toHaveText("가위바위보를 이기는 사람이 흑(선공)을 잡습니다.");
+  await expect(page.locator("#networkRpsPicker")).toBeVisible();
+});
+
 for (const side of ["black", "white"]) {
   test(`PvE ${side} side starts with the selected fortress at the bottom`, async ({ page }) => {
     const pageErrors = [];

@@ -87,6 +87,7 @@ import {
   resetRpsButtons as uiResetRpsButtons,
   showNetworkRoomControls as uiShowNetworkRoomControls,
   showNetworkRpsPicker as uiShowNetworkRpsPicker,
+  showNetworkWaitingRoom as uiShowNetworkWaitingRoom,
 } from "./js/online-ui.js";
 import {
   pveDeadlineAction,
@@ -2782,6 +2783,10 @@ function showNetworkRpsPicker() {
   uiShowNetworkRpsPicker({ publicRoomList, networkRoomControls, networkRpsPicker, rpsButtons });
 }
 
+function showNetworkWaitingRoom() {
+  uiShowNetworkWaitingRoom({ publicRoomList, networkRoomControls, networkRpsPicker });
+}
+
 function resetRpsButtons() {
   uiResetRpsButtons(rpsButtons);
 }
@@ -2871,7 +2876,8 @@ function handleNetworkMessage(message) {
     networkSession.roomCode = message.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
     state.mode = "pvp";
-    networkModal.hidden = true;
+    showNetworkWaitingRoom();
+    networkModal.hidden = false;
     setNetworkStatus(text("roomWaiting", { room: currentBoardLabel() }));
     render();
     return;
