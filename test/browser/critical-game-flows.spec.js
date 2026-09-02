@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 
 async function openLobby(page) {
+  await page.addInitScript(() => {
+    localStorage.setItem("daeguk-challenge-progress-v1", JSON.stringify({
+      completedPuzzleIds: ["basic-tutorial-01"],
+      defeatedAiRanks: [],
+      tutorialCompleted: true,
+    }));
+  });
   await page.goto("/?lang=ko&dev=0");
   await expect(page.getByRole("dialog", { name: "대국 선택" })).toBeVisible({ timeout: 7_000 });
 }
@@ -30,7 +37,10 @@ test("PvE setup persists timer and audio choices through the real controls", asy
   const rankFrame = page.locator(".ai-rank-frame");
   await expect(rankFrame).toHaveClass(/can-scroll-down/);
   await expect(rankFrame).not.toHaveClass(/can-scroll-up/);
-  await ranks.locator("button").last().click();
+  await ranks.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+    element.dispatchEvent(new Event("scroll"));
+  });
   await expect(rankFrame).toHaveClass(/can-scroll-up/);
   await expect(rankFrame).not.toHaveClass(/can-scroll-down/);
 
@@ -46,6 +56,72 @@ test("PvE setup persists timer and audio choices through the real controls", asy
     music: localStorage.getItem("unknown-kingdom-music"),
     sfx: localStorage.getItem("unknown-kingdom-sfx"),
   }))).toEqual({ music: "disabled", sfx: "disabled" });
+});
+
+test("tutorial completion gates match modes and AI ranks unlock in order", async ({ page }) => {
+  await page.goto("/?lang=ko&dev=0");
+  await page.evaluate(() => {
+    localStorage.setItem("daeguk-challenge-progress-v1", JSON.stringify({
+      completedPuzzleIds: ["basic-tutorial-01"],
+    }));
+  });
+  await page.reload();
+  await expect(page.getByRole("dialog", { name: "대국 선택" })).toBeVisible({ timeout: 7_000 });
+  await expect(page.locator('[data-start-mode="pve"]')).toBeDisabled();
+  await expect(page.locator('[data-start-mode="pvp"]')).toBeDisabled();
+  await expect(page.locator('[data-start-mode="pve"]')).toHaveAttribute("aria-label", /튜토리얼 완료 후 해금/);
+  const lockLayout = await page.locator('[data-start-mode="pve"]').evaluate((button) => {
+    const buttonBox = button.getBoundingClientRect();
+    const labelBox = button.querySelector("strong").getBoundingClientRect();
+    const iconBox = button.querySelector(".mode-lock-icon").getBoundingClientRect();
+    return {
+      inside: iconBox.left >= buttonBox.left && iconBox.right <= buttonBox.right,
+      rightInset: buttonBox.right - iconBox.right,
+      labelCenterDelta: Math.abs((labelBox.left + labelBox.width / 2) - (buttonBox.left + buttonBox.width / 2)),
+      centerDelta: Math.abs((iconBox.top + iconBox.height / 2) - (labelBox.top + labelBox.height / 2)),
+    };
+  });
+  expect(lockLayout.inside).toBe(true);
+  expect(lockLayout.rightInset).toBeGreaterThanOrEqual(12);
+  expect(lockLayout.rightInset).toBeLessThanOrEqual(16);
+  expect(lockLayout.labelCenterDelta).toBeLessThanOrEqual(1);
+  expect(lockLayout.centerDelta).toBeLessThanOrEqual(1);
+
+  await page.evaluate(() => {
+    localStorage.setItem("daeguk-challenge-progress-v1", JSON.stringify({
+      completedPuzzleIds: ["basic-tutorial-01"],
+      defeatedAiRanks: ["novice"],
+      tutorialCompleted: true,
+    }));
+  });
+  await page.reload();
+  await expect(page.getByRole("dialog", { name: "대국 선택" })).toBeVisible({ timeout: 7_000 });
+  await expect(page.locator('[data-start-mode="pve"]')).toBeEnabled();
+  await expect(page.locator('[data-start-mode="pvp"]')).toBeEnabled();
+
+  await page.locator('[data-start-mode="pve"]').click();
+  const ranks = page.locator("#pveRankList button");
+  await expect(ranks.nth(0)).toBeEnabled();
+  await expect(ranks.nth(1)).toBeEnabled();
+  await expect(ranks.nth(2)).toBeDisabled();
+  await expect(ranks.nth(3)).toBeDisabled();
+  await expect(ranks.nth(4)).toBeDisabled();
+  const aiLockLayout = await ranks.nth(2).evaluate((button) => {
+    const buttonBox = button.getBoundingClientRect();
+    const labelBox = button.querySelector(".pve-rank-label").getBoundingClientRect();
+    const iconBox = button.querySelector(".challenge-status-icon.locked").getBoundingClientRect();
+    return {
+      inside: iconBox.left >= buttonBox.left && iconBox.right <= buttonBox.right,
+      rightInset: buttonBox.right - iconBox.right,
+      labelCenterDelta: Math.abs((labelBox.left + labelBox.width / 2) - (buttonBox.left + buttonBox.width / 2)),
+      centerDelta: Math.abs((iconBox.top + iconBox.height / 2) - (labelBox.top + labelBox.height / 2)),
+    };
+  });
+  expect(aiLockLayout.inside).toBe(true);
+  expect(aiLockLayout.rightInset).toBeGreaterThanOrEqual(12);
+  expect(aiLockLayout.rightInset).toBeLessThanOrEqual(16);
+  expect(aiLockLayout.labelCenterDelta).toBeLessThanOrEqual(1);
+  expect(aiLockLayout.centerDelta).toBeLessThanOrEqual(1);
 });
 
 test("FX preview is available only in developer mode", async ({ page }) => {

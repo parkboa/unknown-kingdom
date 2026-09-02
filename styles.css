@@ -873,6 +873,9 @@ body.iphone-preview .lobby-logo {
 
 #modeModal .lobby-mode-actions button.locked {
   position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 20px;
+  column-gap: 0;
   color: rgb(247 239 224 / 34%);
   border-color: rgb(247 239 224 / 10%);
   background: linear-gradient(180deg, rgb(23 24 25 / 72%), rgb(11 12 13 / 82%));
@@ -880,10 +883,16 @@ body.iphone-preview .lobby-logo {
   opacity: 1;
 }
 
+#modeModal .lobby-mode-actions button.locked strong {
+  grid-column: 2;
+  justify-self: center;
+}
+
 #modeModal .lobby-mode-actions button.locked .mode-lock-icon {
-  position: absolute;
-  top: 50%;
-  right: 18px;
+  position: static;
+  grid-column: 3;
+  justify-self: end;
+  flex: 0 0 20px;
   width: 20px;
   height: 20px;
   color: rgb(247 239 224 / 48%);
@@ -892,7 +901,7 @@ body.iphone-preview .lobby-logo {
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  transform: translateY(-50%);
+  transform: none;
 }
 
 #modeModal .lobby-mode-actions button:first-child {
@@ -1277,6 +1286,27 @@ body.iphone-preview .lobby-logo {
   font-weight: 400;
   text-align: center;
   flex-shrink: 0;
+}
+
+.difficulty-choice-actions button.locked {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  align-items: center;
+  column-gap: 0;
+}
+
+.difficulty-choice-actions button.locked .pve-rank-label {
+  grid-column: 2;
+  justify-self: center;
+}
+
+.difficulty-choice-actions button.locked .challenge-rank-status {
+  position: static;
+  grid-column: 3;
+  justify-self: end;
+  margin-left: 0;
+  width: 20px;
+  min-width: 20px;
 }
 
 .pve-timer-actions {

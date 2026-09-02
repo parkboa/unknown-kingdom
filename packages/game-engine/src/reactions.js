@@ -12,7 +12,7 @@ const captureReasonLabel = (reason) => ({
 
 function capturePiece(state, row, col, reason, events) {
   const piece = state.board[row][col];
-  if (!piece) return;
+  if (!piece) return null;
   const captor = opponent(piece.owner);
   state.board[row][col] = null;
   state.stats.captures[captor] += 1;
@@ -27,29 +27,33 @@ function capturePiece(state, row, col, reason, events) {
     reason,
     revealed: piece.revealed || piece.type === "king",
   });
-  if (piece.type === "king") {
-    declareWinner(
-      state,
-      captor,
-      `${sideLabel(piece.owner)} King was captured by ${captureReasonLabel(reason)}.`,
-      events,
-      "king_captured",
-      { defeatedPlayer: piece.owner, captureMethod: reason },
-    );
-  }
+  return piece.type === "king" ? { captor, owner: piece.owner } : null;
 }
 
 function strikeAdjacentEnemies(state, row, col, owner, reason, events) {
+  let capturedKing = null;
   for (const [targetRow, targetCol] of neighbors(row, col)) {
     if (state.board[targetRow][targetCol]?.owner !== owner) {
-      capturePiece(state, targetRow, targetCol, reason, events);
+      const captured = capturePiece(state, targetRow, targetCol, reason, events);
+      if (captured) capturedKing = captured;
     }
-    if (state.winner || state.pendingKingSwap) return;
+    if (state.pendingKingSwap) return;
+  }
+  if (capturedKing) {
+    declareWinner(
+      state,
+      capturedKing.captor,
+      `${sideLabel(capturedKing.owner)} King was captured by ${captureReasonLabel(reason)}.`,
+      events,
+      "king_captured",
+      { defeatedPlayer: capturedKing.owner, captureMethod: reason },
+    );
   }
 }
 
 function convertAdjacentEnemies(state, row, col, owner, events) {
   const converted = [];
+  let capturedKing = null;
   for (const [targetRow, targetCol] of neighbors(row, col)) {
     const piece = state.board[targetRow][targetCol];
     if (!piece || piece.owner === owner) continue;
@@ -57,16 +61,8 @@ function convertAdjacentEnemies(state, row, col, owner, events) {
       converted.push({ pieceId: piece.id, fromOwner: piece.owner, row: targetRow, col: targetCol });
       state.board[targetRow][targetCol] = occupiedSoldier(state, owner);
       state.stats.captures[owner] += 1;
-      emitEvent(state, events, { type: "pieces_converted", owner, pieces: converted });
-      declareWinner(
-        state,
-        owner,
-        `${sideLabel(piece.owner)} King was captured by Diplomat conversion.`,
-        events,
-        "king_captured",
-        { defeatedPlayer: piece.owner, captureMethod: "diplomat_conversion" },
-      );
-      return;
+      capturedKing = { owner: piece.owner };
+      continue;
     }
     state.stats.captures[owner] += 1;
     converted.push({ pieceId: piece.id, fromOwner: piece.owner, row: targetRow, col: targetCol });
@@ -75,6 +71,16 @@ function convertAdjacentEnemies(state, row, col, owner, events) {
     piece.abilityUsed = true;
   }
   if (converted.length) emitEvent(state, events, { type: "pieces_converted", owner, pieces: converted });
+  if (capturedKing) {
+    declareWinner(
+      state,
+      owner,
+      `${sideLabel(capturedKing.owner)} King was captured by Diplomat conversion.`,
+      events,
+      "king_captured",
+      { defeatedPlayer: capturedKing.owner, captureMethod: "diplomat_conversion" },
+    );
+  }
 }
 
 function retireSpecial(piece) {
@@ -148,7 +154,7 @@ export function activatePendingSpecial(state, player, events, options = {}) {
   } else if (piece.type === "wizard") {
     strikeAdjacentEnemies(state, pending.row, pending.col, piece.owner, "wizard_reaction", events);
     retireSpecial(piece);
-    if (hasEmptyCell(state)) {
+    if (!state.winner && hasEmptyCell(state)) {
       state.teleporting = { row: pending.row, col: pending.col, owner: piece.owner, reaction: true };
       emitEvent(state, events, {
         type: "wizard_move_required",

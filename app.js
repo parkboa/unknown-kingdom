@@ -6,7 +6,7 @@ import {
   SIZE,
   SPECIALS,
   createUnitLabels,
-} from "./js/config.js?v=release-20260824-1";
+} from "./js/config.js?v=progression-4";
 import {
   inBounds,
   neighbors,
@@ -55,7 +55,7 @@ import {
 import {
   dispatchSharedLocalAction,
   classifySharedLocalPlacement,
-} from "./js/shared-engine-adapter.mjs?v=local-shared-1";
+} from "./js/shared-engine-adapter.mjs?v=local-shared-2";
 import { createPveJournalRecorder } from "./js/pve-journal.js?v=browser-jsonl-1";
 import {
   initAudioGesture,
@@ -75,13 +75,17 @@ import {
   setSavedLanguage,
 } from "./js/settings.js?v=release-20260824-1";
 import {
+  arePrimaryModesUnlocked,
   challengeProgress,
   firstUnresolvedRankIndex,
+  isAiRankUnlocked,
   isValidPuzzlePiece,
   localizedPuzzleText,
+  markAiRankDefeated,
   markPuzzleComplete as persistPuzzleComplete,
+  markTutorialComplete as persistTutorialComplete,
   normalizePuzzleStock,
-} from "./js/puzzle-controller.js";
+} from "./js/puzzle-controller.js?v=progression-4";
 import {
   renderOpenRoomsList,
   resetRpsButtons as uiResetRpsButtons,
@@ -522,6 +526,24 @@ function createRankStatusIcon(type) {
 }
 
 function renderProgressionUi() {
+  const modesUnlocked = arePrimaryModesUnlocked();
+  for (const mode of ["pve", "pvp"]) {
+    const button = document.querySelector(`[data-start-mode="${mode}"]`);
+    if (!button) continue;
+    button.disabled = !modesUnlocked;
+    button.classList.toggle("locked", !modesUnlocked);
+    button.querySelector(".mode-lock-icon")?.remove();
+    if (modesUnlocked) {
+      button.removeAttribute("aria-label");
+      continue;
+    }
+    const lockIcon = createRankStatusIcon("locked");
+    lockIcon.classList.add("mode-lock-icon");
+    lockIcon.setAttribute("aria-hidden", "true");
+    button.append(lockIcon);
+    const modeLabel = button.querySelector("strong")?.textContent || "";
+    button.setAttribute("aria-label", `${modeLabel}. ${text("modeLocked")}`);
+  }
   renderChallengeRanks();
   renderPveRankOptions();
 }
@@ -725,13 +747,30 @@ function renderPveRankOptions() {
 
   container.innerHTML = "";
   rankKeys.forEach((rankKey) => {
+    const unlocked = isAiRankUnlocked(rankKey);
     const button = document.createElement("button");
     button.type = "button";
     button.className = "challenge-rank-button";
     button.dataset.pveRank = rankKey;
     button.dataset.pveDifficulty = rankKey;
-    button.textContent = AI_RANK_LABELS[LANGUAGE][rankKey] || RANK_LABELS[LANGUAGE][rankKey] || rankKey;
-    button.addEventListener("click", () => applyPveRank(rankKey));
+    const labelText = AI_RANK_LABELS[LANGUAGE][rankKey] || RANK_LABELS[LANGUAGE][rankKey] || rankKey;
+    const label = document.createElement("span");
+    label.className = "pve-rank-label";
+    label.textContent = labelText;
+    button.append(label);
+    button.disabled = !unlocked;
+    button.classList.toggle("locked", !unlocked);
+    if (!unlocked) {
+      const status = document.createElement("span");
+      status.className = "challenge-rank-status";
+      const lockIcon = createRankStatusIcon("locked");
+      lockIcon.setAttribute("aria-hidden", "true");
+      status.append(lockIcon);
+      button.append(status);
+      button.setAttribute("aria-label", `${labelText}. ${text("rankLocked")}`);
+    } else {
+      button.addEventListener("click", () => applyPveRank(rankKey));
+    }
     container.appendChild(button);
   });
   applyPveRank(selectedPveRank);
@@ -755,6 +794,7 @@ function updatePveRankScrollCues(container = pveRankList) {
 }
 
 function applyPveRank(rankKey) {
+  if (!isAiRankUnlocked(rankKey)) return false;
   selectedPveRank = rankKey || AI_RANK_ORDER[0];
   pveDifficulty = selectedPveRank;
   const container = pveRankList || document.querySelector(".difficulty-choice-actions");
@@ -770,6 +810,7 @@ function applyPveRank(rankKey) {
     state.aiDifficulty = pveDifficulty;
     state.aiRank = selectedPveRank;
   }
+  return true;
 }
 
 function renderPveTimerOptions() {
@@ -1550,7 +1591,12 @@ function commitSharedLocalAction(player, action, options = {}) {
 
   state = result.state;
   presentSharedLocalEvents(result.visibleEvents);
-  if (state.mode === "pve") persistPveJournal();
+  if (state.mode === "pve") {
+    if (state.winner === pveHumanPlayer && markAiRankDefeated(state.aiRank || state.aiDifficulty)) {
+      renderProgressionUi();
+    }
+    persistPveJournal();
+  }
   return "accepted";
 }
 
@@ -1998,7 +2044,13 @@ function teleportWizard(row, col) {
     if (!checkPuzzleResult()) render();
   } else if (result === "accepted" && state.mode === "tutorial") {
     tutorialAwaitingContinue = true;
-    if (tutorialStep === TUTORIAL_STEPS.length - 1) tutorialCompletionPhase = "summary";
+    if (tutorialStep === TUTORIAL_STEPS.length - 1) {
+      tutorialCompletionPhase = "summary";
+      state.winner = "white";
+      state.resultReason = text("tutorialPuzzleSolvedReason");
+      persistTutorialComplete();
+      renderProgressionUi();
+    }
     render();
   }
 }
@@ -2679,6 +2731,7 @@ function selectGameMode(mode, closeModal = false) {
     openChallengeSelection();
     return;
   }
+  if ((mode === "pve" || mode === "pvp") && !arePrimaryModesUnlocked()) return;
   const modeInput = document.querySelector(`input[name="mode"][value="${mode}"]`);
   if (!modeInput) return;
   modeInput.checked = true;

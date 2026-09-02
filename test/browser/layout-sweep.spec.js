@@ -112,7 +112,11 @@ for (const viewport of VIEWPORTS) {
   for (const language of LANGUAGES) {
     test(`${viewport.name} ${language} layout sweep`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await page.addInitScript((key) => localStorage.removeItem(key), PROGRESS_KEY);
+      await page.addInitScript((key) => localStorage.setItem(key, JSON.stringify({
+        completedPuzzleIds: ["basic-tutorial-01"],
+        defeatedAiRanks: [],
+        tutorialCompleted: true,
+      })), PROGRESS_KEY);
       await page.goto(`/?lang=${language}&dev=0`);
       await waitForLobby(page);
       await assertLocalizedLockLabel(page, language);

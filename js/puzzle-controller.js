@@ -1,8 +1,8 @@
 import { DEPLOY_ORDER, SIZE } from "./config.js";
 import { inBounds } from "./board.js";
-import { PUZZLES, RANK_ORDER } from "./puzzles.js";
+import { AI_RANK_ORDER, PUZZLES, RANK_ORDER } from "./puzzles.js";
 
-const CHALLENGE_PROGRESS_KEY = "daeguk-challenge-progress-v1";
+export const CHALLENGE_PROGRESS_KEY = "daeguk-challenge-progress-v1";
 export const TUTORIAL_SPECIAL_SURROUND_DELAY_MS = 1400;
 export const TUTORIAL_SPECIAL_ACTIVATE_DELAY_MS = 1800;
 
@@ -23,11 +23,16 @@ export function loadChallengeProgress() {
     const completed = Array.isArray(saved.completedPuzzleIds)
       ? saved.completedPuzzleIds.filter((id) => typeof id === "string" && PUZZLES.some((p) => p.id === id))
       : [];
+    const defeatedAiRanks = Array.isArray(saved.defeatedAiRanks)
+      ? [...new Set(saved.defeatedAiRanks.filter((rank) => AI_RANK_ORDER.includes(rank)))]
+      : [];
     return {
       completedPuzzleIds: completed,
+      defeatedAiRanks,
+      tutorialCompleted: saved.tutorialCompleted === true,
     };
   } catch {
-    return { completedPuzzleIds: [] };
+    return { completedPuzzleIds: [], defeatedAiRanks: [], tutorialCompleted: false };
   }
 }
 
@@ -37,9 +42,49 @@ export function saveChallengeProgress() {
 
 export function markPuzzleComplete(index) {
   const puzzle = PUZZLES[index];
-  if (!puzzle || challengeProgress.completedPuzzleIds.includes(puzzle.id)) return;
-  challengeProgress.completedPuzzleIds.push(puzzle.id);
+  if (!puzzle) return;
+  let changed = false;
+  if (!challengeProgress.completedPuzzleIds.includes(puzzle.id)) {
+    challengeProgress.completedPuzzleIds.push(puzzle.id);
+    changed = true;
+  }
+  if (puzzle.type === "tutorial" && !challengeProgress.tutorialCompleted) {
+    challengeProgress.tutorialCompleted = true;
+    changed = true;
+  }
+  if (!changed) return;
   saveChallengeProgress();
+}
+
+export function isTutorialComplete() {
+  return challengeProgress.tutorialCompleted === true;
+}
+
+export function markTutorialComplete() {
+  const tutorialIndex = PUZZLES.findIndex((puzzle) => puzzle.type === "tutorial");
+  if (tutorialIndex < 0) return false;
+  const wasComplete = isTutorialComplete();
+  markPuzzleComplete(tutorialIndex);
+  return !wasComplete;
+}
+
+export function arePrimaryModesUnlocked() {
+  return isTutorialComplete();
+}
+
+export function isAiRankUnlocked(rankKey) {
+  if (!arePrimaryModesUnlocked()) return false;
+  const rankIndex = AI_RANK_ORDER.indexOf(rankKey);
+  if (rankIndex < 0) return false;
+  if (rankIndex === 0) return true;
+  return challengeProgress.defeatedAiRanks.includes(AI_RANK_ORDER[rankIndex - 1]);
+}
+
+export function markAiRankDefeated(rankKey) {
+  if (!isAiRankUnlocked(rankKey) || challengeProgress.defeatedAiRanks.includes(rankKey)) return false;
+  challengeProgress.defeatedAiRanks.push(rankKey);
+  saveChallengeProgress();
+  return true;
 }
 
 export function isPuzzleComplete(index) {

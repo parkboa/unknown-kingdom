@@ -439,6 +439,69 @@ test("wizard may stay in place after breaking a surround", () => {
   assert.equal(state.lastMove.action, "stay");
 });
 
+for (const type of ["general", "wizard"]) {
+  test(`${type} resolves every adjacent capture before declaring a King victory`, () => {
+    const state = createGameState();
+    state.firstDeployDone = { black: true, white: true };
+    state.deploymentCount = { black: 5, white: 5 };
+    state.turn = "white";
+    state.board[4][4] = special("white", type, `white-${type}`);
+    state.board[3][4] = { ...soldier("black", "black-king"), type: "king", originalType: "king", revealed: true };
+    state.board[5][4] = soldier("black", "south");
+    state.board[4][3] = soldier("black", "west");
+    state.board[4][5] = soldier("black", "east");
+    state.pendingSpecial = { row: 4, col: 4, owner: "white", type, captor: "black" };
+
+    const result = dispatchAction(state, "white", { type: "activate_special" });
+
+    assert.equal(result.accepted, true);
+    assert.equal(state.winner, "white");
+    assert.equal(state.stats.captures.white, 4);
+    assert.equal(state.board[3][4], null);
+    assert.equal(state.board[5][4], null);
+    assert.equal(state.board[4][3], null);
+    assert.equal(state.board[4][5], null);
+    assert.equal(state.teleporting, null);
+    assert.deepEqual(result.events.map(({ type: eventType }) => eventType), [
+      "special_activated",
+      "piece_removed",
+      "piece_removed",
+      "piece_removed",
+      "piece_removed",
+      "match_ended",
+    ]);
+  });
+}
+
+test("diplomat converts every adjacent unit before declaring a King victory", () => {
+  const state = createGameState();
+  state.firstDeployDone = { black: true, white: true };
+  state.deploymentCount = { black: 5, white: 5 };
+  state.turn = "white";
+  state.board[4][4] = special("white", "diplomat", "white-diplomat");
+  state.board[3][4] = { ...soldier("black", "black-king"), type: "king", originalType: "king", revealed: true };
+  state.board[5][4] = soldier("black", "south");
+  state.board[4][3] = soldier("black", "west");
+  state.board[4][5] = soldier("black", "east");
+  state.pendingSpecial = { row: 4, col: 4, owner: "white", type: "diplomat", captor: "black" };
+
+  const result = dispatchAction(state, "white", { type: "activate_special" });
+
+  assert.equal(result.accepted, true);
+  assert.equal(state.winner, "white");
+  assert.equal(state.stats.captures.white, 4);
+  for (const [row, col] of [[3, 4], [5, 4], [4, 3], [4, 5]]) {
+    assert.equal(state.board[row][col]?.owner, "white");
+    assert.equal(state.board[row][col]?.type, "soldier");
+  }
+  assert.deepEqual(result.events.map(({ type: eventType }) => eventType), [
+    "special_activated",
+    "pieces_converted",
+    "match_ended",
+  ]);
+  assert.equal(result.events[1].pieces.length, 4);
+});
+
 test("opponent-surrounded General returns control to its owner for the normal next deployment", () => {
   const state = createOpponentSurroundState("general");
 
