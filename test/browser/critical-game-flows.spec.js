@@ -55,6 +55,21 @@ test("FX preview is available only in developer mode", async ({ page }) => {
   await expect(page.locator("#fxPreviewBar")).toBeVisible();
 });
 
+test("Wizard teleport uses a direct board choice and one consistent stay button", async ({ page }) => {
+  await page.goto("/?lang=ko&dev=0&demo=wizard-teleport");
+
+  await expect(page.locator("#tutorialPanel")).toBeVisible();
+  await expect(page.locator("#tutorialMessage")).toHaveText(
+    "빈칸을 선택하세요. 이동을 원하지 않으면 ‘이동 안 함’을 선택하세요.",
+  );
+  await expect(page.locator("#confirmTeleportBtn")).toHaveCount(0);
+  const stayButton = page.getByRole("button", { name: "이동 안 함", exact: true });
+  await expect(stayButton).toBeVisible();
+  await expect(stayButton).toHaveClass(/tutorial-start-button/);
+  await expect(page.locator(".tutorial-actions")).toHaveCSS("justify-content", "flex-end");
+  expect(await page.locator(".cell.teleport").count()).toBeGreaterThan(0);
+});
+
 test("deployment buttons keep their fixed positions when a unit is exhausted", async ({ page }) => {
   await page.goto("/?lang=ko&dev=0&demo=capture-38");
 

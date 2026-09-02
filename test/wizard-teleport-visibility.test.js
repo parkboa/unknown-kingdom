@@ -19,17 +19,17 @@ test("only the Wizard owner receives teleport controls and prompt", () => {
   });
 });
 
-test("dismissing the owner prompt does not grant control to the opponent", () => {
+test("the owner prompt remains visible until the Wizard move is decided", () => {
   const state = {
     mode: "pvp",
     teleporting: { owner: "white", row: 3, col: 5, reaction: true },
   };
 
-  assert.deepEqual(teleportUiState(state, "white", true), {
+  assert.deepEqual(teleportUiState(state, "white"), {
     canControl: true,
-    showPrompt: false,
+    showPrompt: true,
   });
-  assert.deepEqual(teleportUiState(state, "black", true), {
+  assert.deepEqual(teleportUiState(state, "black"), {
     canControl: false,
     showPrompt: false,
   });

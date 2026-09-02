@@ -245,7 +245,7 @@ test("Lobby tutorial opens directly and completes all browser-owned steps", asyn
   await expect(page.locator(".cell.teleport")).toHaveCount(1);
   await expect(wizardDestination).toHaveClass(/teleport/);
   await expect(wizardDestination).toHaveClass(/valid/);
-  await expect(page.locator("#confirmTeleportBtn")).toBeHidden();
+  await expect(page.locator("#confirmTeleportBtn")).toHaveCount(0);
   await expect(page.locator("#cancelTeleportBtn")).toBeHidden();
   await wizardDestination.click();
   await expectPiece(page, "F2", "white");

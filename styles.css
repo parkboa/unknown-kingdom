@@ -2326,11 +2326,6 @@ body.iphone-preview .lobby-logo {
   gap: 12px;
 }
 
-.tutorial-panel.wizard-move-panel .tutorial-actions {
-  justify-content: center;
-  width: 100%;
-}
-
 .tutorial-panel.challenge-result {
   text-align: center;
   border-color: rgb(216 165 50 / 66%);
@@ -2349,21 +2344,6 @@ body.iphone-preview .lobby-logo {
 .tutorial-panel.challenge-result.incomplete p {
   color: #ef9a91;
   font-weight: 700;
-}
-
-#confirmTeleportBtn:not([hidden]),
-#cancelTeleportBtn:not([hidden]) {
-  min-height: 44px;
-  padding-inline: 14px;
-  border-color: rgb(216 165 50 / 78%);
-  color: #241a08;
-  background: linear-gradient(180deg, #fff8e6, #d8a532);
-}
-
-#cancelTeleportBtn:not([hidden]) {
-  border-color: rgb(255 255 255 / 28%);
-  color: #f7ead0;
-  background: rgb(255 255 255 / 8%);
 }
 
 .board.tutorial-active:not(.tutorial-complete) .cell.valid {
@@ -3951,7 +3931,6 @@ body.iphone-preview .game-status-bar {
   min-height: 32px;
 }
 
-.game-status-bar > .tutorial-panel.wizard-move-panel .tutorial-actions,
 .game-status-bar > .tutorial-panel.challenge-result .tutorial-actions {
   justify-content: center;
 }
@@ -4137,17 +4116,6 @@ body.iphone-preview .game-status-bar {
   padding: 0 10px;
   border-radius: 8px;
   font-size: 11px;
-  font-weight: 600;
-}
-
-.game-status-bar > .tutorial-panel #confirmTeleportBtn:not([hidden]),
-.game-status-bar > .tutorial-panel #cancelTeleportBtn:not([hidden]) {
-  width: auto;
-  height: 28px;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 12px;
-  font-size: 10px;
   font-weight: 600;
 }
 

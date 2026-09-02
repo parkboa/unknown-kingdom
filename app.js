@@ -168,7 +168,6 @@ let puzzleInitialCaptures = null;
 let puzzleCompleted = false;
 let openRooms = [];
 let selectedOpenRoomCode = "";
-let wizardMovePromptDismissed = false;
 let rematchRequested = false;
 let pendingSuicideConfirmation = null;
 let suicideConfirmReturnFocus = null;
@@ -329,7 +328,6 @@ const connectionInfoText = document.querySelector("#connectionInfoText");
 const rankInfo = document.querySelector("#rankInfo");
 const blackCount = document.querySelector("#blackCount");
 const whiteCount = document.querySelector("#whiteCount");
-const confirmTeleportBtn = document.querySelector("#confirmTeleportBtn");
 const cancelTeleportBtn = document.querySelector("#cancelTeleportBtn");
 const undoBtn = document.querySelector("#undoBtn");
 const resignBtn = document.querySelector("#resignBtn");
@@ -623,7 +621,6 @@ function applyLanguage() {
   lobbyBrandMain.textContent = text("brandMain");
   lobbyBrandSubtitle.textContent = text("brandSubtitle");
   lobbyBrandSubtitle.classList.toggle("korean-title", LANGUAGE === "ko");
-  confirmTeleportBtn.textContent = text("wizardMoveButton");
   cancelTeleportBtn.textContent = text("cancelAbility");
   setIconButtonLabel(nextTutorialBtn, "nextTutorial");
   setIconButtonLabel(exitTutorialBtn, "backToChallenges");
@@ -825,7 +822,6 @@ function applyWizardTeleportDemo() {
   state.board[4][3] = createOccupiedSoldier("black");
   state.board[4][5] = createOccupiedSoldier("black");
   state.teleporting = { row: 4, col: 4, owner: "white", reaction: true };
-  wizardMovePromptDismissed = false;
   state.turn = "white";
   state.firstDeployDone = { black: true, white: true };
   state.deploymentCount = { black: 5, white: 5 };
@@ -1671,13 +1667,10 @@ function presentSharedLocalEvents(events) {
     } else if (event.type === "pieces_converted" && event.pieces.length) {
       addLog(`${sideName(event.owner)} ${UNIT_LABELS.diplomat} converted ${event.pieces.length} space(s).`);
     } else if (event.type === "wizard_move_required") {
-      wizardMovePromptDismissed = false;
       addLog(`${sideName(event.owner)} ${UNIT_LABELS.wizard} ability activated. Choose an empty escape cell.`);
     } else if (event.type === "wizard_moved") {
-      wizardMovePromptDismissed = false;
       addLog(`${sideName(event.owner)} ${UNIT_LABELS.wizard} teleported to ${coord(event.row, event.col)}.`);
     } else if (event.type === "wizard_stayed") {
-      wizardMovePromptDismissed = false;
       addLog(`${sideName(event.owner)} ${UNIT_LABELS.wizard} stayed in place.`);
     } else if (event.type === "turn_passed") {
       addLog(`${sideName(event.player)} had no legal deployment.`);
@@ -2104,7 +2097,6 @@ function render() {
     blackCount,
     whiteCount,
     deployDock,
-    confirmTeleportBtn,
     cancelTeleportBtn,
     undoBtn,
     resignBtn,
@@ -2122,7 +2114,6 @@ function render() {
     pveHumanPlayer,
     pveAiPlayer,
     viewerSide,
-    wizardMovePromptDismissed,
     visibleTaunt,
     visibleCutscene,
     activeSkillEffect,
@@ -2223,7 +2214,7 @@ function render() {
   fortressFrame.classList.toggle("tutorial-highlight-black-wall", tutorialWallHighlight === "black");
   fortressFrame.classList.toggle("tutorial-highlight-white-wall", tutorialWallHighlight === "white");
   const teleportActive = Boolean(state.teleporting);
-  const teleportUi = teleportUiState(state, viewerSide, wizardMovePromptDismissed);
+  const teleportUi = teleportUiState(state, viewerSide);
   const matchResultAnnouncementActive = Boolean(
     matchEnded && networkModal?.hidden !== false,
   );
@@ -2286,7 +2277,6 @@ function render() {
     tutorialLobbyBtn.hidden = true;
     exitTutorialBtn.hidden = true;
     nextTutorialBtn.hidden = true;
-    confirmTeleportBtn.hidden = true;
     cancelTeleportBtn.hidden = true;
     boardEl.classList.remove("tutorial-active");
     boardEl.classList.remove("tutorial-complete");
@@ -2300,7 +2290,6 @@ function render() {
       startTutorialBtn.hidden = !tutorialIntroReady;
       startTutorialBtn.textContent = text("startTutorialAction");
       nextTutorialBtn.hidden = true;
-      confirmTeleportBtn.hidden = true;
       cancelTeleportBtn.hidden = true;
       boardEl.classList.toggle("tutorial-complete", false);
     } else {
@@ -2349,15 +2338,13 @@ function render() {
     startTutorialBtn.hidden = true;
     tutorialStepLabel.hidden = true;
     tutorialStepLabel.textContent = "";
-    tutorialMessage.textContent = text("tutorialWizardTeleport");
-    confirmTeleportBtn.hidden = wizardMovePromptDismissed;
-    cancelTeleportBtn.hidden = wizardMovePromptDismissed;
+    tutorialMessage.textContent = text("wizardTeleportPrompt");
+    cancelTeleportBtn.hidden = false;
     nextTutorialBtn.hidden = true;
     boardEl.classList.remove("tutorial-active");
     boardEl.classList.remove("tutorial-complete");
   } else {
     startTutorialBtn.hidden = true;
-    confirmTeleportBtn.hidden = true;
     cancelTeleportBtn.hidden = true;
     nextTutorialBtn.hidden = true;
     setIconButtonLabel(nextTutorialBtn, "nextTutorial");
@@ -2365,7 +2352,6 @@ function render() {
     boardEl.classList.remove("tutorial-complete");
   }
   if (tutorialActive && teleportUi.canControl) {
-    confirmTeleportBtn.hidden = true;
     cancelTeleportBtn.hidden = true;
   }
   scheduleSpecialAutoActivation(viewerSide);
@@ -2509,11 +2495,6 @@ if (resignConfirmModal) {
     }
   });
 }
-confirmTeleportBtn.addEventListener("click", () => {
-  if (!state.teleporting) return;
-  wizardMovePromptDismissed = true;
-  render();
-});
 cancelTeleportBtn.addEventListener("click", () => {
   if (state.mode === "pvp") {
     if (state.teleporting?.owner === networkSession.player) sendNetworkAction({ type: "wizard_stay" });
@@ -2949,7 +2930,6 @@ function handleNetworkMessage(message) {
     const nextTeleportKey = state?.teleporting
       ? `${state.teleporting.owner}:${state.teleporting.row}:${state.teleporting.col}`
       : "";
-    if (nextTeleportKey && nextTeleportKey !== previousTeleportKey) wizardMovePromptDismissed = false;
     if (message.type === "match_start") {
       lastTauntEventId = 0;
       if (cutsceneTimer !== null) {

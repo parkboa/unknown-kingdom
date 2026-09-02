@@ -1,13 +1,13 @@
 import { SPECIALS } from "./config.js";
 
-export function teleportUiState(state, viewerSide, promptDismissed = false) {
+export function teleportUiState(state, viewerSide) {
   const canControl = Boolean(
     state?.teleporting
     && state.teleporting.owner === viewerSide,
   );
   return {
     canControl,
-    showPrompt: canControl && !promptDismissed,
+    showPrompt: canControl,
   };
 }
 
@@ -473,7 +473,7 @@ export function updateTurnTimerPill(turnPill, context) {
 
 function renderPanel(context) {
   updateTurnTimerPill(context.turnPill, context);
-  const teleportUi = teleportUiState(context.state, context.viewerSide, context.wizardMovePromptDismissed);
+  const teleportUi = teleportUiState(context.state, context.viewerSide);
   context.blackCount.textContent = context.countPieces("black");
   context.whiteCount.textContent = context.countPieces("white");
   if (context.modeInfo) context.modeInfo.textContent = context.modeLabel;
@@ -493,7 +493,6 @@ function renderPanel(context) {
   if (context.resignBtn) {
     context.resignBtn.disabled = Boolean(context.state.winner) || (context.state.mode === "pvp" && !context.networkReady);
   }
-  if (context.confirmTeleportBtn) context.confirmTeleportBtn.hidden = !teleportUi.showPrompt;
   context.cancelTeleportBtn.hidden = !teleportUi.canControl;
 
   const showMatchResult = Boolean(
