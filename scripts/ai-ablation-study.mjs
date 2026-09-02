@@ -202,7 +202,7 @@ if (process.argv.includes("--worker")) {
           handicapPlayer: handicapStones > 0 && referenceTier
             ? (blackTier === referenceTier ? "black" : "white")
             : null,
-          gameId: `${blackTier}-R-vs-${whiteTier}-B-h${handicapStones}-${seed}`,
+          gameId: `${blackTier}-black-vs-${whiteTier}-white-h${handicapStones}-${seed}`,
         });
       }
     }
