@@ -55,41 +55,40 @@ export function isEnclosedPlacement(state, player, type, row, col) {
 function occupyGroup(state, group, captor, events) {
   const defender = state.board[group[0][0]][group[0][1]].owner;
   const captured = [];
-  let occupied = 0;
   for (const [row, col] of group) {
     const piece = state.board[row][col];
     if (!piece) continue;
     captured.push({ pieceId: piece.id, row, col });
     if (piece.type === "king") {
-      state.capturedKing = {
+      state.capturedKing ??= {
         pieceId: piece.id,
         owner: piece.owner,
         row,
         col,
       };
-      state.board[row][col] = occupiedSoldier(state, captor);
-      state.stats.captures[captor] += 1;
-      emitEvent(state, events, { type: "group_captured", captor, defender, pieces: captured });
-      declareWinner(
-        state,
-        captor,
-        `${sideLabel(defender)} King was captured at ${row},${col}.`,
-        events,
-        "king_captured",
-        { defeatedPlayer: defender, captureMethod: "surround", row, col },
-      );
-      return;
     }
     state.board[row][col] = occupiedSoldier(state, captor);
-    occupied += 1;
   }
-  state.stats.captures[captor] += occupied;
+  state.stats.captures[captor] += captured.length;
   if (captured.length) emitEvent(state, events, { type: "group_captured", captor, defender, pieces: captured });
+}
+
+function declareCapturedKingWinner(state, events) {
+  if (state.winner || !state.capturedKing) return;
+  const { owner, row, col } = state.capturedKing;
+  declareWinner(
+    state,
+    opponent(owner),
+    `${sideLabel(owner)} King was captured at ${row},${col}.`,
+    events,
+    "king_captured",
+    { defeatedPlayer: owner, captureMethod: "surround", row, col },
+  );
 }
 
 function resolveCapturedGroup(state, group, captor, events, queueSpecialActivation) {
   const defender = state.board[group[0][0]][group[0][1]].owner;
-  if (queueSpecialActivation(state, group, defender, captor, events)) return;
+  if (!state.capturedKing && queueSpecialActivation(state, group, defender, captor, events)) return;
   if (state.winner || state.teleporting || state.pendingSpecial || state.pendingKingSwap) return;
   const checked = new Set();
   for (const [row, col] of group) {
@@ -129,9 +128,13 @@ export function resolveCaptures(state, preferredCaptor, events, queueSpecialActi
         if (!captor) continue;
         const before = boardSignature(state);
         resolveCapturedGroup(state, group, captor, events, queueSpecialActivation);
-        if (state.winner || state.teleporting || state.pendingSpecial || state.pendingKingSwap) return;
+        if (state.winner || state.teleporting || state.pendingSpecial || state.pendingKingSwap) {
+          declareCapturedKingWinner(state, events);
+          return;
+        }
         changed ||= before !== boardSignature(state);
       }
     }
   }
+  declareCapturedKingWinner(state, events);
 }
