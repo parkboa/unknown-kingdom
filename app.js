@@ -66,10 +66,7 @@ import {
   setSfxEnabled,
 } from "./js/audio.js?v=release-20260824-1";
 import {
-  disableChallengeGuidance,
-  enableChallengeGuidance,
   getSavedLanguage,
-  isChallengeGuidanceEnabled,
   isPveTimerEnabled,
   setPveTimerEnabled,
   setSavedLanguage,
@@ -406,7 +403,6 @@ const closeSettingsBtn = document.querySelector("#closeSettingsBtn");
 const languageSelect = document.querySelector("#languageSelect");
 const musicToggle = document.querySelector("#musicToggle");
 const sfxToggle = document.querySelector("#sfxToggle");
-const specialHelpToggle = document.querySelector("#specialHelpToggle");
 
 downloadJournalBtn?.toggleAttribute("hidden", !DEVELOPER_MODE);
 resultDownloadJournalBtn?.toggleAttribute("hidden", !DEVELOPER_MODE);
@@ -593,10 +589,12 @@ function currentConnectionLabel() {
 }
 
 function syncSettingsControls() {
-  languageSelect.value = LANGUAGE;
+  document.querySelector("#languageCurrent").textContent = LANGUAGE === "ko" ? "한국어" : "English";
+  languageSelect.querySelectorAll("input").forEach((input) => {
+    input.checked = input.value === LANGUAGE;
+  });
   musicToggle.checked = isMusicEnabled();
   sfxToggle.checked = isSfxEnabled();
-  specialHelpToggle.checked = isChallengeGuidanceEnabled();
 }
 
 function setIconButtonLabel(button, key) {
@@ -615,7 +613,10 @@ function applyLanguage() {
     const input = label.querySelector("input");
     label.querySelector("span").textContent = UNIT_LABELS[input.value];
   });
-  languageSelect.value = LANGUAGE;
+  document.querySelector("#languageCurrent").textContent = LANGUAGE === "ko" ? "한국어" : "English";
+  languageSelect.querySelectorAll("input").forEach((input) => {
+    input.checked = input.value === LANGUAGE;
+  });
   undoBtn.textContent = text("undo");
   undoBtn.setAttribute("aria-label", text("undo"));
   undoBtn.title = text("undo");
@@ -1329,13 +1330,14 @@ function beginTutorialSpecialReaction() {
   return true;
 }
 
+const TUTORIAL_INTRO_PAGE_KEYS = [
+  "tutorialIntroPage1",
+  "tutorialIntroPage2",
+  "tutorialIntroPage4",
+];
+
 function getTutorialIntroCutscene(pageIndex) {
-  const pageKeys = [
-    "tutorialIntroPage1",
-    "tutorialIntroPage2",
-    "tutorialIntroPage3",
-    "tutorialIntroPage4",
-  ];
+  const pageKeys = TUTORIAL_INTRO_PAGE_KEYS;
   const unitType = pageIndex === 0 ? "guide" : "rules";
   return {
     unitType,
@@ -1349,9 +1351,9 @@ function getTutorialIntroCutscene(pageIndex) {
 }
 
 function handleDialogueNext() {
-  if (tutorialIntro && tutorialIntroPage < 3) {
+  if (tutorialIntro && tutorialIntroPage < TUTORIAL_INTRO_PAGE_KEYS.length - 1) {
     tutorialIntroPage++;
-    tutorialIntroReady = tutorialIntroPage === 3;
+    tutorialIntroReady = tutorialIntroPage === TUTORIAL_INTRO_PAGE_KEYS.length - 1;
     visibleCutscene = getTutorialIntroCutscene(tutorialIntroPage);
     render();
   }
@@ -1360,7 +1362,7 @@ function handleDialogueNext() {
 function handleDialoguePrev() {
   if (tutorialIntro && tutorialIntroPage > 0) {
     tutorialIntroPage--;
-    tutorialIntroReady = tutorialIntroPage === 3;
+    tutorialIntroReady = tutorialIntroPage === TUTORIAL_INTRO_PAGE_KEYS.length - 1;
     visibleCutscene = getTutorialIntroCutscene(tutorialIntroPage);
     render();
   }
@@ -3109,6 +3111,7 @@ function openSettingsModal() {
   syncSettingsControls();
   if (downloadJournalBtn) downloadJournalBtn.disabled = !currentPveJournalJsonl();
   settingsStatus.hidden = true;
+  document.querySelector("#languageDropdown").open = false;
   settingsModal.hidden = false;
 }
 
@@ -3120,16 +3123,6 @@ musicToggle.addEventListener("change", () => {
 sfxToggle.addEventListener("change", () => {
   setSfxEnabled(sfxToggle.checked);
   if (sfxToggle.checked) playPlacementSound();
-});
-specialHelpToggle.addEventListener("change", () => {
-  if (specialHelpToggle.checked) {
-    enableChallengeGuidance();
-    settingsStatus.textContent = text("specialHelpReset");
-  } else {
-    disableChallengeGuidance();
-    settingsStatus.textContent = text("specialHelpHidden");
-  }
-  settingsStatus.hidden = false;
 });
 downloadJournalBtn?.addEventListener("click", () => {
   downloadPveJournal();
@@ -3283,8 +3276,20 @@ unitInputs.forEach((input) => {
     render();
   });
 });
-languageSelect.addEventListener("change", () => {
-  const nextLanguage = languageSelect.value === "ko" ? "ko" : "en";
+document.addEventListener("click", (event) => {
+  const dropdown = document.querySelector("#languageDropdown");
+  if (dropdown.open && !dropdown.contains(event.target)) dropdown.open = false;
+});
+document.querySelector("#languageDropdown").addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  event.preventDefault();
+  event.stopPropagation();
+  event.currentTarget.open = false;
+  event.currentTarget.querySelector("summary").focus();
+});
+languageSelect.addEventListener("change", (event) => {
+  const nextLanguage = event.target.value === "ko" ? "ko" : "en";
+  if (nextLanguage === LANGUAGE) return;
   localStorage.setItem("unknown-kingdom-language", nextLanguage);
   const nextUrl = new URL(location.href);
   nextUrl.searchParams.set("lang", nextLanguage);

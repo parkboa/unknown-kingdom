@@ -1501,13 +1501,95 @@ body.iphone-preview .lobby-logo {
   font-weight: 600;
 }
 
-.settings-row select {
-  min-height: 34px;
-  padding: 0 8px;
+.settings-row.language-settings-row {
+  height: auto;
+  align-items: flex-start;
+}
+
+.language-settings-row > span {
+  line-height: 44px;
+}
+
+.language-dropdown {
+  position: relative;
+  width: 148px;
+  max-width: 65%;
+}
+
+.language-dropdown summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgb(216 165 50 / 40%);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgb(28 30 31 / 86%), rgb(12 13 14 / 92%));
+  cursor: pointer;
+  list-style: none;
+}
+
+.language-dropdown summary::-webkit-details-marker { display: none; }
+.language-dropdown summary::after { content: "▾"; color: var(--gold); }
+.language-dropdown[open] summary::after { content: "▴"; }
+.language-dropdown summary:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.language-options {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 100%;
+  z-index: 10;
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px;
+  border: 1px solid rgb(216 165 50 / 40%);
+  border-radius: var(--radius);
+  background: #121414;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 55%);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+
+.language-option {
+  position: relative;
+  cursor: pointer;
+}
+
+.language-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.language-option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 12px;
   border: 1px solid rgb(216 165 50 / 30%);
   border-radius: var(--radius);
-  color: #f7efe0;
-  background: rgb(12 13 14 / 72%);
+  color: rgb(247 239 224 / 72%);
+  background: linear-gradient(180deg, rgb(28 30 31 / 86%), rgb(12 13 14 / 92%));
+}
+
+.language-option input:checked + span {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: linear-gradient(180deg, rgb(216 165 50 / 20%), rgb(216 165 50 / 7%));
+  box-shadow: inset 0 0 0 1px rgb(216 165 50 / 16%);
+}
+
+.language-option input:focus-visible + span {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
 }
 
 .settings-toggle input {
@@ -1849,7 +1931,6 @@ body.iphone-preview .lobby-logo {
   font-weight: 600;
 }
 
-.settings-row select,
 .unavailable-setting small,
 .public-room-header .refresh-icon-button {
   min-height: var(--card-small-control-height);

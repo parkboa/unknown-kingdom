@@ -479,7 +479,7 @@ function renderPanel(context) {
   if (context.modeInfo) context.modeInfo.textContent = context.modeLabel;
   if (context.rankInfo) {
     context.rankInfo.textContent = context.rankLabel;
-    context.rankInfo.hidden = context.state.mode === "pvp";
+    context.rankInfo.hidden = context.state.mode === "pvp" || context.state.mode === "tutorial";
   }
   if (context.connectionInfo) {
     context.connectionInfo.hidden = context.state.mode !== "pvp";

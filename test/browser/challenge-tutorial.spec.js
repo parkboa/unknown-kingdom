@@ -7,7 +7,7 @@ async function startTutorial(page) {
 
   await expect(page.locator("#challengeModal")).toBeHidden();
   await expect(page.locator("#modeInfo")).toHaveText("튜토리얼");
-  await expect(page.locator("#rankInfo")).toHaveText("튜토리얼");
+  await expect(page.locator("#rankInfo")).toBeHidden();
   await expect(page.locator("#tutorialPanel")).toBeVisible();
   await expect(page.locator("#tutorialMessage")).toBeEmpty();
   await expect(page.locator("#startTutorialBtn")).toBeHidden();
