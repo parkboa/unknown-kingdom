@@ -204,6 +204,7 @@ button:disabled {
 }
 
 .splash-card {
+  min-width: 0;
   display: grid;
   gap: 12px;
   align-self: start;
@@ -261,6 +262,8 @@ button:disabled {
 }
 
 .splash-brand {
+  min-width: 0;
+  max-width: 100%;
   position: relative;
   isolation: isolate;
   padding: clamp(18px, 3vw, 30px) clamp(30px, 7vw, 86px);
@@ -288,6 +291,7 @@ button:disabled {
 }
 
 .splash-logo {
+  margin-inline: auto;
   display: block;
   width: min(594px, 72vw);
   height: auto;
@@ -3502,9 +3506,9 @@ body.iphone-preview .lobby-logo {
   }
 
   .splash-logo {
-    width: 296px;
-    height: 153px;
-    max-width: none;
+    width: min(296px, 100%);
+    height: auto;
+    max-width: 100%;
   }
 
   .lobby-logo {
@@ -3514,7 +3518,7 @@ body.iphone-preview .lobby-logo {
 
   .app-shell {
     grid-template-columns: 1fr;
-    padding: var(--mobile-safe-top) var(--mobile-side-padding) 12px;
+    padding: var(--mobile-safe-top) max(var(--mobile-side-padding), env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(var(--mobile-side-padding), env(safe-area-inset-left));
   }
 
   .game-area {

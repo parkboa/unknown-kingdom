@@ -28,7 +28,7 @@ test("special character dialogues are configured in en and ko", () => {
   assert.equal(TEXT.ko.wizardTauntBubble, "아브라카다브라");
   assert.equal(TEXT.ko.tauntBubble, "쫄");
 
-  assert.equal(TEXT.en.generalTauntBubble, "How dare you block me!");
+  assert.equal(TEXT.en.generalTauntBubble, "How dare you block me");
   assert.equal(TEXT.en.diplomatTauntBubble, "Name your price");
   assert.equal(TEXT.en.wizardTauntBubble, "Abracadabra");
   assert.equal(TEXT.en.tauntBubble, "Coward");

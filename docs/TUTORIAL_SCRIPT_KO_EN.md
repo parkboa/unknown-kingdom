@@ -208,7 +208,7 @@ The unit is fully surrounded. Its special ability is activating…
 
 **English**
 
-How dare you block me!
+How dare you block me
 
 ### tutorialGeneralPlaced
 

@@ -77,7 +77,7 @@ export const TEXT = {
     timeExpired: "Time limit exceeded (30s).",
     resultDraw: "Draw", draw: "Draw", boardFilled: "Board filled: Black {black} - White {white}.",
     noLegalMoves: "No legal deployments remained: Black {black} - White {white}.",
-    autoPass: "{side} passed the turn.", taunt: "Taunt", tauntBubble: "Coward", generalTauntBubble: "How dare you block me!", diplomatTauntBubble: "Name your price", wizardTauntBubble: "Abracadabra",
+    autoPass: "{side} passed the turn.", taunt: "Taunt", tauntBubble: "Coward", generalTauntBubble: "How dare you block me", diplomatTauntBubble: "Name your price", wizardTauntBubble: "Abracadabra",
     passNoticeTitle: "Pass", noLegalMovesPass: "{side} has no legal moves and passes the turn.", confirm: "OK",
     suicideWarningTitle: "Confirm Suicide Move", suicideWarning: "This unit will die immediately if placed here.",
     enclosedSpecialTitle: "Ability Fires Immediately", enclosedSpecialWarning: "This point is fully enclosed, so the ability activates the moment you place.",
