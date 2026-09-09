@@ -1,3 +1,4 @@
+import { getOnlineIdentity } from "./auth.js";
 import { validateNetworkMessage } from "./protocol.js?v=progression-5";
 
 export function createNetworkSession() {
@@ -34,12 +35,13 @@ export function sendNetworkAction(session, action) {
 }
 
 export function sendNetworkCommand(session, command) {
-  if (session.socket?.readyState !== WebSocket.OPEN) return false;
+  if (!session.connected || session.socket?.readyState !== WebSocket.OPEN) return false;
   session.socket.send(JSON.stringify(command));
   return true;
 }
 
 export function disconnectNetwork(session) {
+  session.cancelled = true;
   if (session.socket) session.socket.close();
   return createNetworkSession();
 }
@@ -56,38 +58,77 @@ export function connectNetwork(command, {
 }) {
   const session = createNetworkSession();
   onStatus(connectingMessage);
-  const socket = new WebSocket(url);
-  session.socket = socket;
-
-  socket.addEventListener("open", () => {
-    session.connected = true;
-    socket.send(JSON.stringify(command));
-  });
-
-  socket.addEventListener("message", (event) => {
-    try {
-      const message = JSON.parse(event.data);
-      if (!validateNetworkMessage(message)) {
-        onStatus(invalidMessage, session);
-        return;
-      }
-      onMessage(message);
-    } catch {
-      onStatus(invalidMessage, session);
-    }
-  });
-
-  socket.addEventListener("close", () => {
-    session.connected = false;
-    session.ready = false;
-    session.opponentDisconnected = false;
-    onStatus(disconnectedMessage, session);
+  // Complete human verification before starting the server's WebSocket auth deadline.
+  getOnlineIdentity(url).then(identity => {
+    if (!session.cancelled) openSocket(identity);
+  }).catch(() => {
+    if (session.cancelled) return;
+    onStatus(unavailableMessage, session);
     onClose(session);
   });
 
-  socket.addEventListener("error", () => {
-    onStatus(unavailableMessage, session);
-  });
+  function openSocket(initialIdentity) {
+    const socket = new WebSocket(url);
+    session.socket = socket;
+
+    let authPending = false;
+    let started = false;
+    let refreshTimer;
+    async function authenticate(identity) {
+      try {
+        identity = identity === undefined ? await getOnlineIdentity(url) : identity;
+        if (socket.readyState !== WebSocket.OPEN) return;
+        if (identity) {
+          authPending = true;
+          socket.send(JSON.stringify({ type: 'authenticate', accessToken: identity.accessToken }));
+          clearTimeout(refreshTimer);
+          refreshTimer = setTimeout(authenticate, Math.max(1000, identity.expiresAt - Date.now() - 45000));
+        } else {
+          session.connected = true;
+          started = true;
+          socket.send(JSON.stringify(command));
+        }
+      } catch {
+        onStatus(unavailableMessage, session);
+        socket.close();
+      }
+    }
+    socket.addEventListener("open", () => authenticate(initialIdentity));
+
+    socket.addEventListener("message", (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message?.type === 'authenticated' && authPending) {
+          if (typeof message.player?.publicCode !== 'string' || typeof message.player?.nickname !== 'string') throw new Error('Invalid profile');
+          authPending = false;
+          session.connected = true;
+          session.profile = message.player;
+          if (!started) { started = true; socket.send(JSON.stringify(command)); }
+          return;
+        }
+        if (!validateNetworkMessage(message)) {
+          onStatus(invalidMessage, session);
+          return;
+        }
+        onMessage(message);
+      } catch {
+        onStatus(invalidMessage, session);
+      }
+    });
+
+    socket.addEventListener("close", () => {
+      clearTimeout(refreshTimer);
+      session.connected = false;
+      session.ready = false;
+      session.opponentDisconnected = false;
+      onStatus(disconnectedMessage, session);
+      onClose(session);
+    });
+
+    socket.addEventListener("error", () => {
+      onStatus(unavailableMessage, session);
+    });
+  }
 
   return session;
 }

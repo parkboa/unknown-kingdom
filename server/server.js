@@ -1,4 +1,8 @@
 import http from "node:http";
+import { pathToFileURL } from "node:url";
+import { authConfiguration, createAuthService } from "./auth.js";
+import { createAuthHttpHandler, fixedWindowLimiter } from "./auth-http.js";
+import { publicPlayer } from "./identity.js";
 import { WebSocketServer, WebSocket } from "ws";
 import {
   applyAction,
@@ -11,10 +15,15 @@ import {
 } from "./engine.js";
 import { declineRematch, startAutomaticTauntLock } from "./room-actions.js";
 
+export function createGameServer({ authService, env = process.env } = {}) {
 const SPECIAL_UNIT_TYPES = new Set(["general", "diplomat", "wizard"]);
-const PORT = Number(process.env.PORT || 4175);
+const PORT = Number(env.PORT || 4175);
 const TAUNT_DISPLAY_MS = 3000;
 const TURN_TIMEOUT_MS = 30000;
+const authConfig = authService?.config || authConfiguration(env);
+const auth = authService || (authConfig ? createAuthService(authConfig) : null);
+const authHttp = createAuthHttpHandler(auth);
+const authenticatedSockets = new Map();
 const rooms = new Map();
 const lobbySockets = new Set();
 let nextBoardNumber = 1;
@@ -148,7 +157,8 @@ function leaveRoom(socket) {
   broadcastRoomList();
 }
 
-const server = http.createServer((request, response) => {
+const server = http.createServer(async (request, response) => {
+  if (await authHttp(request, response)) return;
   if (request.url === "/health") {
     response.writeHead(200, { "content-type": "application/json" });
     response.end(JSON.stringify({ ok: true, rooms: rooms.size }));
@@ -158,14 +168,20 @@ const server = http.createServer((request, response) => {
   response.end("Not found");
 });
 
-const webSocketServer = new WebSocketServer({ server, path: "/ws" });
+const webSocketServer = new WebSocketServer({ server, path: "/ws", maxPayload: 16384,
+  verifyClient: ({ origin }, done) => done(!authConfig || authConfig.origins.has(origin), 403, "Origin denied") });
 webSocketServer.on("connection", (socket) => {
+  if (webSocketServer.clients.size > 500) { socket.close(1013, "Server busy"); return; }
+  const allowMessage = fixedWindowLimiter({ limit: 60, intervalMs: 10000 });
+  const authTimer = auth ? setTimeout(() => socket.close(4401, "Authentication required"), 20000) : null;
+  let chain = Promise.resolve();
+  let pending = 0;
   socket.isAlive = true;
   socket.on("pong", () => {
     socket.isAlive = true;
   });
 
-  socket.on("message", (rawMessage) => {
+  async function handleMessage(rawMessage) {
     let message;
     try {
       message = JSON.parse(rawMessage.toString());
@@ -174,11 +190,39 @@ webSocketServer.on("connection", (socket) => {
       return;
     }
 
+    if (!message || typeof message !== "object" || Array.isArray(message)) {
+      send(socket, { type: "error", message: "Invalid message." }); return;
+    }
+    if (auth) {
+      if (message.type === "authenticate") {
+        try {
+          const identity = await auth.authenticate(message.accessToken);
+          if (socket.readyState !== WebSocket.OPEN) return;
+          if (socket.identity && socket.identity.player.id !== identity.player.id) throw new Error("Identity changed");
+          const existing = authenticatedSockets.get(identity.player.id);
+          if (existing && existing !== socket) throw new Error("Already connected");
+          socket.identity = identity;
+          socket.accessToken = message.accessToken;
+          authenticatedSockets.set(identity.player.id, socket);
+          clearTimeout(authTimer);
+          send(socket, { type: "authenticated", player: publicPlayer(identity.player), expiresAt: identity.expiresAt });
+        } catch { socket.close(4401, "Authentication failed"); }
+        return;
+      }
+      if (!socket.identity || socket.identity.expiresAt <= Date.now()) {
+        socket.close(4401, "Authentication required"); return;
+      }
+      try { await auth.authenticate(socket.accessToken); }
+      catch { socket.close(4401, "Session invalid"); return; }
+      if (socket.readyState !== WebSocket.OPEN) return;
+    }
+
     if (message.type === "create_room") {
       if (message.protocolVersion !== PROTOCOL_VERSION) {
         send(socket, { type: "error", message: `Unsupported protocol version. Expected ${PROTOCOL_VERSION}.` });
         return;
       }
+      if (rooms.size >= 500) { send(socket, { type: "error", message: "Server busy." }); return; }
       leaveRoom(socket);
       lobbySockets.delete(socket);
       const code = roomCode();
@@ -187,6 +231,7 @@ webSocketServer.on("connection", (socket) => {
         boardNumber: nextBoardNumber++,
         state: createGameState(),
         players: { black: null, white: null },
+        seatIds: { black: socket.identity?.player.id || null, white: null },
         sideChosen: false,
         rematch: new Set(),
         rps: { black: null, white: null },
@@ -217,9 +262,13 @@ webSocketServer.on("connection", (socket) => {
         send(socket, { type: "error", message: "Room is unavailable." });
         return;
       }
+      const player = room.players.black ? "white" : "black";
+      if (auth && room.seatIds[player] && room.seatIds[player] !== socket.identity.player.id) {
+        send(socket, { type: "error", message: "Room is unavailable." }); return;
+      }
       leaveRoom(socket);
       lobbySockets.delete(socket);
-      const player = room.players.black ? "white" : "black";
+      room.seatIds[player] = socket.identity?.player.id || null;
       room.players[player] = socket;
       socket.membership = { roomCode: code, player };
 
@@ -269,6 +318,7 @@ webSocketServer.on("connection", (socket) => {
           if (!blackWins) {
             const blackSocket = room.players.black;
             const whiteSocket = room.players.white;
+            [room.seatIds.black, room.seatIds.white] = [room.seatIds.white, room.seatIds.black];
             room.players.black = whiteSocket;
             room.players.white = blackSocket;
             whiteSocket.membership.player = "black";
@@ -369,9 +419,19 @@ webSocketServer.on("connection", (socket) => {
     }
     startAutomaticKingWallTaunt(room, player, message.action);
     broadcastState(room);
+  }
+  socket.on("message", rawMessage => {
+    if (!allowMessage("socket") || pending >= 8) { socket.close(1008, "Too many requests"); return; }
+    pending++;
+    chain = chain.then(() => socket.readyState === WebSocket.OPEN && handleMessage(rawMessage))
+      .catch(() => socket.close(1011, "Request failed"))
+      .finally(() => { pending--; });
   });
 
   socket.on("close", () => {
+    clearTimeout(authTimer);
+    if (socket.identity && authenticatedSockets.get(socket.identity.player.id) === socket) authenticatedSockets.delete(socket.identity.player.id);
+    socket.accessToken = null;
     lobbySockets.delete(socket);
     leaveRoom(socket);
   });
@@ -390,17 +450,23 @@ const heartbeat = setInterval(() => {
 
 webSocketServer.on("close", () => clearInterval(heartbeat));
 
-function shutdown() {
+async function close() {
   clearInterval(heartbeat);
-  for (const socket of webSocketServer.clients) socket.close(1012, "Server restarting");
-  server.close(() => process.exit(0));
+  for (const room of rooms.values()) clearTurnTimer(room);
+  for (const socket of webSocketServer.clients) socket.terminate();
+  await new Promise(resolve => webSocketServer.close(resolve));
+  if (server.listening) await new Promise(resolve => server.close(resolve));
+  await auth?.close?.();
+}
+return { server, webSocketServer, close, port: PORT };
 }
 
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
-
-server.listen(PORT, "0.0.0.0", () => {
-  const address = server.address();
-  const listeningPort = typeof address === "object" && address ? address.port : PORT;
-  console.log(`Unknown Kingdom server listening on ${listeningPort}`);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const app = createGameServer();
+  const shutdown = () => app.close().then(() => process.exit(0));
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+  app.server.listen(app.port, "0.0.0.0", () => {
+    console.log(`Unknown Kingdom server listening on ${app.server.address().port}`);
+  });
+}

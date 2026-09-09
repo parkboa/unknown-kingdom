@@ -28,7 +28,7 @@
     "ai:is-mcts-benchmark": "node scripts/is-mcts-benchmark.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "dependencies": {
     "@capacitor/core": "7.6.8",

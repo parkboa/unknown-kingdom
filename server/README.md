@@ -55,3 +55,10 @@ After deployment, connect the frontend with:
 ```text
 https://unknown-kingdom.vercel.app/?server=wss://YOUR-SERVICE.onrender.com/ws
 ```
+
+## Guest authentication
+
+Requires Node.js 22 or later. See [guest auth setup](../docs/GUEST_AUTH_SETUP.md) and
+[environment template](.env.example). Authentication is staged behind `AUTH_MODE=required`;
+the checked-in client remains disabled until database, same-origin proxy and deployment
+configuration are ready. The SQL migration is applied explicitly, never on server startup.

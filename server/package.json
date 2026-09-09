@@ -9,9 +9,12 @@
   },
   "dependencies": {
     "@daeguk/game-engine": "*",
+    "@supabase/supabase-js": "^2.116.0",
+    "jose": "^6.2.12",
+    "pg": "^8.23.0",
     "ws": "^8.18.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
