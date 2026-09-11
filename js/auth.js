@@ -21,7 +21,11 @@ export function createGuestAuth({ config, fetcher = fetch, native = false, secur
         return request(true, token);
       }
     }
-    if (!response.ok) throw new Error('Guest authentication unavailable');
+    if (!response.ok) {
+      const error = new Error('Guest authentication unavailable');
+      error.code = response.status === 429 ? 'RATE_LIMITED' : response.status === 403 ? 'ORIGIN_DENIED' : 'AUTH_FAILED';
+      throw error;
+    }
     const result = await response.json();
     if (typeof result.accessToken !== 'string' || !Number.isFinite(result.expiresAt) || result.expiresAt <= Date.now()) throw new Error('Invalid authentication response');
     if (native) {

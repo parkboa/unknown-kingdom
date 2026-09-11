@@ -61,10 +61,13 @@ export function connectNetwork(command, {
   // Complete human verification before starting the server's WebSocket auth deadline.
   getOnlineIdentity(url).then(identity => {
     if (!session.cancelled) openSocket(identity);
-  }).catch(() => {
+  }).catch(error => {
     if (session.cancelled) return;
-    onStatus(unavailableMessage, session);
     onClose(session);
+    // Closing the lobby resets its text; report failure after that reset.
+    const code = error.code || error.name || 'AUTH_FAILED';
+    console.warn('Guest authentication failed:', code);
+    onStatus(unavailableMessage, session);
   });
 
   function openSocket(initialIdentity) {
