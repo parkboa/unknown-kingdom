@@ -2898,6 +2898,12 @@ function returnToNetworkLobby() {
 }
 
 function connectNetwork(command) {
+  // Lobby commands share the authenticated connection. Closing and reopening it
+  // can race the server's one-connection-per-player check.
+  if (!networkSession.roomCode && sendNetworkCommand(networkSession, command)) {
+    setNetworkStatus(text("connecting"));
+    return;
+  }
   disconnectNetwork();
   networkSession = openNetworkConnection(command, {
     url: buildNetworkUrl(location, NETWORK_SERVER),

@@ -119,13 +119,16 @@ export function connectNetwork(command, {
       }
     });
 
-    socket.addEventListener("close", () => {
+    socket.addEventListener("close", (event) => {
       clearTimeout(refreshTimer);
       session.connected = false;
       session.ready = false;
       session.opponentDisconnected = false;
-      onStatus(disconnectedMessage, session);
       onClose(session);
+      if (!session.cancelled) {
+        console.warn('Game connection closed:', event.code);
+        onStatus(`${disconnectedMessage} (${event.code})`, session);
+      }
     });
 
     socket.addEventListener("error", () => {
