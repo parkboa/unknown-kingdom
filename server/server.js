@@ -1,4 +1,5 @@
 import http from "node:http";
+import { randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { authConfiguration, createAuthService } from "./auth.js";
 import { createAuthHttpHandler, fixedWindowLimiter } from "./auth-http.js";
@@ -15,7 +16,7 @@ import {
 } from "./engine.js";
 import { declineRematch, startAutomaticTauntLock } from "./room-actions.js";
 
-export function createGameServer({ authService, env = process.env } = {}) {
+export function createGameServer({ authService, env = process.env, serverInstanceId = randomUUID() } = {}) {
 const SPECIAL_UNIT_TYPES = new Set(["general", "diplomat", "wizard"]);
 const PORT = Number(env.PORT || 4175);
 const TAUNT_DISPLAY_MS = 3000;
@@ -60,7 +61,7 @@ function openRoomSummaries() {
 }
 
 function sendRoomList(socket) {
-  send(socket, { type: "room_list", rooms: openRoomSummaries() });
+  send(socket, { type: "room_list", rooms: openRoomSummaries(), serverInstanceId });
 }
 
 function broadcastRoomList() {
@@ -114,6 +115,7 @@ function broadcastState(room, type = "state", { resumePausedTurn = false } = {})
     playerState.turnDeadline = room.turnDeadline;
     send(socket, {
       type,
+      serverInstanceId,
       roomCode: room.code,
       boardNumber: room.boardNumber,
       player,
@@ -165,6 +167,7 @@ function requestRpsSelection(room) {
   for (const player of ["black", "white"]) {
     send(room.players[player], {
       type: "rps_start",
+      serverInstanceId,
       roomCode: room.code,
       boardNumber: room.boardNumber,
       player,
@@ -264,7 +267,7 @@ webSocketServer.on("connection", (socket) => {
           socket.accessToken = message.accessToken;
           authenticatedSockets.set(identity.player.id, socket);
           clearTimeout(authTimer);
-          send(socket, { type: "authenticated", player: publicPlayer(identity.player), expiresAt: identity.expiresAt });
+          send(socket, { type: "authenticated", player: publicPlayer(identity.player), expiresAt: identity.expiresAt, serverInstanceId });
         } catch { socket.close(4401, "Authentication failed"); }
         return;
       }
@@ -300,7 +303,7 @@ webSocketServer.on("connection", (socket) => {
       room.players.black = socket;
       rooms.set(code, room);
       socket.membership = { roomCode: code, player: "black" };
-      send(socket, { type: "room_created", roomCode: code, boardNumber: room.boardNumber, player: "black" });
+      send(socket, { type: "room_created", roomCode: code, boardNumber: room.boardNumber, player: "black", serverInstanceId });
       broadcastRoomList();
       return;
     }
@@ -349,6 +352,10 @@ webSocketServer.on("connection", (socket) => {
         return;
       }
       const code = typeof message.roomCode === "string" ? message.roomCode.trim().toUpperCase() : "";
+      if (typeof message.serverInstanceId === "string" && message.serverInstanceId !== serverInstanceId) {
+        send(socket, { type: "match_voided", reason: "server_restart", roomCode: code, serverInstanceId });
+        return;
+      }
       const room = rooms.get(code);
       const player = auth && room
         ? ["black", "white"].find(side => room.seatIds[side] === socket.identity.player.id)
@@ -367,6 +374,7 @@ webSocketServer.on("connection", (socket) => {
       } else if (!room.sideChosen) {
         send(socket, {
           type: "room_created",
+          serverInstanceId,
           roomCode: room.code,
           boardNumber: room.boardNumber,
           player,

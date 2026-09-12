@@ -80,7 +80,7 @@ test("unexpected socket closure resumes the saved room instead of creating a new
   await tick();
   const first = FakeSocket.instances[0];
   assert.equal(first.sent[0].type, "authenticate");
-  first.receive({ type: "authenticated", player: profile, expiresAt: identity.expiresAt });
+  first.receive({ type: "authenticated", player: profile, expiresAt: identity.expiresAt, serverInstanceId: "server-before-restart" });
   assert.equal(first.sent[1].type, "create_room");
   first.receive({ type: "room_created", roomCode: "ABC123", boardNumber: 7, player: "black" });
   const visibleState = stateForPlayer(createGameState(), "black");
@@ -98,9 +98,39 @@ test("unexpected socket closure resumes the saved room instead of creating a new
   await tick();
   const second = FakeSocket.instances[1];
   assert.deepEqual(closeEvents, [{ reconnecting: true }]);
-  second.receive({ type: "authenticated", player: profile, expiresAt: identity.expiresAt });
-  assert.deepEqual(second.sent[1], { type: "resume_room", roomCode: "ABC123", protocolVersion: 3 });
+  second.receive({ type: "authenticated", player: profile, expiresAt: identity.expiresAt, serverInstanceId: "server-after-restart" });
+  assert.deepEqual(second.sent[1], { type: "resume_room", roomCode: "ABC123", protocolVersion: 3, serverInstanceId: "server-before-restart" });
 
+  disconnectNetwork(session);
+});
+
+test("a server instance change voids the saved match and returns to the lobby", async () => {
+  FakeSocket.instances = [];
+  const storage = memoryStorage();
+  const received = [];
+  storage.setItem("daeguk.online.resume.v1", JSON.stringify({
+    roomCode: "ABC123", boardNumber: 7, player: "black", publicCode: profile.publicCode,
+    serverInstanceId: "server-before-restart",
+  }));
+  const session = connectNetwork({ type: "list_rooms", protocolVersion: 3 }, {
+    url: "wss://game.test/ws", connectingMessage: "connecting", disconnectedMessage: "disconnected",
+    unavailableMessage: "unavailable", invalidMessage: "invalid", onStatus() {},
+    onMessage: message => received.push(message), onClose() {}, getIdentity: async () => identity,
+    WebSocketImpl: FakeSocket, storage, reconnectDelays: [],
+  });
+  await tick();
+  const socket = FakeSocket.instances[0];
+  socket.receive({ type: "authenticated", player: profile, expiresAt: identity.expiresAt, serverInstanceId: "server-after-restart" });
+  assert.deepEqual(socket.sent[1], {
+    type: "resume_room", roomCode: "ABC123", protocolVersion: 3, serverInstanceId: "server-before-restart",
+  });
+  const voided = { type: "match_voided", reason: "server_restart", roomCode: "ABC123", serverInstanceId: "server-after-restart" };
+  socket.receive(voided);
+  assert.deepEqual(received, [voided]);
+  assert.equal(session.matchVoided, true);
+  assert.equal(session.roomCode, "");
+  assert.equal(storage.getItem("daeguk.online.resume.v1"), null);
+  assert.deepEqual(socket.sent[2], { type: "list_rooms" });
   disconnectNetwork(session);
 });
 

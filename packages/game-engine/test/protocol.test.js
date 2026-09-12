@@ -48,3 +48,12 @@ test("accepts reconnect presence only as a boolean", () => {
     state: visibleState,
   }), false);
 });
+
+test("accepts only explicit server-restart void messages", () => {
+  assert.equal(validateNetworkMessage({
+    type: "match_voided", reason: "server_restart", roomCode: "ABC123", serverInstanceId: "server-after-restart",
+  }), true);
+  assert.equal(validateNetworkMessage({
+    type: "match_voided", reason: "player_disconnect", roomCode: "ABC123", serverInstanceId: "server-after-restart",
+  }), false);
+});

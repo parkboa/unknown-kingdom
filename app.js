@@ -6,7 +6,7 @@ import {
   SIZE,
   SPECIALS,
   createUnitLabels,
-} from "./js/config.js?v=reconnect-1";
+} from "./js/config.js?v=server-fault-1";
 import {
   inBounds,
   neighbors,
@@ -23,7 +23,7 @@ import {
   chooseAiTeleportDestination,
   findAiDeployMove,
 } from "./js/ai.js?v=progression-2";
-import { createTranslator } from "./js/i18n.js?v=reconnect-1";
+import { createTranslator } from "./js/i18n.js?v=server-fault-1";
 import {
   buildNetworkUrl,
   connectNetwork as openNetworkConnection,
@@ -31,7 +31,7 @@ import {
   disconnectNetwork as closeNetworkConnection,
   sendNetworkCommand,
   sendNetworkAction as sendNetworkMessage,
-} from "./js/network.js?v=reconnect-1";
+} from "./js/network.js?v=server-fault-1";
 import {
   createInitialState,
   createOccupiedSoldier,
@@ -2934,11 +2934,12 @@ function handleNetworkMessage(message) {
     openRooms = message.rooms;
     if (!openRooms.some((room) => room.roomCode === selectedOpenRoomCode)) selectedOpenRoomCode = "";
     renderOpenRooms();
-    setNetworkStatus(text("createOrJoin"));
+    setNetworkStatus(networkSession.matchVoided ? text("serverRestartVoided") : text("createOrJoin"));
     return;
   }
 
   if (message.type === "room_created") {
+    networkSession.matchVoided = false;
     networkSession.roomCode = message.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
     state.mode = "pvp";
@@ -2950,6 +2951,7 @@ function handleNetworkMessage(message) {
   }
 
   if (message.type === "rps_start") {
+    networkSession.matchVoided = false;
     networkSession.roomCode = message.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
     networkSession.player = message.player || networkSession.player;
@@ -3101,6 +3103,18 @@ function handleNetworkMessage(message) {
       return;
     }
     setNetworkStatus(message.message || text("serverRejected"));
+  }
+
+  if (message.type === "match_voided" && message.reason === "server_restart") {
+    onlineTurnDeadline = null;
+    hideRematchToast();
+    resultModal.hidden = true;
+    state = createInitialState("pvp", "black");
+    state.mode = "pvp";
+    networkModal.hidden = false;
+    showNetworkRoomControls();
+    setNetworkStatus(text("serverRestartVoided"));
+    render();
   }
 }
 

@@ -8,13 +8,13 @@ const origin='https://game.test';
 function message(socket) {
   return Promise.race([once(socket,'message').then(([data])=>JSON.parse(data)), new Promise((_,reject)=>{const t=setTimeout(()=>reject(new Error('Message timeout')),3000);t.unref();})]);
 }
-async function fixture(t) {
+async function fixture(t,{serverInstanceId}={}) {
   const revoked=new Set();
   const app=createGameServer({authService:{config:{origins:new Set([origin]),secureCookies:true},authenticate:async token=>{
     if(!['alice','bob','eve'].includes(token)||revoked.has(token)) throw new Error('Unauthorized');
     await new Promise(resolve=>setTimeout(resolve,5));
     return {player:{id:token,publicCode:`PUBLIC-${token}`,nickname:'Guest',status:'active'},expiresAt:Date.now()+300000};
-  }},env:{PORT:'0'}});
+  }},env:{PORT:'0'},serverInstanceId});
   app.server.listen(0,'127.0.0.1');await once(app.server,'listening');
   t.after(()=>app.close());
   const url=`ws://127.0.0.1:${app.server.address().port}/ws`;
@@ -56,6 +56,15 @@ test('revoked sessions cannot act and outsiders cannot take a disconnected playe
   const eve=await connect('eve');next=message(eve);
   eve.send(JSON.stringify({type:'join_room',roomCode:room.roomCode,protocolVersion:3}));assert.equal((await next).message,'Room is unavailable.');
   revoked.add('alice');closed=once(alice,'close');alice.send(JSON.stringify({type:'list_rooms'}));assert.equal((await closed)[0],4401);
+});
+
+test('a resume ticket from a previous server instance is voided without a loss',async t=>{
+  const {connect}=await fixture(t,{serverInstanceId:'server-after-restart'});
+  const alice=await connect('alice');const next=message(alice);
+  alice.send(JSON.stringify({type:'resume_room',roomCode:'ABC123',protocolVersion:3,serverInstanceId:'server-before-restart'}));
+  assert.deepEqual(await next,{
+    type:'match_voided',reason:'server_restart',roomCode:'ABC123',serverInstanceId:'server-after-restart'
+  });
 });
 
 test('authenticated players reclaim the same seat, board and turn after disconnecting',async t=>{

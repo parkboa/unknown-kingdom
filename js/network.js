@@ -1,6 +1,6 @@
 import { getOnlineIdentity } from "./auth.js";
 import { PROTOCOL_VERSION } from "./config.js";
-import { validateNetworkMessage } from "./protocol.js?v=reconnect-1";
+import { validateNetworkMessage } from "./protocol.js?v=server-fault-1";
 
 const RESUME_STORAGE_KEY = "daeguk.online.resume.v1";
 const DEFAULT_RECONNECT_DELAYS = [500, 1000, 2000, 4000, 8000, ...Array(11).fill(10000)];
@@ -23,6 +23,7 @@ function writeResumeTicket(storage, session) {
       boardNumber: session.boardNumber,
       player: session.player,
       publicCode: session.profile.publicCode,
+      serverInstanceId: session.serverInstanceId || null,
     }));
   } catch {}
 }
@@ -45,6 +46,8 @@ export function createNetworkSession() {
     player: null,
     reconnectAttempt: 0,
     reconnectTimer: null,
+    serverInstanceId: null,
+    matchVoided: false,
   };
 }
 
@@ -151,6 +154,8 @@ export function connectNetwork(command, {
           authPending = false;
           session.connected = true;
           session.profile = message.player;
+          const previousServerInstanceId = session.serverInstanceId;
+          session.serverInstanceId = typeof message.serverInstanceId === "string" ? message.serverInstanceId : null;
           if (!started) {
             started = true;
             const activeTicket = session.roomCode && session.player ? {
@@ -158,6 +163,7 @@ export function connectNetwork(command, {
               boardNumber: session.boardNumber,
               player: session.player,
               publicCode: session.profile.publicCode,
+              serverInstanceId: previousServerInstanceId || session.serverInstanceId,
             } : null;
             const ticket = activeTicket || (command.type === "list_rooms" ? readResumeTicket(storage) : null);
             if (ticket?.publicCode === message.player.publicCode) {
@@ -168,6 +174,7 @@ export function connectNetwork(command, {
                 type: "resume_room",
                 roomCode: ticket.roomCode,
                 protocolVersion: PROTOCOL_VERSION,
+                ...(ticket.serverInstanceId ? { serverInstanceId: ticket.serverInstanceId } : {}),
               }));
             } else {
               if (ticket) clearResumeTicket(storage);
@@ -188,10 +195,22 @@ export function connectNetwork(command, {
           socket.send(JSON.stringify({ type: "list_rooms" }));
           return;
         }
+        if (message.type === "match_voided" && message.reason === "server_restart" && session.roomCode) {
+          clearResumeTicket(storage, session.roomCode);
+          session.roomCode = "";
+          session.boardNumber = null;
+          session.player = null;
+          session.matchVoided = true;
+          session.serverInstanceId = message.serverInstanceId || session.serverInstanceId;
+          onMessage(message);
+          socket.send(JSON.stringify({ type: "list_rooms" }));
+          return;
+        }
         if (["room_created", "rps_start", "match_start", "state"].includes(message.type)) {
           session.roomCode = message.roomCode || session.roomCode;
           session.boardNumber = message.boardNumber || session.boardNumber;
           session.player = message.player || session.player;
+          session.serverInstanceId = message.serverInstanceId || session.serverInstanceId;
         }
         if (["room_created", "rps_start", "match_start", "state"].includes(message.type)) {
           session.reconnectAttempt = 0;

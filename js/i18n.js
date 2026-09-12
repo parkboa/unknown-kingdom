@@ -1,4 +1,4 @@
-import { TEXT } from "./config.js?v=reconnect-1";
+import { TEXT } from "./config.js?v=server-fault-1";
 
 export function createTranslator(language) {
   return function text(key, values = {}) {
