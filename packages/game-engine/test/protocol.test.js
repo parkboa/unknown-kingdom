@@ -32,3 +32,19 @@ test("rejects a network state whose visible stock belongs to the other player", 
     state: visibleState,
   }), false);
 });
+
+test("accepts reconnect presence only as a boolean", () => {
+  const visibleState = stateForPlayer(createGameState(), "black");
+  assert.equal(validateNetworkMessage({
+    type: "state",
+    player: "black",
+    opponentConnected: false,
+    state: visibleState,
+  }), true);
+  assert.equal(validateNetworkMessage({
+    type: "state",
+    player: "black",
+    opponentConnected: "no",
+    state: visibleState,
+  }), false);
+});

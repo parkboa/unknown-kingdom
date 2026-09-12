@@ -20,6 +20,10 @@ const SPECIAL_UNIT_TYPES = new Set(["general", "diplomat", "wizard"]);
 const PORT = Number(env.PORT || 4175);
 const TAUNT_DISPLAY_MS = 3000;
 const TURN_TIMEOUT_MS = 30000;
+const configuredReconnectGraceMs = Number(env.RECONNECT_GRACE_MS || 120000);
+const RECONNECT_GRACE_MS = Number.isFinite(configuredReconnectGraceMs)
+  ? Math.max(1000, configuredReconnectGraceMs)
+  : 120000;
 const authConfig = authService?.config || authConfiguration(env);
 const auth = authService || (authConfig ? createAuthService(authConfig) : null);
 const authHttp = createAuthHttpHandler(auth);
@@ -27,6 +31,7 @@ const authenticatedSockets = new Map();
 const rooms = new Map();
 const lobbySockets = new Set();
 let nextBoardNumber = 1;
+let shuttingDown = false;
 
 function roomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -43,7 +48,9 @@ function send(socket, message) {
 
 function openRoomSummaries() {
   return Array.from(rooms.values())
-    .filter((room) => Boolean(room.players.black) !== Boolean(room.players.white))
+    .filter((room) => !room.sideChosen && ["black", "white"].some(player => (
+      !room.players[player] && !room.seatIds[player]
+    )) && Boolean(room.players.black || room.players.white))
     .map((room) => ({
       roomCode: room.code,
       boardNumber: room.boardNumber,
@@ -67,15 +74,15 @@ function clearTurnTimer(room) {
   }
 }
 
-function resetTurnTimer(room) {
+function resetTurnTimer(room, duration = TURN_TIMEOUT_MS) {
   clearTurnTimer(room);
   if (room.state.winner || !room.sideChosen || !room.players.black || !room.players.white) {
     room.turnDeadline = null;
     return;
   }
   const tauntDelay = Math.max(0, Number(room.state.tauntUntil || 0) - Date.now());
-  const duration = TURN_TIMEOUT_MS + tauntDelay;
-  room.turnDeadline = Date.now() + duration;
+  const turnDuration = Math.max(1, duration) + tauntDelay;
+  room.turnDeadline = Date.now() + turnDuration;
 
   room.turnTimer = setTimeout(() => {
     room.turnTimer = null;
@@ -89,12 +96,13 @@ function resetTurnTimer(room) {
       dispatchAction(room.state, timedOutPlayer, { type: "timeout" }, { authoritative: true });
     }
     broadcastState(room);
-  }, duration);
+  }, turnDuration);
 }
 
-function broadcastState(room, type = "state") {
+function broadcastState(room, type = "state", { resumePausedTurn = false } = {}) {
   if (type === "match_start" || (room.sideChosen && !room.state.winner)) {
-    resetTurnTimer(room);
+    resetTurnTimer(room, resumePausedTurn && room.pausedTurnMs ? room.pausedTurnMs : TURN_TIMEOUT_MS);
+    room.pausedTurnMs = null;
   } else if (room.state.winner) {
     clearTurnTimer(room);
     room.turnDeadline = null;
@@ -109,10 +117,47 @@ function broadcastState(room, type = "state") {
       roomCode: room.code,
       boardNumber: room.boardNumber,
       player,
+      opponentConnected: Boolean(room.players[player === "black" ? "white" : "black"]),
       turnDeadline: room.turnDeadline,
       state: playerState,
     });
   }
+}
+
+function clearReconnectTimer(room, player) {
+  if (!room.reconnectTimers?.[player]) return;
+  clearTimeout(room.reconnectTimers[player]);
+  room.reconnectTimers[player] = null;
+}
+
+function deleteRoom(room) {
+  if (rooms.get(room.code) !== room) return;
+  clearTurnTimer(room);
+  for (const player of ["black", "white"]) {
+    clearReconnectTimer(room, player);
+    if (room.players[player]?.membership?.roomCode === room.code) room.players[player].membership = null;
+  }
+  rooms.delete(room.code);
+  broadcastRoomList();
+}
+
+function pauseTurnTimer(room) {
+  if (room.turnDeadline) {
+    room.pausedTurnMs = Math.max(1, room.turnDeadline - Date.now());
+  }
+  clearTurnTimer(room);
+  room.turnDeadline = null;
+}
+
+function reserveSeatForReconnect(room, player) {
+  clearReconnectTimer(room, player);
+  room.reconnectTimers[player] = setTimeout(() => {
+    room.reconnectTimers[player] = null;
+    if (rooms.get(room.code) !== room || room.players[player]) return;
+    const opponent = player === "black" ? "white" : "black";
+    send(room.players[opponent], { type: "error", message: "Opponent did not reconnect." });
+    deleteRoom(room);
+  }, RECONNECT_GRACE_MS);
 }
 
 function requestRpsSelection(room) {
@@ -122,6 +167,7 @@ function requestRpsSelection(room) {
       type: "rps_start",
       roomCode: room.code,
       boardNumber: room.boardNumber,
+      player,
     });
   }
 }
@@ -134,25 +180,38 @@ function tauntIsPlaying(room) {
   return Number(room.state.tauntUntil || 0) > Date.now();
 }
 
-function leaveRoom(socket) {
+function leaveRoom(socket, { preserveActiveSeat = false } = {}) {
   const membership = socket.membership;
   if (!membership) return;
   const room = rooms.get(membership.roomCode);
   if (!room) return;
   room.players[membership.player] = null;
-  clearTurnTimer(room);
+  pauseTurnTimer(room);
   const hasStarted = Boolean(
     room.state.deploymentCount?.black > 0
     || room.state.deploymentCount?.white > 0
     || room.state.firstDeployDone?.black
     || room.state.firstDeployDone?.white,
   );
-  if (!hasStarted) {
+  const canResume = preserveActiveSeat && auth && Boolean(room.seatIds[membership.player]);
+  if (!hasStarted && !canResume) {
     room.sideChosen = false;
   }
   const otherPlayer = membership.player === "black" ? "white" : "black";
-  send(room.players[otherPlayer], { type: "error", message: "Opponent disconnected." });
-  if (!room.players.black && !room.players.white) rooms.delete(room.code);
+  if (canResume) {
+    send(room.players[otherPlayer], { type: "error", message: "Opponent disconnected." });
+    reserveSeatForReconnect(room, membership.player);
+  } else if (room.sideChosen) {
+    send(room.players[otherPlayer], { type: "error", message: "Opponent did not reconnect." });
+    socket.membership = null;
+    deleteRoom(room);
+    return;
+  } else {
+    send(room.players[otherPlayer], { type: "error", message: "Opponent disconnected." });
+    clearReconnectTimer(room, membership.player);
+    room.seatIds[membership.player] = null;
+    if (!room.players.black && !room.players.white) deleteRoom(room);
+  }
   socket.membership = null;
   broadcastRoomList();
 }
@@ -235,11 +294,13 @@ webSocketServer.on("connection", (socket) => {
         sideChosen: false,
         rematch: new Set(),
         rps: { black: null, white: null },
+        reconnectTimers: { black: null, white: null },
+        pausedTurnMs: null,
       };
       room.players.black = socket;
       rooms.set(code, room);
       socket.membership = { roomCode: code, player: "black" };
-      send(socket, { type: "room_created", roomCode: code, boardNumber: room.boardNumber });
+      send(socket, { type: "room_created", roomCode: code, boardNumber: room.boardNumber, player: "black" });
       broadcastRoomList();
       return;
     }
@@ -277,6 +338,53 @@ webSocketServer.on("connection", (socket) => {
         broadcastState(room, "state");
       } else {
         requestRpsSelection(room);
+      }
+      broadcastRoomList();
+      return;
+    }
+
+    if (message.type === "resume_room") {
+      if (message.protocolVersion !== PROTOCOL_VERSION) {
+        send(socket, { type: "error", message: `Unsupported protocol version. Expected ${PROTOCOL_VERSION}.` });
+        return;
+      }
+      const code = typeof message.roomCode === "string" ? message.roomCode.trim().toUpperCase() : "";
+      const room = rooms.get(code);
+      const player = auth && room
+        ? ["black", "white"].find(side => room.seatIds[side] === socket.identity.player.id)
+        : null;
+      if (!room || !player || room.players[player]) {
+        send(socket, { type: "error", message: "Resume unavailable." });
+        return;
+      }
+      leaveRoom(socket);
+      lobbySockets.delete(socket);
+      clearReconnectTimer(room, player);
+      room.players[player] = socket;
+      socket.membership = { roomCode: code, player };
+      if (!room.sideChosen && room.players.black && room.players.white) {
+        requestRpsSelection(room);
+      } else if (!room.sideChosen) {
+        send(socket, {
+          type: "room_created",
+          roomCode: room.code,
+          boardNumber: room.boardNumber,
+          player,
+        });
+      } else if (room.players.black && room.players.white) {
+        broadcastState(room, "state", { resumePausedTurn: true });
+      } else {
+        const playerState = stateForPlayer(room.state, player);
+        playerState.turnDeadline = null;
+        send(socket, {
+          type: "state",
+          roomCode: room.code,
+          boardNumber: room.boardNumber,
+          player,
+          opponentConnected: false,
+          turnDeadline: null,
+          state: playerState,
+        });
       }
       broadcastRoomList();
       return;
@@ -359,6 +467,10 @@ webSocketServer.on("connection", (socket) => {
       send(socket, { type: "error", message: "Choose a side first." });
       return;
     }
+    if (!room.players.black || !room.players.white) {
+      send(socket, { type: "error", message: "Opponent disconnected." });
+      return;
+    }
     const player = socket.membership.player;
     if (message.action?.type === "decline_rematch") {
       declineRematch(room, player, send);
@@ -433,7 +545,7 @@ webSocketServer.on("connection", (socket) => {
     if (socket.identity && authenticatedSockets.get(socket.identity.player.id) === socket) authenticatedSockets.delete(socket.identity.player.id);
     socket.accessToken = null;
     lobbySockets.delete(socket);
-    leaveRoom(socket);
+    leaveRoom(socket, { preserveActiveSeat: !shuttingDown });
   });
 });
 
@@ -451,8 +563,12 @@ const heartbeat = setInterval(() => {
 webSocketServer.on("close", () => clearInterval(heartbeat));
 
 async function close() {
+  shuttingDown = true;
   clearInterval(heartbeat);
-  for (const room of rooms.values()) clearTurnTimer(room);
+  for (const room of rooms.values()) {
+    clearTurnTimer(room);
+    for (const player of ["black", "white"]) clearReconnectTimer(room, player);
+  }
   for (const socket of webSocketServer.clients) socket.terminate();
   await new Promise(resolve => webSocketServer.close(resolve));
   if (server.listening) await new Promise(resolve => server.close(resolve));

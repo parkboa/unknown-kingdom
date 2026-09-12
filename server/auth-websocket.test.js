@@ -57,3 +57,59 @@ test('revoked sessions cannot act and outsiders cannot take a disconnected playe
   eve.send(JSON.stringify({type:'join_room',roomCode:room.roomCode,protocolVersion:3}));assert.equal((await next).message,'Room is unavailable.');
   revoked.add('alice');closed=once(alice,'close');alice.send(JSON.stringify({type:'list_rooms'}));assert.equal((await closed)[0],4401);
 });
+
+test('authenticated players reclaim the same seat, board and turn after disconnecting',async t=>{
+  const {connect}=await fixture(t);
+  const alice=await connect('alice');let next=message(alice);
+  alice.send(JSON.stringify({type:'create_room',protocolVersion:3}));const room=await next;
+  assert.equal(room.player,'black');
+
+  const bob=await connect('bob');
+  const aliceRps=message(alice);const bobRps=message(bob);
+  bob.send(JSON.stringify({type:'join_room',roomCode:room.roomCode,protocolVersion:3}));
+  assert.equal((await aliceRps).player,'black');assert.equal((await bobRps).player,'white');
+
+  let aliceMessage=message(alice);let bobMessage=message(bob);
+  alice.send(JSON.stringify({type:'rps_choice',roomCode:room.roomCode,choice:'rock'}));
+  bob.send(JSON.stringify({type:'rps_choice',roomCode:room.roomCode,choice:'scissors'}));
+  await Promise.all([aliceMessage,bobMessage]);
+  aliceMessage=message(alice);bobMessage=message(bob);
+  await Promise.all([aliceMessage,bobMessage]);
+
+  aliceMessage=message(alice);bobMessage=message(bob);
+  alice.send(JSON.stringify({type:'action',roomCode:room.roomCode,action:{type:'deploy',unitType:'king',row:1,col:4}}));
+  const [before]=await Promise.all([aliceMessage,bobMessage]);
+  const remainingBeforeDisconnect=before.turnDeadline-Date.now();
+  assert.equal(before.state.board[1][4].owner,'black');
+  assert.equal(before.state.turn,'white');
+
+  const disconnected=message(alice);const bobClosed=once(bob,'close');bob.close();await bobClosed;
+  assert.equal((await disconnected).message,'Opponent disconnected.');
+
+  const resumedBob=await connect('bob');
+  aliceMessage=message(alice);bobMessage=message(resumedBob);
+  resumedBob.send(JSON.stringify({type:'resume_room',roomCode:room.roomCode,protocolVersion:3}));
+  const [aliceAfter,bobAfter]=await Promise.all([aliceMessage,bobMessage]);
+  assert.equal(bobAfter.player,'white');
+  assert.equal(bobAfter.state.board[1][4].owner,'black');
+  assert.equal(bobAfter.state.turn,'white');
+  assert.equal(aliceAfter.opponentConnected,true);
+  assert.ok(bobAfter.turnDeadline-Date.now()<=remainingBeforeDisconnect+100);
+
+  const aliceClosed=once(alice,'close');const resumedBobClosed=once(resumedBob,'close');
+  alice.close();resumedBob.close();await Promise.all([aliceClosed,resumedBobClosed]);
+  const resumedAlice=await connect('alice');aliceMessage=message(resumedAlice);
+  resumedAlice.send(JSON.stringify({type:'resume_room',roomCode:room.roomCode,protocolVersion:3}));
+  const waitingState=await aliceMessage;
+  assert.equal(waitingState.player,'black');
+  assert.equal(waitingState.opponentConnected,false);
+  assert.equal(waitingState.state.board[1][4].owner,'black');
+
+  const resumedBobAgain=await connect('bob');
+  aliceMessage=message(resumedAlice);bobMessage=message(resumedBobAgain);
+  resumedBobAgain.send(JSON.stringify({type:'resume_room',roomCode:room.roomCode,protocolVersion:3}));
+  const [bothBackAlice,bothBackBob]=await Promise.all([aliceMessage,bobMessage]);
+  assert.equal(bothBackAlice.opponentConnected,true);
+  assert.equal(bothBackBob.opponentConnected,true);
+  assert.equal(bothBackBob.state.turn,'white');
+});

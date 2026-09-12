@@ -6,7 +6,7 @@ import {
   SIZE,
   SPECIALS,
   createUnitLabels,
-} from "./js/config.js?v=progression-4";
+} from "./js/config.js?v=reconnect-1";
 import {
   inBounds,
   neighbors,
@@ -23,7 +23,7 @@ import {
   chooseAiTeleportDestination,
   findAiDeployMove,
 } from "./js/ai.js?v=progression-2";
-import { createTranslator } from "./js/i18n.js?v=disconnect-state-1";
+import { createTranslator } from "./js/i18n.js?v=reconnect-1";
 import {
   buildNetworkUrl,
   connectNetwork as openNetworkConnection,
@@ -31,7 +31,7 @@ import {
   disconnectNetwork as closeNetworkConnection,
   sendNetworkCommand,
   sendNetworkAction as sendNetworkMessage,
-} from "./js/network.js?v=disconnect-state-1";
+} from "./js/network.js?v=reconnect-1";
 import {
   createInitialState,
   createOccupiedSoldier,
@@ -582,10 +582,9 @@ function currentRankLabel() {
 
 function currentConnectionLabel() {
   if (state.mode !== "pvp") return "";
-  if (networkSession.ready) return LANGUAGE === "ko" ? "접속 중" : "Connected";
-  if (networkSession.connected && networkSession.opponentDisconnected) return text("opponentDisconnected");
-  if (networkSession.connected) return LANGUAGE === "ko" ? "대기 중" : "Waiting";
-  return LANGUAGE === "ko" ? "연결 끊김" : "Disconnected";
+  return networkSession.ready
+    ? (LANGUAGE === "ko" ? "상대 연결" : "Connected")
+    : (LANGUAGE === "ko" ? "연결 끊김" : "Disconnected");
 }
 
 function syncSettingsControls() {
@@ -2849,6 +2848,10 @@ function resetRpsButtons() {
 function setNetworkStatus(message) {
   networkStatus.textContent = message;
   networkLobbyStatus.textContent = message;
+  const identity = document.querySelector('#networkPublicIdentity');
+  const publicCode = networkSession?.connected ? networkSession.profile?.publicCode : null;
+  identity.hidden = !publicCode;
+  identity.textContent = publicCode ? `ID: ${publicCode}` : '';
 }
 
 function boardName(boardNumber) {
@@ -2879,7 +2882,7 @@ function renderOpenRooms() {
 
 function requestRoomList() {
   showNetworkRoomControls();
-  connectNetwork({ type: "list_rooms" });
+  connectNetwork({ type: "list_rooms", protocolVersion: PROTOCOL_VERSION });
 }
 
 function returnToNetworkLobby() {
@@ -2908,16 +2911,18 @@ function connectNetwork(command) {
   networkSession = openNetworkConnection(command, {
     url: buildNetworkUrl(location, NETWORK_SERVER),
     connectingMessage: text("connecting"),
+    reconnectingMessage: text("reconnecting"),
     disconnectedMessage: text("disconnected"),
     unavailableMessage: text("serverUnavailable"),
+    authenticationFailedMessage: text("guestAuthenticationFailed"),
     invalidMessage: text("invalidServerResponse"),
     onStatus: (message, session) => {
       if (!session || networkSession === session) setNetworkStatus(message);
     },
     onMessage: handleNetworkMessage,
-    onClose: (session) => {
+    onClose: (session, { reconnecting } = {}) => {
       if (networkSession === session) {
-        showNetworkRoomControls();
+        if (!reconnecting || !session.roomCode) showNetworkRoomControls();
         render();
       }
     },
@@ -2947,6 +2952,7 @@ function handleNetworkMessage(message) {
   if (message.type === "rps_start") {
     networkSession.roomCode = message.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
+    networkSession.player = message.player || networkSession.player;
     resultModal.hidden = true;
     hideRematchToast();
     rematchRequested = false;
@@ -2986,8 +2992,8 @@ function handleNetworkMessage(message) {
     networkSession.roomCode = message.roomCode || networkSession.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
     networkSession.player = message.player || networkSession.player;
-    networkSession.ready = true;
-    networkSession.opponentDisconnected = false;
+    networkSession.ready = message.opponentConnected !== false;
+    networkSession.opponentDisconnected = message.opponentConnected === false;
     state = message.state;
     const nextDeploymentKey = lastDeploymentKey(state.lastMove, state.board);
     if (nextDeploymentKey && nextDeploymentKey !== previousDeploymentKey) {
@@ -3019,7 +3025,9 @@ function handleNetworkMessage(message) {
     onlineTurnDeadline = message.turnDeadline || message.state?.turnDeadline || null;
     showNetworkRoomControls();
     networkModal.hidden = true;
-    setNetworkStatus(text("roomPlayer", { room: currentBoardLabel(), side: sideName(networkSession.player) }));
+    setNetworkStatus(networkSession.opponentDisconnected
+      ? text("opponentDisconnected")
+      : text("roomPlayer", { room: currentBoardLabel(), side: sideName(networkSession.player) }));
     if (state.tauntEvent?.id !== lastTauntEventId) showTauntBubble(state.tauntEvent);
     if (previousPendingSpecial && !state.pendingSpecial) {
       const specialType = previousPendingSpecial.type || previousPendingSpecial.unitType;
@@ -3078,6 +3086,11 @@ function handleNetworkMessage(message) {
   }
 
   if (message.type === "error") {
+    if (message.message === "Opponent did not reconnect.") {
+      returnToNetworkLobby();
+      setNetworkStatus(text("opponentReconnectExpired"));
+      return;
+    }
     if (message.message === "Opponent disconnected.") {
       networkSession.ready = false;
       networkSession.opponentDisconnected = true;

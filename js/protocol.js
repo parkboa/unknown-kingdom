@@ -43,6 +43,10 @@ function hasOptionalBoardNumber(value) {
     || (Number.isInteger(value.boardNumber) && value.boardNumber > 0);
 }
 
+function hasOptionalOpponentConnection(value) {
+  return value.opponentConnected === undefined || typeof value.opponentConnected === "boolean";
+}
+
 function isCoordinate(value) {
   return isPlainObject(value)
     && Number.isInteger(value.row)
@@ -153,6 +157,7 @@ export function validateNetworkMessage(message) {
   if (message.type === "match_start") {
     return isRoomCode(message.roomCode)
       && hasOptionalBoardNumber(message)
+      && hasOptionalOpponentConnection(message)
       && PLAYERS.has(message.player)
       && validateGameState(message.state)
       && hasStockForPlayer(message.state, message.player);
@@ -161,6 +166,7 @@ export function validateNetworkMessage(message) {
   if (message.type === "state") {
     return (message.roomCode === undefined || isRoomCode(message.roomCode))
       && hasOptionalBoardNumber(message)
+      && hasOptionalOpponentConnection(message)
       && (message.player === undefined || PLAYERS.has(message.player))
       && validateGameState(message.state)
       && (message.player === undefined || hasStockForPlayer(message.state, message.player));
@@ -178,7 +184,9 @@ export function validateNetworkMessage(message) {
   }
 
   if (message.type === "rps_start") {
-    return isRoomCode(message.roomCode) && hasOptionalBoardNumber(message);
+    return isRoomCode(message.roomCode)
+      && hasOptionalBoardNumber(message)
+      && (message.player === undefined || PLAYERS.has(message.player));
   }
 
   if (message.type === "rps_result") {

@@ -1,5 +1,38 @@
 import { getOnlineIdentity } from "./auth.js";
-import { validateNetworkMessage } from "./protocol.js?v=progression-5";
+import { PROTOCOL_VERSION } from "./config.js";
+import { validateNetworkMessage } from "./protocol.js?v=reconnect-1";
+
+const RESUME_STORAGE_KEY = "daeguk.online.resume.v1";
+const DEFAULT_RECONNECT_DELAYS = [500, 1000, 2000, 4000, 8000, ...Array(11).fill(10000)];
+
+function readResumeTicket(storage) {
+  try {
+    const ticket = JSON.parse(storage?.getItem(RESUME_STORAGE_KEY) || "null");
+    if (!ticket || typeof ticket.roomCode !== "string" || !["black", "white"].includes(ticket.player)) return null;
+    return ticket;
+  } catch {
+    return null;
+  }
+}
+
+function writeResumeTicket(storage, session) {
+  if (!session.roomCode || !session.player || !session.profile?.publicCode) return;
+  try {
+    storage?.setItem(RESUME_STORAGE_KEY, JSON.stringify({
+      roomCode: session.roomCode,
+      boardNumber: session.boardNumber,
+      player: session.player,
+      publicCode: session.profile.publicCode,
+    }));
+  } catch {}
+}
+
+function clearResumeTicket(storage, roomCode) {
+  try {
+    const ticket = readResumeTicket(storage);
+    if (!roomCode || !ticket || ticket.roomCode === roomCode) storage?.removeItem(RESUME_STORAGE_KEY);
+  } catch {}
+}
 
 export function createNetworkSession() {
   return {
@@ -10,6 +43,8 @@ export function createNetworkSession() {
     roomCode: "",
     boardNumber: null,
     player: null,
+    reconnectAttempt: 0,
+    reconnectTimer: null,
   };
 }
 
@@ -42,6 +77,8 @@ export function sendNetworkCommand(session, command) {
 
 export function disconnectNetwork(session) {
   session.cancelled = true;
+  clearTimeout(session.reconnectTimer);
+  if (session.roomCode) clearResumeTicket(session.storage || globalThis.localStorage, session.roomCode);
   if (session.socket) session.socket.close();
   return createNetworkSession();
 }
@@ -50,28 +87,36 @@ export function connectNetwork(command, {
   url,
   connectingMessage,
   disconnectedMessage,
+  reconnectingMessage = disconnectedMessage,
   unavailableMessage,
+  authenticationFailedMessage = 'Guest authentication failed. Please try again.',
   invalidMessage,
   onStatus,
   onMessage,
   onClose,
+  getIdentity = getOnlineIdentity,
+  WebSocketImpl = WebSocket,
+  storage = globalThis.localStorage,
+  reconnectDelays = DEFAULT_RECONNECT_DELAYS,
 }) {
   const session = createNetworkSession();
+  session.storage = storage;
   onStatus(connectingMessage);
   // Complete human verification before starting the server's WebSocket auth deadline.
-  getOnlineIdentity(url).then(identity => {
+  getIdentity(url).then(identity => {
     if (!session.cancelled) openSocket(identity);
   }).catch(error => {
     if (session.cancelled) return;
     onClose(session);
     // Closing the lobby resets its text; report failure after that reset.
-    const code = error.code || error.name || 'AUTH_FAILED';
+    const code = ['NATIVE_BRIDGE_UNAVAILABLE', 'RATE_LIMITED', 'ORIGIN_DENIED', 'AUTH_FAILED'].includes(error?.code)
+      ? error.code : 'AUTH_FAILED';
     console.warn('Guest authentication failed:', code);
-    onStatus(unavailableMessage, session);
+    onStatus(`${authenticationFailedMessage} (${code})`, session);
   });
 
   function openSocket(initialIdentity) {
-    const socket = new WebSocket(url);
+    const socket = new WebSocketImpl(url);
     session.socket = socket;
 
     let authPending = false;
@@ -79,8 +124,8 @@ export function connectNetwork(command, {
     let refreshTimer;
     async function authenticate(identity) {
       try {
-        identity = identity === undefined ? await getOnlineIdentity(url) : identity;
-        if (socket.readyState !== WebSocket.OPEN) return;
+        identity = identity === undefined ? await getIdentity(url) : identity;
+        if (socket.readyState !== WebSocketImpl.OPEN) return;
         if (identity) {
           authPending = true;
           socket.send(JSON.stringify({ type: 'authenticate', accessToken: identity.accessToken }));
@@ -92,7 +137,7 @@ export function connectNetwork(command, {
           socket.send(JSON.stringify(command));
         }
       } catch {
-        onStatus(unavailableMessage, session);
+        onStatus(authenticationFailedMessage, session);
         socket.close();
       }
     }
@@ -106,12 +151,51 @@ export function connectNetwork(command, {
           authPending = false;
           session.connected = true;
           session.profile = message.player;
-          if (!started) { started = true; socket.send(JSON.stringify(command)); }
+          if (!started) {
+            started = true;
+            const activeTicket = session.roomCode && session.player ? {
+              roomCode: session.roomCode,
+              boardNumber: session.boardNumber,
+              player: session.player,
+              publicCode: session.profile.publicCode,
+            } : null;
+            const ticket = activeTicket || (command.type === "list_rooms" ? readResumeTicket(storage) : null);
+            if (ticket?.publicCode === message.player.publicCode) {
+              session.roomCode = ticket.roomCode;
+              session.boardNumber = ticket.boardNumber || null;
+              session.player = ticket.player;
+              socket.send(JSON.stringify({
+                type: "resume_room",
+                roomCode: ticket.roomCode,
+                protocolVersion: PROTOCOL_VERSION,
+              }));
+            } else {
+              if (ticket) clearResumeTicket(storage);
+              socket.send(JSON.stringify(command));
+            }
+          }
           return;
         }
         if (!validateNetworkMessage(message)) {
           onStatus(invalidMessage, session);
           return;
+        }
+        if (message.type === "error" && message.message === "Resume unavailable." && session.roomCode) {
+          clearResumeTicket(storage, session.roomCode);
+          session.roomCode = "";
+          session.boardNumber = null;
+          session.player = null;
+          socket.send(JSON.stringify({ type: "list_rooms" }));
+          return;
+        }
+        if (["room_created", "rps_start", "match_start", "state"].includes(message.type)) {
+          session.roomCode = message.roomCode || session.roomCode;
+          session.boardNumber = message.boardNumber || session.boardNumber;
+          session.player = message.player || session.player;
+        }
+        if (["room_created", "rps_start", "match_start", "state"].includes(message.type)) {
+          session.reconnectAttempt = 0;
+          writeResumeTicket(storage, session);
         }
         onMessage(message);
       } catch {
@@ -121,10 +205,24 @@ export function connectNetwork(command, {
 
     socket.addEventListener("close", (event) => {
       clearTimeout(refreshTimer);
+      if (session.socket !== socket) return;
       session.connected = false;
       session.ready = false;
-      session.opponentDisconnected = false;
-      onClose(session);
+      const canResume = Boolean(session.roomCode && session.player && session.profile?.publicCode);
+      if (!session.cancelled && canResume && session.reconnectAttempt < reconnectDelays.length) {
+        const delay = reconnectDelays[session.reconnectAttempt++];
+        onClose(session, { reconnecting: true });
+        onStatus(reconnectingMessage, session);
+        session.reconnectTimer = setTimeout(() => {
+          getIdentity(url).then(identity => {
+            if (!session.cancelled) openSocket(identity);
+          }).catch(() => {
+            if (!session.cancelled) openSocket(undefined);
+          });
+        }, delay);
+        return;
+      }
+      onClose(session, { reconnecting: false });
       if (!session.cancelled) {
         console.warn('Game connection closed:', event.code);
         onStatus(`${disconnectedMessage} (${event.code})`, session);
