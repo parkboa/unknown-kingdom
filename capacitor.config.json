@@ -3,6 +3,7 @@
   "appName": "DAEGUK",
   "webDir": "dist-mobile",
   "ios": {
+    "loggingBehavior": "none",
     "scheme": "App",
     "backgroundColor": "#0b0c0d",
     "contentInset": "never",

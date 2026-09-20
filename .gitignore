@@ -11,3 +11,9 @@ ios/App/build/
 *.ipa
 .venv-open-spiel/
 __pycache__/
+
+# Authentication and database secrets
+.env
+.env.*
+!.env.example
+*.local.env

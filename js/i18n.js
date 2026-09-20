@@ -1,4 +1,4 @@
-import { TEXT } from "./config.js?v=progression-4";
+import { TEXT } from "./config.js?v=privacy-support-1";
 
 export function createTranslator(language) {
   return function text(key, values = {}) {

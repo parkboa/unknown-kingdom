@@ -130,6 +130,10 @@ for (const viewport of VIEWPORTS) {
       await page.locator("#lobbySettingsBtn").click();
       await expect(page.locator("#settingsModal")).toBeVisible();
       await capture(page, testInfo, language, viewport, "settings");
+      await page.locator("#deleteAccountBtn").click();
+      await expect(page.locator("#deleteAccountModal")).toBeVisible();
+      await capture(page, testInfo, language, viewport, "account-delete");
+      await page.locator("#cancelDeleteAccountBtn").click();
       await page.locator("#closeSettingsBtn").click();
 
       await startTutorial(page);

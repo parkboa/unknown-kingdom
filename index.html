@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Serif:wght@500;600;700;800&family=Noto+Serif+KR:wght@500;600;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
-    <link rel="stylesheet" href="./styles.css?v=progression-6" />
+    <link rel="stylesheet" href="./styles.css?v=privacy-support-1" />
   </head>
   <body>
     <div id="splashModal" class="splash-screen" aria-live="polite">
@@ -29,11 +29,6 @@
 
     <main class="app-shell">
       <section class="game-area" aria-label="Game board">
-        <section class="game-info-bar" aria-label="Match information">
-          <span id="modeInfo" class="info-pill">AI 대국</span>
-          <span id="connectionInfo" class="info-pill connection-info" hidden><span class="connection-dot" aria-hidden="true"></span><span id="connectionInfoText">대기 중</span></span>
-          <span id="rankInfo" class="info-pill">삼류 고수</span>
-        </section>
         <header class="game-status-bar" aria-label="Current match status">
           <div class="status-left-group">
             <div class="unit-counters" aria-label="Units currently on the board">
@@ -44,7 +39,7 @@
                 <span id="whiteCount">0</span>
               </div>
             </div>
-            <div id="turnPill" class="turn-pill">White turn</div>
+            <div id="turnPill" class="turn-pill"><span class="turn-text">White turn</span><span id="connectionInfo" class="connection-info" role="status" hidden><span id="connectionInfoText"></span><span class="connection-dot" aria-hidden="true"></span></span></div>
           </div>
           <div hidden>
             <span id="networkStatusGroup"></span>
@@ -205,6 +200,7 @@
       <section class="result-card mode-card lobby-subcard" role="dialog" aria-modal="true" aria-labelledby="networkTitle">
         <h2 id="networkTitle" data-i18n="networkLobby">Network Lobby</h2>
         <p id="networkLobbyStatus" class="result-reason" data-i18n="networkPrompt">Create a room or enter an invitation code.</p>
+        <p id="networkPublicIdentity" class="result-reason" hidden></p>
         <div class="network-form">
           <div id="publicRoomList" class="public-room-list">
             <div class="public-room-header">
@@ -291,11 +287,32 @@
             <span data-i18n="sfxSetting">Effects</span>
             <input type="checkbox" id="sfxToggle" aria-label="Sound effects toggle" checked />
           </div>
+          <label class="settings-toggle" for="specialCharacterToggle">
+            <span data-i18n="specialCharacterSetting">Special unit character &amp; dialogue</span>
+            <input type="checkbox" id="specialCharacterToggle" checked />
+          </label>
         </div>
         <p id="settingsStatus" class="settings-status" role="status" aria-live="polite"></p>
+        <nav class="settings-legal-links" aria-label="Legal and support">
+          <a href="https://tzib.studio/daeguk/privacy" target="_blank" rel="noopener noreferrer" data-i18n="privacyPolicy">Privacy Policy</a>
+          <a href="https://tzib.studio/daeguk/support" target="_blank" rel="noopener noreferrer" data-i18n="support">Support</a>
+        </nav>
         <div class="settings-actions">
           <button id="downloadJournalBtn" class="card-simple-button" type="button" data-developer-only data-i18n="downloadPveJournal" hidden>Download PvE record</button>
+          <button id="deleteAccountBtn" class="settings-danger-button" type="button" data-i18n="deleteAccount">Delete Account</button>
           <button id="closeSettingsBtn" class="card-back-button" type="button" data-i18n="close">Close</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="deleteAccountModal" class="result-modal" hidden>
+      <section class="result-card suicide-confirm-card account-delete-card" role="dialog" aria-modal="true" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountWarning">
+        <h2 id="deleteAccountTitle" data-i18n="deleteAccountTitle">Delete your account?</h2>
+        <p id="deleteAccountWarning" class="result-reason" data-i18n="deleteAccountWarning">Your guest account and online ID will be permanently deleted. This cannot be undone. Device-only tutorial and challenge progress will remain.</p>
+        <p id="deleteAccountStatus" class="settings-status" role="status" aria-live="polite" hidden></p>
+        <div class="suicide-confirm-actions">
+          <button id="cancelDeleteAccountBtn" class="card-back-button" type="button" data-i18n="cancel">Cancel</button>
+          <button id="confirmDeleteAccountBtn" class="settings-danger-button" type="button" data-i18n="confirmDeleteAccount">Delete Permanently</button>
         </div>
       </section>
     </div>
@@ -375,6 +392,6 @@
       </div>
     </aside>
 
-    <script type="module" src="./app.js?v=progression-6"></script>
+    <script type="module" src="./app.js?v=privacy-support-1"></script>
   </body>
 </html>

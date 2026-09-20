@@ -32,3 +32,34 @@ test("rejects a network state whose visible stock belongs to the other player", 
     state: visibleState,
   }), false);
 });
+
+test("accepts reconnect presence only as a boolean", () => {
+  const visibleState = stateForPlayer(createGameState(), "black");
+  assert.equal(validateNetworkMessage({
+    type: "state",
+    player: "black",
+    opponentConnected: false,
+    state: visibleState,
+  }), true);
+  assert.equal(validateNetworkMessage({
+    type: "state",
+    player: "black",
+    opponentConnected: "no",
+    state: visibleState,
+  }), false);
+});
+
+test("accepts only explicit server-restart void messages", () => {
+  assert.equal(validateNetworkMessage({
+    type: "match_voided",
+    reason: "server_restart",
+    roomCode: "ABC123",
+    serverInstanceId: "server-after-restart",
+  }), true);
+  assert.equal(validateNetworkMessage({
+    type: "match_voided",
+    reason: "player_disconnect",
+    roomCode: "ABC123",
+    serverInstanceId: "server-after-restart",
+  }), false);
+});

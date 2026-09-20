@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const output = resolve(root, "dist-mobile");
 
-const files = ["index.html", "styles.css", "app.js"];
+const files = ["index.html", "styles.css", "app.js", "privacy.html", "support.html", "legal.css", "legal.js"];
 const directories = ["assets", "js", "packages/game-engine/src"];
 
 await rm(output, { recursive: true, force: true });

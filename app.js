@@ -6,7 +6,7 @@ import {
   SIZE,
   SPECIALS,
   createUnitLabels,
-} from "./js/config.js?v=progression-4";
+} from "./js/config.js?v=privacy-support-1";
 import {
   inBounds,
   neighbors,
@@ -23,15 +23,17 @@ import {
   chooseAiTeleportDestination,
   findAiDeployMove,
 } from "./js/ai.js?v=progression-2";
-import { createTranslator } from "./js/i18n.js?v=disconnect-state-1";
+import { createTranslator } from "./js/i18n.js?v=privacy-support-1";
 import {
   buildNetworkUrl,
+  clearOnlineResumeTicket,
   connectNetwork as openNetworkConnection,
   createNetworkSession,
   disconnectNetwork as closeNetworkConnection,
   sendNetworkCommand,
   sendNetworkAction as sendNetworkMessage,
-} from "./js/network.js?v=disconnect-state-1";
+} from "./js/network.js?v=account-delete-1";
+import { deleteOnlineAccount } from "./js/auth.js?v=account-delete-1";
 import {
   createInitialState,
   createOccupiedSoldier,
@@ -66,6 +68,8 @@ import {
   setSfxEnabled,
 } from "./js/audio.js?v=release-20260824-1";
 import {
+  isSpecialCharacterEnabled,
+  setSpecialCharacterEnabled,
   getSavedLanguage,
   isPveTimerEnabled,
   setPveTimerEnabled,
@@ -398,9 +402,15 @@ const passNoticeText = document.querySelector("#passNoticeText");
 const confirmPassNoticeBtn = document.querySelector("#confirmPassNoticeBtn");
 const settingsModal = document.querySelector("#settingsModal");
 const settingsStatus = document.querySelector("#settingsStatus");
+const deleteAccountBtn = document.querySelector("#deleteAccountBtn");
+const deleteAccountModal = document.querySelector("#deleteAccountModal");
+const deleteAccountStatus = document.querySelector("#deleteAccountStatus");
+const cancelDeleteAccountBtn = document.querySelector("#cancelDeleteAccountBtn");
+const confirmDeleteAccountBtn = document.querySelector("#confirmDeleteAccountBtn");
 const downloadJournalBtn = document.querySelector("#downloadJournalBtn");
 const closeSettingsBtn = document.querySelector("#closeSettingsBtn");
 const languageSelect = document.querySelector("#languageSelect");
+const specialCharacterToggle = document.querySelector("#specialCharacterToggle");
 const musicToggle = document.querySelector("#musicToggle");
 const sfxToggle = document.querySelector("#sfxToggle");
 
@@ -582,10 +592,9 @@ function currentRankLabel() {
 
 function currentConnectionLabel() {
   if (state.mode !== "pvp") return "";
-  if (networkSession.ready) return LANGUAGE === "ko" ? "접속 중" : "Connected";
-  if (networkSession.connected && networkSession.opponentDisconnected) return text("opponentDisconnected");
-  if (networkSession.connected) return LANGUAGE === "ko" ? "대기 중" : "Waiting";
-  return LANGUAGE === "ko" ? "연결 끊김" : "Disconnected";
+  return networkSession.ready
+    ? (LANGUAGE === "ko" ? "상대 연결" : "Connected")
+    : (LANGUAGE === "ko" ? "연결 끊김" : "Disconnected");
 }
 
 function syncSettingsControls() {
@@ -593,6 +602,7 @@ function syncSettingsControls() {
   languageSelect.querySelectorAll("input").forEach((input) => {
     input.checked = input.value === LANGUAGE;
   });
+  specialCharacterToggle.checked = isSpecialCharacterEnabled();
   musicToggle.checked = isMusicEnabled();
   sfxToggle.checked = isSfxEnabled();
 }
@@ -1808,13 +1818,14 @@ function triggerGeneralSkillSequence(event, removedEvents = []) {
     };
   });
 
-  visibleCutscene = {
+  const showCharacter = isSpecialCharacterEnabled();
+  visibleCutscene = showCharacter ? {
     owner: event.owner,
     unitType: "general",
     row: event.row,
     col: event.col,
     durationMs: GENERAL_CUTIN_MS,
-  };
+  } : null;
   activeSkillEffect = {
     type: "general_strike",
     phase: "cutin",
@@ -1823,7 +1834,7 @@ function triggerGeneralSkillSequence(event, removedEvents = []) {
   };
   render();
 
-  cutsceneTimer = window.setTimeout(() => {
+  const startSkillEffect = () => {
     cutsceneTimer = null;
     visibleCutscene = null;
     if (activeSkillEffect) {
@@ -1839,7 +1850,9 @@ function triggerGeneralSkillSequence(event, removedEvents = []) {
         scheduleAiTurn();
       }
     }, GENERAL_SKILL_EFFECT_MS);
-  }, GENERAL_CUTIN_MS);
+  };
+  if (showCharacter) cutsceneTimer = window.setTimeout(startSkillEffect, GENERAL_CUTIN_MS);
+  else startSkillEffect();
 }
 
 function triggerDiplomatSkillSequence(event, convertedPieces) {
@@ -1856,13 +1869,14 @@ function triggerDiplomatSkillSequence(event, convertedPieces) {
     };
   });
 
-  visibleCutscene = {
+  const showCharacter = isSpecialCharacterEnabled();
+  visibleCutscene = showCharacter ? {
     owner: event.owner,
     unitType: "diplomat",
     row: event.row,
     col: event.col,
     durationMs: DIPLOMAT_CUTIN_MS,
-  };
+  } : null;
   activeSkillEffect = {
     type: "diplomat_conversion",
     phase: "cutin",
@@ -1871,7 +1885,7 @@ function triggerDiplomatSkillSequence(event, convertedPieces) {
   };
   render();
 
-  cutsceneTimer = window.setTimeout(() => {
+  const startSkillEffect = () => {
     cutsceneTimer = null;
     visibleCutscene = null;
     if (activeSkillEffect) {
@@ -1887,7 +1901,9 @@ function triggerDiplomatSkillSequence(event, convertedPieces) {
         scheduleAiTurn();
       }
     }, DIPLOMAT_SKILL_EFFECT_MS);
-  }, DIPLOMAT_CUTIN_MS);
+  };
+  if (showCharacter) cutsceneTimer = window.setTimeout(startSkillEffect, DIPLOMAT_CUTIN_MS);
+  else startSkillEffect();
 }
 
 function triggerWizardSkillSequence(event, removedEvents) {
@@ -1905,13 +1921,14 @@ function triggerWizardSkillSequence(event, removedEvents) {
     };
   });
 
-  visibleCutscene = {
+  const showCharacter = isSpecialCharacterEnabled();
+  visibleCutscene = showCharacter ? {
     owner: event.owner,
     unitType: "wizard",
     row: event.row,
     col: event.col,
     durationMs: WIZARD_CUTIN_MS,
-  };
+  } : null;
   activeSkillEffect = {
     type: "wizard_vanish",
     phase: "cutin",
@@ -1920,7 +1937,7 @@ function triggerWizardSkillSequence(event, removedEvents) {
   };
   render();
 
-  cutsceneTimer = window.setTimeout(() => {
+  const startSkillEffect = () => {
     cutsceneTimer = null;
     visibleCutscene = null;
     if (activeSkillEffect) {
@@ -1936,11 +1953,13 @@ function triggerWizardSkillSequence(event, removedEvents) {
         scheduleAiTurn();
       }
     }, WIZARD_SKILL_EFFECT_MS);
-  }, WIZARD_CUTIN_MS);
+  };
+  if (showCharacter) cutsceneTimer = window.setTimeout(startSkillEffect, WIZARD_CUTIN_MS);
+  else startSkillEffect();
 }
 
 function showSpecialCutscene(event) {
-  if (!event || !event.unitType) return;
+  if (!event || !event.unitType || !isSpecialCharacterEnabled()) return;
   const durationMs = CUTSCENE_DISPLAY_MS;
   visibleCutscene = {
     owner: event.owner,
@@ -1961,6 +1980,7 @@ function showSpecialCutscene(event) {
 function showTauntBubble(event) {
   if (!event || event.id === lastTauntEventId) return;
   lastTauntEventId = event.id;
+  if (!isSpecialCharacterEnabled()) return;
   const durationMs = TAUNT_DISPLAY_MS;
   visibleTaunt = { ...event, durationMs };
   if (tauntTimer !== null) window.clearTimeout(tauntTimer);
@@ -2849,6 +2869,10 @@ function resetRpsButtons() {
 function setNetworkStatus(message) {
   networkStatus.textContent = message;
   networkLobbyStatus.textContent = message;
+  const identity = document.querySelector('#networkPublicIdentity');
+  const publicCode = networkSession?.connected ? networkSession.profile?.publicCode : null;
+  identity.hidden = !publicCode;
+  identity.textContent = publicCode ? `ID: ${publicCode}` : '';
 }
 
 function boardName(boardNumber) {
@@ -2879,7 +2903,7 @@ function renderOpenRooms() {
 
 function requestRoomList() {
   showNetworkRoomControls();
-  connectNetwork({ type: "list_rooms" });
+  connectNetwork({ type: "list_rooms", protocolVersion: PROTOCOL_VERSION });
 }
 
 function returnToNetworkLobby() {
@@ -2898,20 +2922,28 @@ function returnToNetworkLobby() {
 }
 
 function connectNetwork(command) {
+  // Lobby commands share the authenticated connection. Closing and reopening it
+  // can race the server's one-connection-per-player check.
+  if (!networkSession.roomCode && sendNetworkCommand(networkSession, command)) {
+    setNetworkStatus(text("connecting"));
+    return;
+  }
   disconnectNetwork();
   networkSession = openNetworkConnection(command, {
     url: buildNetworkUrl(location, NETWORK_SERVER),
     connectingMessage: text("connecting"),
+    reconnectingMessage: text("reconnecting"),
     disconnectedMessage: text("disconnected"),
     unavailableMessage: text("serverUnavailable"),
+    authenticationFailedMessage: text("guestAuthenticationFailed"),
     invalidMessage: text("invalidServerResponse"),
     onStatus: (message, session) => {
       if (!session || networkSession === session) setNetworkStatus(message);
     },
     onMessage: handleNetworkMessage,
-    onClose: (session) => {
+    onClose: (session, { reconnecting } = {}) => {
       if (networkSession === session) {
-        showNetworkRoomControls();
+        if (!reconnecting || !session.roomCode) showNetworkRoomControls();
         render();
       }
     },
@@ -2923,11 +2955,12 @@ function handleNetworkMessage(message) {
     openRooms = message.rooms;
     if (!openRooms.some((room) => room.roomCode === selectedOpenRoomCode)) selectedOpenRoomCode = "";
     renderOpenRooms();
-    setNetworkStatus(text("createOrJoin"));
+    setNetworkStatus(networkSession.matchVoided ? text("serverRestartVoided") : text("createOrJoin"));
     return;
   }
 
   if (message.type === "room_created") {
+    networkSession.matchVoided = false;
     networkSession.roomCode = message.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
     state.mode = "pvp";
@@ -2939,8 +2972,10 @@ function handleNetworkMessage(message) {
   }
 
   if (message.type === "rps_start") {
+    networkSession.matchVoided = false;
     networkSession.roomCode = message.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
+    networkSession.player = message.player || networkSession.player;
     resultModal.hidden = true;
     hideRematchToast();
     rematchRequested = false;
@@ -2980,8 +3015,8 @@ function handleNetworkMessage(message) {
     networkSession.roomCode = message.roomCode || networkSession.roomCode;
     networkSession.boardNumber = message.boardNumber || networkSession.boardNumber;
     networkSession.player = message.player || networkSession.player;
-    networkSession.ready = true;
-    networkSession.opponentDisconnected = false;
+    networkSession.ready = message.opponentConnected !== false;
+    networkSession.opponentDisconnected = message.opponentConnected === false;
     state = message.state;
     const nextDeploymentKey = lastDeploymentKey(state.lastMove, state.board);
     if (nextDeploymentKey && nextDeploymentKey !== previousDeploymentKey) {
@@ -3013,7 +3048,9 @@ function handleNetworkMessage(message) {
     onlineTurnDeadline = message.turnDeadline || message.state?.turnDeadline || null;
     showNetworkRoomControls();
     networkModal.hidden = true;
-    setNetworkStatus(text("roomPlayer", { room: currentBoardLabel(), side: sideName(networkSession.player) }));
+    setNetworkStatus(networkSession.opponentDisconnected
+      ? text("opponentDisconnected")
+      : text("roomPlayer", { room: currentBoardLabel(), side: sideName(networkSession.player) }));
     if (state.tauntEvent?.id !== lastTauntEventId) showTauntBubble(state.tauntEvent);
     if (previousPendingSpecial && !state.pendingSpecial) {
       const specialType = previousPendingSpecial.type || previousPendingSpecial.unitType;
@@ -3072,6 +3109,11 @@ function handleNetworkMessage(message) {
   }
 
   if (message.type === "error") {
+    if (message.message === "Opponent did not reconnect.") {
+      returnToNetworkLobby();
+      setNetworkStatus(text("opponentReconnectExpired"));
+      return;
+    }
     if (message.message === "Opponent disconnected.") {
       networkSession.ready = false;
       networkSession.opponentDisconnected = true;
@@ -3082,6 +3124,18 @@ function handleNetworkMessage(message) {
       return;
     }
     setNetworkStatus(message.message || text("serverRejected"));
+  }
+
+  if (message.type === "match_voided" && message.reason === "server_restart") {
+    onlineTurnDeadline = null;
+    hideRematchToast();
+    resultModal.hidden = true;
+    state = createInitialState("pvp", "black");
+    state.mode = "pvp";
+    networkModal.hidden = false;
+    showNetworkRoomControls();
+    setNetworkStatus(text("serverRestartVoided"));
+    render();
   }
 }
 
@@ -3115,6 +3169,9 @@ function openSettingsModal() {
   settingsModal.hidden = false;
 }
 
+specialCharacterToggle.addEventListener("change", () => {
+  setSpecialCharacterEnabled(specialCharacterToggle.checked);
+});
 settingsBtn.addEventListener("click", openSettingsModal);
 lobbySettingsBtn.addEventListener("click", openSettingsModal);
 musicToggle.addEventListener("change", () => {
@@ -3127,6 +3184,37 @@ sfxToggle.addEventListener("change", () => {
 downloadJournalBtn?.addEventListener("click", () => {
   downloadPveJournal();
   settingsStatus.hidden = false;
+});
+deleteAccountBtn?.addEventListener("click", () => {
+  settingsModal.hidden = true;
+  deleteAccountStatus.hidden = true;
+  confirmDeleteAccountBtn.disabled = false;
+  cancelDeleteAccountBtn.disabled = false;
+  deleteAccountModal.hidden = false;
+});
+cancelDeleteAccountBtn?.addEventListener("click", () => {
+  deleteAccountModal.hidden = true;
+  settingsModal.hidden = false;
+  deleteAccountBtn.focus();
+});
+confirmDeleteAccountBtn?.addEventListener("click", async () => {
+  confirmDeleteAccountBtn.disabled = true;
+  cancelDeleteAccountBtn.disabled = true;
+  deleteAccountStatus.textContent = text("deletingAccount");
+  deleteAccountStatus.hidden = false;
+  try {
+    await deleteOnlineAccount();
+    disconnectNetwork();
+    clearOnlineResumeTicket();
+    deleteAccountModal.hidden = true;
+    settingsModal.hidden = false;
+    settingsStatus.textContent = text("accountDeleted");
+    settingsStatus.hidden = false;
+  } catch (error) {
+    deleteAccountStatus.textContent = text(error?.code === "NO_SESSION" ? "noAccountToDelete" : "accountDeletionFailed");
+    confirmDeleteAccountBtn.disabled = false;
+    cancelDeleteAccountBtn.disabled = false;
+  }
 });
 resultDownloadJournalBtn?.addEventListener("click", downloadPveJournal);
 closeSettingsBtn.addEventListener("click", () => {

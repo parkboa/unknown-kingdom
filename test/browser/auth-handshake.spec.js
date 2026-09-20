@@ -1,0 +1,132 @@
+import { test, expect } from '@playwright/test';
+
+test('settings confirms account deletion without creating a replacement guest',async({page})=>{
+  let sessionRequests=0;let deletionRequests=0;
+  await page.addInitScript(()=>{
+    localStorage.setItem('daeguk-challenge-progress-v1',JSON.stringify({completedPuzzleIds:['basic-tutorial-01'],defeatedAiRanks:[],tutorialCompleted:true}));
+    localStorage.setItem('daeguk.online.resume.v1',JSON.stringify({roomCode:'ABC123',player:'black',publicCode:'PUBLIC'}));
+  });
+  await page.route('**/js/auth-config.js',route=>route.fulfill({contentType:'application/javascript',body:`export const AUTH_CONFIG={enabled:true,webBase:'/auth',socketUrl:'ws://127.0.0.1:4175/ws'};`}));
+  await page.route('**/auth/session',route=>{sessionRequests++;return route.fulfill({status:500});});
+  await page.route('**/auth/account',route=>{deletionRequests++;expect(route.request().method()).toBe('DELETE');return route.fulfill({status:204});});
+  await page.goto('/?lang=ko');
+  await page.locator('#lobbySettingsBtn').click();
+  await page.getByRole('button',{name:'계정 삭제',exact:true}).click();
+  await expect(page.locator('#deleteAccountModal')).toBeVisible();
+  await expect(page.locator('#deleteAccountWarning')).toContainText('영구 삭제');
+  await page.getByRole('button',{name:'영구 삭제',exact:true}).click();
+  await expect(page.locator('#settingsStatus')).toContainText('계정을 삭제했습니다');
+  expect({sessionRequests,deletionRequests}).toEqual({sessionRequests:0,deletionRequests:1});
+  expect(await page.evaluate(()=>localStorage.getItem('daeguk.online.resume.v1'))).toBeNull();
+});
+
+test('lobby refresh and room creation reuse the authenticated socket', async ({page}) => {
+  await page.addInitScript(() => localStorage.setItem('daeguk-challenge-progress-v1', JSON.stringify({
+    completedPuzzleIds:['basic-tutorial-01'], defeatedAiRanks:[], tutorialCompleted:true,
+  })));
+  await page.route('**/js/auth-config.js', route => route.fulfill({contentType:'application/javascript',body:
+    `export const AUTH_CONFIG={enabled:true,webBase:'/auth',socketUrl:'ws://127.0.0.1:4175/ws'};`}));
+  await page.route('**/auth/session', route => route.fulfill({json:{accessToken:'test-access',expiresAt:Date.now()+300000}}));
+  const commands=[];
+  let authenticatedConnections=0;
+  await page.routeWebSocket('ws://127.0.0.1:4175/ws', ws => ws.onMessage(raw => {
+    const m=JSON.parse(raw); commands.push(m.type);
+    if(m.type==='authenticate') {
+      authenticatedConnections++;
+      ws.send(JSON.stringify({type:'authenticated',player:{publicCode:'PUBLIC',nickname:'Guest'}}));
+    }
+    if(m.type==='list_rooms') ws.send(JSON.stringify({type:'room_list',rooms:[]}));
+    if(m.type==='create_room') ws.send(JSON.stringify({type:'room_created',roomCode:'ABC123',boardNumber:1}));
+  }));
+  await page.goto('/?lang=ko&server=ws%3A%2F%2F127.0.0.1%3A4175%2Fws');
+  await page.getByRole('button',{name:'온라인 대국',exact:true}).click();
+  await expect(page.locator('#networkLobbyStatus')).toHaveText('대국장을 만들거나 입장하세요.');
+  await expect(page.locator('#networkPublicIdentity')).toHaveText('ID: PUBLIC');
+  await page.getByRole('button',{name:'새로고침',exact:true}).click();
+  await expect(page.locator('#networkLobbyStatus')).toHaveText('대국장을 만들거나 입장하세요.');
+  await page.getByRole('button',{name:'만들기',exact:true}).click();
+  await expect(page.locator('#networkLobbyStatus')).toContainText('상대를 기다리는 중');
+  expect(authenticatedConnections).toBe(1);
+  expect(commands).toEqual(['authenticate','list_rooms','list_rooms','create_room']);
+});
+
+test('online client authenticates before room commands and exposes only public profile', async ({page}) => {
+  const received=[];
+  await page.route('**/js/auth-config.js', route=>route.fulfill({contentType:'application/javascript',body:`export const AUTH_CONFIG={enabled:true,webBase:'/auth',socketUrl:'ws://127.0.0.1:4175/ws'};`}));
+  await page.route('**/auth/session', route=>route.fulfill({json:{accessToken:'test-access',expiresAt:Date.now()+300000,player:{publicCode:'PUBLIC',nickname:'Guest'}}}));
+  await page.routeWebSocket('ws://127.0.0.1:4175/ws', ws=>ws.onMessage(raw=>{
+    const m=JSON.parse(raw);received.push(m.type);
+    if(m.type==='authenticate')ws.send(JSON.stringify({type:'authenticated',player:{publicCode:'PUBLIC',nickname:'Guest'},expiresAt:Date.now()+300000}));
+    if(m.type==='list_rooms')ws.send(JSON.stringify({type:'room_list',rooms:[]}));
+  }));
+  await page.goto('/');
+  const profile=await page.evaluate(async()=>{
+    const {connectNetwork}=await import('/js/network.js');
+    return new Promise(resolve=>{
+      const session=connectNetwork({type:'list_rooms'},{url:'ws://127.0.0.1:4175/ws',onStatus(){},onClose(){},onMessage(m){if(m.type==='room_list'){resolve(session.profile);session.socket.close();}}});
+    });
+  });
+  expect(received).toEqual(['authenticate','list_rooms']);
+  expect(profile).toEqual({publicCode:'PUBLIC',nickname:'Guest'});
+  expect(await page.evaluate(()=>Object.keys(localStorage).filter(k=>/token|supabase|auth/i.test(k)))).toEqual([]);
+});
+
+test('failed guest authentication does not fall back to unauthenticated matchmaking',async({page})=>{
+  const received=[];
+  await page.route('**/js/auth-config.js',route=>route.fulfill({contentType:'application/javascript',body:`export const AUTH_CONFIG={enabled:true,webBase:'/auth',socketUrl:'ws://127.0.0.1:4175/ws'};`}));
+  await page.route('**/auth/session',route=>route.fulfill({status:401,json:{error:'AUTH_FAILED'}}));
+  await page.routeWebSocket('ws://127.0.0.1:4175/ws',ws=>ws.onMessage(m=>received.push(m)));
+  await page.goto('/');
+  await page.evaluate(async()=>{
+    const {connectNetwork}=await import('/js/network.js');
+    return new Promise(resolve=>connectNetwork({type:'list_rooms'},{url:'ws://127.0.0.1:4175/ws',onStatus(){},onClose(){resolve();},onMessage(){}}));
+  });
+  expect(received).toEqual([]);
+});
+
+test('lobby distinguishes authentication failure from server unavailability', async ({page}) => {
+  await page.addInitScript(() => localStorage.setItem('daeguk-challenge-progress-v1', JSON.stringify({
+    completedPuzzleIds:['basic-tutorial-01'],defeatedAiRanks:[],tutorialCompleted:true,
+  })));
+  await page.route('**/js/auth-config.js', route => route.fulfill({contentType:'application/javascript',body:
+    `export const AUTH_CONFIG={enabled:true,webBase:'/auth',socketUrl:'ws://127.0.0.1:4175/ws'};`}));
+  await page.route('**/auth/session', route => route.fulfill({status:401,json:{error:'AUTH_FAILED'}}));
+  await page.goto('/?lang=ko&server=ws%3A%2F%2F127.0.0.1%3A4175%2Fws');
+  await page.getByRole('button',{name:'온라인 대국',exact:true}).click();
+  await expect(page.locator('#networkLobbyStatus')).toHaveText('게스트 인증을 완료하지 못했습니다. 연결을 확인한 뒤 다시 시도해 주세요. (AUTH_FAILED)');
+  await expect(page.locator('#networkPublicIdentity')).toBeHidden();
+});
+
+test('server restart voids the saved match with an apology and no loss', async ({page}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('daeguk-challenge-progress-v1', JSON.stringify({
+      completedPuzzleIds:['basic-tutorial-01'],defeatedAiRanks:[],tutorialCompleted:true,
+    }));
+    localStorage.setItem('daeguk.online.resume.v1', JSON.stringify({
+      roomCode:'ABC123',boardNumber:7,player:'black',publicCode:'PUBLIC',serverInstanceId:'server-before-restart',
+    }));
+  });
+  await page.route('**/js/auth-config.js', route => route.fulfill({contentType:'application/javascript',body:
+    `export const AUTH_CONFIG={enabled:true,webBase:'/auth',socketUrl:'ws://127.0.0.1:4175/ws'};`}));
+  await page.route('**/auth/session', route => route.fulfill({json:{accessToken:'test-access',expiresAt:Date.now()+300000}}));
+  await page.routeWebSocket('ws://127.0.0.1:4175/ws', ws => ws.onMessage(raw => {
+    const message=JSON.parse(raw);
+    if(message.type==='authenticate') ws.send(JSON.stringify({
+      type:'authenticated',player:{publicCode:'PUBLIC',nickname:'Guest'},serverInstanceId:'server-after-restart',
+    }));
+    if(message.type==='resume_room') ws.send(JSON.stringify({
+      type:'match_voided',reason:'server_restart',roomCode:'ABC123',serverInstanceId:'server-after-restart',
+    }));
+    if(message.type==='list_rooms') ws.send(JSON.stringify({
+      type:'room_list',rooms:[],serverInstanceId:'server-after-restart',
+    }));
+  }));
+
+  await page.goto('/?lang=ko&server=ws%3A%2F%2F127.0.0.1%3A4175%2Fws');
+  await page.getByRole('button',{name:'온라인 대국',exact:true}).click();
+  await expect(page.locator('#networkLobbyStatus')).toHaveText(
+    '죄송합니다. 서버 장애 후 진행 중이던 대국을 복원하지 못해 승패 없이 무효 처리했습니다.'
+  );
+  await expect(page.locator('#createRoomBtn')).toBeVisible();
+  expect(await page.evaluate(()=>localStorage.getItem('daeguk.online.resume.v1'))).toBeNull();
+});

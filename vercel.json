@@ -1,0 +1,30 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build:mobile",
+  "outputDirectory": "dist-mobile",
+  "rewrites": [
+    {
+      "source": "/daeguk/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/daeguk/support",
+      "destination": "/support.html"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "https://unknown-kingdom-server.onrender.com/auth/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/auth/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
+  ]
+}

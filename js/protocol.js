@@ -11,6 +11,7 @@ const MESSAGE_TYPES = new Set([
   "rematch_declined",
   "rps_start",
   "rps_result",
+  "match_voided",
 ]);
 const PLAYERS = new Set(["black", "white"]);
 const WINNERS = new Set(["black", "white", "draw"]);
@@ -41,6 +42,10 @@ function isRoomSummary(value) {
 function hasOptionalBoardNumber(value) {
   return value.boardNumber === undefined
     || (Number.isInteger(value.boardNumber) && value.boardNumber > 0);
+}
+
+function hasOptionalOpponentConnection(value) {
+  return value.opponentConnected === undefined || typeof value.opponentConnected === "boolean";
 }
 
 function isCoordinate(value) {
@@ -150,9 +155,18 @@ export function validateNetworkMessage(message) {
       && message.rooms.every(isRoomSummary);
   }
 
+  if (message.type === "match_voided") {
+    return message.reason === "server_restart"
+      && isRoomCode(message.roomCode)
+      && typeof message.serverInstanceId === "string"
+      && message.serverInstanceId.length > 0
+      && message.serverInstanceId.length <= 100;
+  }
+
   if (message.type === "match_start") {
     return isRoomCode(message.roomCode)
       && hasOptionalBoardNumber(message)
+      && hasOptionalOpponentConnection(message)
       && PLAYERS.has(message.player)
       && validateGameState(message.state)
       && hasStockForPlayer(message.state, message.player);
@@ -161,6 +175,7 @@ export function validateNetworkMessage(message) {
   if (message.type === "state") {
     return (message.roomCode === undefined || isRoomCode(message.roomCode))
       && hasOptionalBoardNumber(message)
+      && hasOptionalOpponentConnection(message)
       && (message.player === undefined || PLAYERS.has(message.player))
       && validateGameState(message.state)
       && (message.player === undefined || hasStockForPlayer(message.state, message.player));
@@ -178,7 +193,9 @@ export function validateNetworkMessage(message) {
   }
 
   if (message.type === "rps_start") {
-    return isRoomCode(message.roomCode) && hasOptionalBoardNumber(message);
+    return isRoomCode(message.roomCode)
+      && hasOptionalBoardNumber(message)
+      && (message.player === undefined || PLAYERS.has(message.player));
   }
 
   if (message.type === "rps_result") {

@@ -77,6 +77,72 @@ Playwright가 이미 `scripts/serve.mjs`(포트 4185)를 띄우고 뷰포트 393
 
 ## 오늘의 작업 기록
 
+- [CODEX] index.html 설정 항목 순서를 배경음악 → 효과음 → 특수 유닛 캐릭터·대사로 변경. HTML 순서 확인 및 git diff --check 통과.
+
+- [CODEX] 환경설정에 특수 유닛 캐릭터·대사 표시 토글 추가(기본 켜짐, 로컬 저장). 끄면 캐릭터 컷인 대기를 생략하고 발동 애니메이션은 유지하며 튜토리얼 안내는 보존. 변경: app.js, index.html, js/settings.js, js/config.js. 검증: npm test 194개 통과, 캐릭터 on/off와 3종 발동 효과 6개 경우 확인, 모바일 빌드 및 git diff --check 통과.
+
+- [CODEX] 2026-09-14: DAEGUK iOS 출시 준비의 현재 상태·운영 순서·App Store Connect 입력값·남은 일정을 `docs/APP_STORE_RELEASE_CHECKLIST.md` 하나로 통합했다. 사용자가 `support@tzib.studio`와 `daeguk@tzib.studio` 모두 `parkboahs@gmail.com`으로 정상 수신되는 것을 실제 확인한 사실을 반영했다. 기존 문서는 과거 구현·검증 근거로 보존하며, 운영 SQL·Render 비밀·공개 URL·App Store 제출은 실행하지 않았다. 문서 공백 검사 통과.
+
+- [CODEX] 2026-09-13: 확정된 법적 운영자 `Boahs Park`, 캐나다, 전연령 일반 이용자, `tzib.studio` 이메일을 반영해 한·영 개인정보처리방침·지원 페이지와 앱 설정 링크를 만들었다. `/daeguk/privacy`, `/daeguk/support` Vercel rewrite와 모바일 번들 포함을 준비했고 신규 브라우저 검사 3개·모바일 빌드·공백 검사를 통과했다. 운영 배포는 하지 않았으며 실제 도메인 호스팅 연결 방식 확인이 남아 있다.
+
+- [CODEX] 2026-09-12: 계정 삭제 기능의 로컬 구현과 개인정보·지원 출시 준비를 시작했다. 설정의 한·영 영구 삭제 확인, `DELETE /auth/account`, Supabase Auth 하드 삭제, 비공개 player/identity 삭제 함수, 웹 쿠키/iOS Keychain·복귀표 제거, 활성 소켓 즉시 정리를 연결했다. 개인정보 데이터 지도·App Store 입력 초안·운영 체크리스트를 `docs/PRIVACY_SUPPORT_RELEASE.md`에 기록했다. 웹 단위 39개, 서버 18개, 관련 브라우저 20개, 6개 화면 크기 한·영 레이아웃, 모바일 빌드·iOS 자산 복사·서명 없는 iOS 시뮬레이터 빌드·공백 검사 통과. 운영 배포는 하지 않았으며 SQL 002 적용, Render 서버 전용 Supabase 비밀 키, 공개 운영자/문의 정보 확정이 남아 있다.
+
+- [CODEX] 2026-09-11: 사용자 합의대로 서버 자체 장애 시 진행 중 대국을 승패 없이 무효 처리하고 사과 안내를 표시하도록 구현·배포했다. 서버 인스턴스 ID를 복귀표와 비교해 일반 2분 재접속 만료와 구분하며, 장애 판정 시 복귀표 삭제·대기실 복귀·한영 안내를 수행한다. 격리 배포본 전체 테스트 191개, 브라우저 4개, 모바일 빌드·공백 검사 통과. `737e294`로 main push, Vercel 성공·공개 자산 반영·Render health 정상 확인. 로컬 iOS 자산도 최신 network.js와 일치시켰다. 다음 작업은 계정 삭제와 개인정보·지원 안내 준비다.
+
+- [CODEX] 2026-09-11: 사용자 실기기·공개 웹 재접속 검증에서 연결 종료 후 같은 방·진영·보드·차례가 복원됨을 확인했다. 재접속 기능은 구현·자동검사·운영 배포·실사용 검증까지 완료했다. 다음 작업은 Render 재시작 같은 서버 자체 장애 시 진행 중 경기의 복원/무효/보상 정책 결정이다.
+
+- [CODEX] 2026-09-11: 재접속 기능을 origin/main `dc5f843` 기반 격리 저장소에서 다시 검증해 `2e28d6e`로 main에 push했다. 격리본 `npm test` 188개·모바일 빌드·인증 브라우저 3개·공백 검사 통과. Vercel 배포 성공 상태와 공개 `resume_room` 자산·필수 DOM 반영, Render 자동 배포 설정 및 운영 health 정상 응답을 확인했다. Render 관리 화면은 GitHub 재로그인이 필요해 실행 커밋 표시는 미확인이다. 다음은 사용자가 최신 Xcode 자산을 iPhone에 설치하고 별도 브라우저/기기와 2분 내 재접속을 최종 확인한다.
+
+- [CODEX] 2026-09-11: 경기 중 연결 종료 후 같은 대국 복귀를 구현했다. 인증 player ID로 좌석을 2분 예약하고 보드·차례·남은 턴 시간을 정지/복원하며, 한쪽·양쪽 종료 모두 `resume_room`으로 동일 대국에 복귀한다. 클라이언트 자동 재시도와 재실행 복귀 표(방 코드·진영·공개 ID만), 만료 시 새 방 자동 생성 방지·대기실 폴백을 추가했다. `npm test` 188개, 관련 브라우저 흐름 17개, 모바일 빌드·iOS 자산 복사·핵심 자산 일치·공백 검사 통과. 운영 배포와 실기기 2대 검증은 아직이며 서버 재시작을 넘는 영속 복구는 범위 밖이다.
+
+- [CODEX] 2026-09-11: iOS loggingBehavior를 none으로 설정해 Capacitor 브리지의 CAPTCHA·Keychain 데이터 자동 로그를 억제했다. 화면 오류 안내 유지, 일반 Capacitor Xcode 로그도 비활성화됨. 설치된 native-bridge.js의 합성 데이터 검증 2개·cap copy ios·번들 설정 일치·공백 검사 통과. 네이티브 CAPLog 경로는 소스로 확인했고 실기기 새 로그 관측은 아직 없음. 기존 인증 시험·빌드·배포를 반복하지 않았다. 다음 사용자 Xcode Run으로 반영되며 다음 기능은 경기 중 재접속 복구다.
+
+- [CODEX] 2026-09-11: 사용자 스크린샷과 명시적 확인으로 iOS 최초 CAPTCHA·게스트 인증·직접 방 생성·앱 완전 종료 후 동일 공개 ID 유지 검증 완료. 인계·실기기·인증 문서 갱신 및 문서 공백 검사 통과. 완료 검사는 반복하지 않았다. 다음 권장 작업은 Capacitor 인증값 로그 노출 억제, 이후 경기 중 재접속 복구이며 아직 미착수다.
+
+- [CODEX] iOS 인증 시작 오류 수정 완료: 주입된 Capacitor.Plugins.DaegukSession 접근·메서드 검증, 인증/서버 오류 문구 구분, 실제 브리지 구조의 회귀 테스트 반영. 관련 브라우저 13개·모바일 빌드·cap copy ios·복사본 일치·공백 검사 통과. Swift 변경·서버/웹 재배포 없음. 사용자의 Xcode Run 및 iPhone 온라인 접속 결과 대기.
+
+- [CODEX] iPhone CAPTCHA 미표시·서버 오류 재검토: iOS 주입 브리지에 없는 Capacitor.registerPlugin 호출로 Keychain 읽기 전 TypeError가 나는 결함을 로컬 재현했다. 기존 네이티브 테스트의 registerPlugin 모킹이 결함을 가린 점과 공통 서버 문구의 오진 가능성을 인계/실기기 문서에 기록했다. 제품 코드는 이번 진단에서 수정하지 않았다.
+
+- [CODEX] 한도 중단 후 iOS 인증 준비 마무리: 새 파일·문서 공백 검사 완료. 임시 테스트 로그·배포 다운로드 사본 소실을 인계 문서에 기록하고, 이미 통과한 테스트·빌드·배포는 반복하지 않았다. 사용자의 iPhone 최초 접속 및 완전 종료 후 동일 ID 확인을 기다린다.
+
+- [CODEX] 2026-09-11: iOS 준비에서 capacitor 출처와 운영 CAPTCHA 호스트 불일치를 확인해 전용 HTTPS WKWebView 경로를 연결하고 공개 ID 표시를 추가했다. 인증 페이지 두 파일만 dc5f843으로 배포해 공개 원본 일치, 운영 iOS Origin 허용 확인. 관련 브라우저 8개·ios:sync·서명 없는 iphoneos 빌드·변경 공백 검사 통과(첫 실행 샌드박스 차단 후 권한 확장). 실제 iPhone CAPTCHA/Keychain 검증은 사용자 직접 조작 대기이며 IOS_AUTH_CHECKLIST.md와 인계 문서에 절차·한계를 기록했다.
+
+- [CODEX] 2026-09-11: 사용자 요청으로 튜토리얼 해금 등 직접 가능한 화면 조작은 사용자에게 맡기는 원칙을 AGENTS.md·WORK_HANDOFF.md에 기록했다. AI는 코드·검증 준비·진단·문서 정리를 담당한다. 다음 권장 순서는 iOS 실기기 인증 확인 준비 → 경기 중 재접속 복구 → 공개 이용 확대 전 프록시·부하 검증이며 아직 착수하지 않았다. 문서 변경 공백 검사 통과.
+
+- [CODEX] 2026-09-11: 별도 Chrome 게스트 세션에서 실제 Turnstile 화면을 거쳐 제1대국장 생성, 페이지 새로고침 후 CAPTCHA 재표시·재시도 없이 제2대국장 생성 성공. 1006 오류 미재현. 검증 후 방에서 나왔으며 WORK_HANDOFF.md·GUEST_AUTH_SETUP.md의 현재 상태와 관측 한계를 갱신해 웹 인증 작업을 종료했다. 문서 변경 범위 diff/공백 검사 통과. 완료된 테스트·빌드·배포 검사는 반복하지 않았다.
+
+- [CODEX] 2026-09-11: 사용자 요청에 따라 모델이 작업에 과하거나 부족하면 실행 전에 현재·권장 모델과 이유를 알리고 진행 여부를 확인하는 규칙을 AGENTS.md와 WORK_HANDOFF.md에 추가했다. 같은 작업의 중복 확인과 모델명 추측·자동 변경은 금지했다.
+
+- [CODEX] 2026-09-11: 새 대화·모델 간 인계를 위한 docs/WORK_HANDOFF.md를 작성하고 AGENTS.md에 시작 규칙을 연결했다. 운영 fbf7679 배포·기존 세션 방 생성 성공, 미확인 신규 CAPTCHA·1006 문제를 구분하고 재검사/출력 절약 규칙을 정리했다. 제품 코드와 배포는 변경하지 않았다.
+
+- [CODEX] 2026-09-08: 사용자 Render Save only 저장 확인. 노출된 전용 DB 비밀번호를 rotate-db-login.mjs로 교체, 로컬·Render 가져오기 파일 갱신, 새 계정 로그인·권한 검사 성공. Render DATABASE_URL 재저장은 사용자 단계 대기. 스크립트 문법·diff 검사 통과.
+
+- [CODEX] 2026-09-08: 배포용 vercel.json(공개 자산 출력·인증 프록시·캐시 금지), .vercelignore 비밀파일 제외, Git 제외 0600 server/.env.render 준비. 모바일/정적 빌드 및 운영 쿠키·인증서 상대 경로·공개 출력 격리 검사 통과. Render Save only 저장은 사용자 수동 단계 대기. 원격 저장/배포/운영 활성화는 아직 미완료.
+
+- [CODEX] 2026-09-08: 실제 Chromium 게임 UI + Supabase 브라우저 인증 검증 통과. 게스트 로그인, HttpOnly 쿠키와 JS 토큰 저장 방지, 새로고침 후 같은 ID, 인증된 방 생성·대기실 확인. 초기 테스트의 서버/상대 접속 표시 혼동을 수정해 재실행 성공. scripts/verify-live-auth-browser.mjs 및 결과 스크린샷 추가, 문법·diff 확인. 테스트용 공개 설정만 주입, 운영 활성화와 배포는 미실행.
+
+- [CODEX] 2026-09-08: scripts/verify-live-auth.mjs 추가 및 실제 Supabase 통합 검증 통과. 개발 게스트 1명 생성, DB identity 저장, HTTP 쿠키 갱신, 서버 재시작 후 같은 ID 유지, WebSocket 인증·방 목록 조회 전부 성공. 브라우저/기기 검증과 운영 배포는 별도. 문법 및 diff 검사 통과.
+
+- [CODEX] 2026-09-08: 사용자 SCRAM 복구 실행 후 로컬 server/.env로 실제 Supabase TLS 재접속 성공. 전용 계정·players SELECT/INSERT 허용·DELETE 금지·없는 세션 거부 통합 검사 LOGIN_AND_PERMISSIONS_OK=true. DB 계정/로컬 연결 환경 설정 완료. Render 운영 설정·게스트 인증 연동은 아직 미완료.
+
+- [CODEX] 2026-09-08: 28P01 원인을 실제 풀러 챌린지 4096회와 초기 설정의 SCRAM 32768회 불일치로 좁힘. 이전 캐시 추정은 재시작으로 해결되지 않음. setup-db-login.mjs를 4096회로 수정하고 동일 비밀번호/환경 파일을 유지하는 repair-db-login.mjs 추가. 실제 pg SCRAM 교환으로 4096 성공·32768 실패 및 복구 검증자 일치 검사 통과, 세 스크립트 문법·diff 검사 통과. 원격 복구 실행은 사용자 관리자 비밀번호 입력 대기.
+
+- [CODEX] 2026-09-08: 사용자 SQL 결과로 daeguk_login 로그인 허용·만료 없음·그룹 권한 및 SCRAM 저장 확인. scripts/diagnose-db-login.mjs에 관리자 숨김 입력을 통한 읽기 전용 비밀번호 일치·풀러 챌린지·로그인 진단 추가. node --check 및 diff --check 통과. 실제 진단은 사용자 관리자 비밀번호 입력 대기.
+
+- [CODEX] 2026-09-08: 사용자 제공 Supabase CA를 server/certs/prod-ca-2021.crt에 추가. setup-db-login.mjs의 TLS CA 및 생성 DATABASE_URL sslrootcert 경로 설정, 환경 예시와 인증 안내 갱신. 인증서 로딩·호스트 검증 유지 확인, 서버 테스트 15개 통과(샌드박스 포트 제한으로 첫 실행 실패 후 허용 환경에서 재검증). 실제 DB 로그인은 사용자 비밀번호 재입력 후 확인 예정.
+
+- [CODEX] 사용자 요청으로 Supabase daeguk_login 역할 생성, daeguk_server 그룹 부여, 연결 제한 10 적용 후 role_ready=true 검증. Render 관리 화면에서 모노레포 main/커밋 297ff67/Oregon/기존 도메인 연결을 확인했다. scripts/setup-db-login.mjs에 마스킹 입력·SCRAM 비밀번호 설정·0600 로컬 환경 파일·전용 계정 검증 도구 준비 및 node --check 통과. 비밀번호 입력과 실제 환경변수 생성/운영 저장은 아직 미실행.
+
+- [CODEX] 사용자 승인으로 daeguk-dev(ajmrlhfhrcsstauqgnip)에 server/migrations/001_identity.sql 적용 완료. 사전 조회에서 테이블 부재 확인, SQL 성공 후 DB 검증 9개 모두 true(테이블/RLS, NOLOGIN 역할, 서버 권한, 클라이언트 접근 차단, 함수 권한, 잘못된 세션 거절, 정책, 제약). docs/GUEST_AUTH_SETUP.md 상태 갱신. 실제 DB 로그인 자격 증명·서버 환경변수·프록시·운영 인증 전환은 미적용.
+
+- [CODEX] 2026-09-07: 사용자 승인으로 supabase-js/jose/pg 설치, Node 최소 22로 갱신. 게스트 세션 HTTP API, JWKS+DB 세션 폐기 검증, 비공개 player/identity SQL, 인증된 WebSocket 진입·동일 계정 중복 연결/자리 탈취 차단, 웹 HttpOnly 쿠키·iOS Keychain 연동을 구현했다. 코드 테스트 182개, 기존 브라우저 20개+인증 브라우저 2개 통과. 모바일 빌드·ios:sync·서명 없는 Xcode 시뮬레이터 빌드 성공. 최초 sandbox의 포트/브라우저/Xcode 접근 실패는 승인된 실행으로 재검증했다. 실제 Supabase SQL 적용·DB 전용 로그인/환경변수·동일 출처 프록시·CAPTCHA·실기기 지속성 검증은 아직이며 운영 인증 플래그는 끈 상태. docs/GUEST_AUTH_SETUP.md에 적용 절차와 검증 경계를 기록했다.
+
+- [CODEX] 2026-09-06 게스트 인증 착수: Render health 응답과 저장소 배포 설정·DB 부재를 확인하고 `docs/ONLINE_IDENTITY_DEPLOYMENT.md`에 Render PostgreSQL/Supabase 비용·의존성·재접속/전적/랭킹 경계를 정리했다. `server/identity.js`에 내부 UUID와 공개 코드 생성, 비밀값을 제외하는 공개 프로필 투영을 추가했다. 아직 인증 API·DB·WebSocket 연결 전이며 새 의존성/유료 서비스는 도입하지 않았다. `npm test` 171개(웹 29·엔진 135·서버 7), `git diff --check` 통과.
+
+- [CODEX] 2026-09-06: 모드·등급 상단 바 제거, 온라인 턴 카드 내부에 상대 연결/연결 끊김과 녹색/적색 점 표시. 타이머 갱신이 연결 표시 DOM을 지우지 않도록 분리. 웹 29개 및 브라우저 8개 검사 통과, ios:sync 성공. 게스트 인증→재접속·영구 전적→보안 검증의 별도 작업 설계를 docs/ONLINE_IDENTITY_PLAN.md에 작성. 서버 인증·DB·랭킹은 아직 미구현.
+
+- [CODEX] 2026-09-06: 중단된 실기기 디자인 수정 검증 및 iOS 동기화 완료. 특수 유닛 영어 대사의 문장부호 제거 통일, viewport-fit=cover 및 안전 영역 여백, 좁은 화면 스플래시 로고 축소·중앙 정렬 변경 확인. 한영 레이아웃·튜토리얼 7개, 대사·이미지 테스트 2개 통과. 320/375/393px 한영 로고 중앙 좌표 확인, 320px 최종 스플래시 육안 검토. Xcode 경로를 지정한 ios:sync 성공 및 원본과 iOS 웹 파일 일치 확인. 실제 iPhone 상태 표시줄 간격은 재실행 후 사용자 확인 필요.
+
 - [CODEX] 2026-09-05: 실기기에 이전 버전이 표시된 원인은 iOS public 웹 자산 동기화 누락. Xcode 경로를 DEVELOPER_DIR로 지정해 `npm run ios:sync` 완료(웹 빌드·복사·pod install 성공). 원본 app.js/config.js와 iOS 복사본 일치 확인. 사용자가 설정한 개발자 팀 변경 유지. 기기에서 최신 빌드 재실행은 별도 필요.
 
 - [CODEX] 2026-09-05: 오늘 튜토리얼·설정 변경 커밋 준비 검증 완료. 승인된 장군 영어 대사에 맞춰 기존 테스트 기대값 갱신. 전체 테스트 169개(웹 29·엔진 135·서버 5) 통과, 모바일 웹 자산 빌드 통과. 앞선 한영 레이아웃·튜토리얼 브라우저 검사 7개 통과.
@@ -156,6 +222,10 @@ Playwright가 이미 `scripts/serve.mjs`(포트 4185)를 띄우고 뷰포트 393
 - [CODEX] 튜토리얼 완료 전 AI·온라인 대국을 잠그고, 완료 후 삼류 고수부터 AI를 이긴 순서대로 다음 난이도를 해금하도록 기존 `daeguk-challenge-progress-v1` 저장 형식을 호환 확장했다. 과거 퍼즐 완료 기록만으로 해금되지 않게 실제 완료 순간 기록하는 `tutorialCompleted`를 별도 조건으로 두고, 로비와 AI 난이도 카드 모두 제목은 중앙에 유지하면서 자물쇠를 버튼 안쪽 오른쪽 끝에 고정했다. 장군·마법사·외교관이 왕을 먼저 처리하면 뒤쪽 인접 유닛을 건너뛰던 조기 승패 판정도 전체 능력 범위 처리 뒤로 미뤘다. 루트·공유 엔진·서버 버전을 `1.0.1`, iOS 마케팅 버전을 `1.0.1`(빌드 2)로 올렸다 — 저장 복원·구형/오염값 정리·순차 해금 및 특수 유닛 3종의 왕 동시 포획 회귀를 추가했고, 전체 167개 테스트(웹 29 · 엔진 133 · 서버 5), 핵심 브라우저 13개, 3폭×2언어 레이아웃 6개, 모바일 빌드와 구문·diff 검사 통과.
 - [CODEX] 일반 포획에서도 왕을 만나는 즉시 승패를 확정하던 처리를 포획 연쇄의 마지막으로 미뤘다. 왕과 같은 그룹에서 뒤에 순회되는 말뿐 아니라 같은 착수로 별도 포획된 그룹까지 전부 승자 진영 병사로 전환한 다음 `match_ended`를 내보낸다. 외교관이 왕과 인접 말을 전환한 결과로 새 포획이 생기는 경우도 그 연쇄를 먼저 정산한다. 특수 능력의 전체 범위 정산과 마법사의 왕 포획 후 순간이동 생략은 그대로 유지했다 — 일반 동시 포획과 외교관 후속 포획 회귀를 추가했고 전체 169개 테스트(웹 29 · 엔진 135 · 서버 5) 통과.
 
+- [CODEX] 2026-09-09: 게스트 최초 가입용 Turnstile 대화창과 토큰 전달, 취소·재시도를 연결하고 WebSocket을 CAPTCHA 완료 뒤 열도록 수정했다. `npm test`, 인증/CAPTCHA 브라우저 4개, 모바일 자산 빌드 통과. 운영 site key·Supabase CAPTCHA 활성화는 Cloudflare 로그인 대기 중이며 배포하지 않았다.
+
+- [CODEX] 2026-09-09: Cloudflare 운영 호스트용 Turnstile 위젯 생성, 공개 사이트 키 연결, Supabase CAPTCHA 보호 활성화 완료. 실제 가입 API에서 CAPTCHA 누락·잘못된 토큰 모두 400/captcha_failed 거절을 확인했다. 사이트 키 연결 후 빌드·diff 검사 통과. Render/Vercel 인증 코드 배포와 정상 CAPTCHA 통과 검증은 남아 있다.
+
 ## [CODEX]
 
 ### 의견
@@ -190,6 +260,13 @@ Playwright가 이미 `scripts/serve.mjs`(포트 4185)를 띄우고 뷰포트 393
 - 성벽 강조를 규칙 판정 대상인 B1·B9 흑돌의 실제 접점으로 바로잡고, 백 성벽에는 진한
   외곽 대비를 더했다. 설명·대화의 다음/이전은 오른쪽/왼쪽 화살표와 좌우 움직임으로
   통일했다. AI 난이도 목록은 3px 저채도 스크롤바와 위치 반응형 위·아래 페이드로 바꿨다.
+
+### 2026-09-14 출시 문서 통합
+
+- `docs/APP_STORE_RELEASE_CHECKLIST.md`를 DAEGUK iOS 출시 준비의 단일 기준 문서로 만들었다.
+- 두 지원 주소의 실제 수신 성공을 완료 처리했고, 출시 차단 항목은 공개 Privacy/Support URL,
+  SQL 002, Render 서버 비밀, 실제 계정 삭제, 출시 후보 검증과 App Store 제출로 정리했다.
+- 다음 행동은 `origin/main` 기준 격리 작업 공간에서 출시 필수 변경만 선별 통합하는 것이다.
 
 ## [CLAUDE CODE]
 

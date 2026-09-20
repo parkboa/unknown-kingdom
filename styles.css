@@ -1449,6 +1449,35 @@ body.iphone-preview .lobby-logo {
   justify-items: center;
 }
 
+.settings-legal-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.settings-legal-links a {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid rgb(216 165 50 / 24%);
+  border-radius: var(--radius);
+  color: rgb(247 239 224 / 82%);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-caption);
+  text-align: center;
+  text-decoration: none;
+  background: rgb(8 9 10 / 38%);
+}
+
+.settings-legal-links a:hover,
+.settings-legal-links a:focus-visible {
+  border-color: rgb(216 165 50 / 70%);
+  color: #efd37a;
+}
+
 [data-developer-only][hidden] {
   display: none !important;
 }
@@ -1747,6 +1776,23 @@ body.iphone-preview .lobby-logo {
 
 .settings-card .settings-actions button:hover {
   border-color: rgb(216 165 50 / 70%);
+}
+
+.settings-danger-button {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgb(208 91 82 / 58%);
+  border-radius: var(--radius);
+  color: #ffd2cc;
+  background: linear-gradient(180deg, rgb(83 31 29 / 88%), rgb(47 19 18 / 94%));
+}
+
+.settings-danger-button:hover:not(:disabled) {
+  border-color: rgb(239 119 105 / 88%);
+}
+
+.account-delete-card .settings-status {
+  margin-top: 14px;
 }
 
 .result-card button.card-back-button {
@@ -4530,4 +4576,46 @@ body.iphone-preview .fx-preview-bar {
 .fx-btn-minimize {
   padding: 2px 8px;
   font-size: 11px;
+}
+
+/* Connection status shares the existing turn pill without adding a screen row. */
+.turn-pill:has(.connection-info:not([hidden])) {
+  flex-direction: column;
+  gap: 2px;
+  padding-block: 5px;
+}
+.turn-pill .connection-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 14px;
+}
+.turn-pill .connection-info[hidden] { display: none; }
+.turn-pill .connection-dot { flex-shrink: 0; }
+
+.guest-captcha {
+  width: min(380px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 24px;
+  border: 1px solid #9f8751;
+  border-radius: 16px;
+  background: #181a1e;
+  color: #f3eee3;
+  box-shadow: 0 20px 80px #0008;
+}
+.guest-captcha::backdrop { background: #000b; }
+.guest-captcha h2 { margin: 0 0 12px; font-size: 21px; }
+.guest-captcha p { font-size: 14px; line-height: 1.6; }
+.guest-captcha button {
+  display: block;
+  margin: 16px 0 0 auto;
+  min-height: 44px;
+  padding: 8px 20px;
+  border: 1px solid #9f8751;
+  border-radius: 8px;
+  background: #282828;
+  color: #f3eee3;
+  cursor: pointer;
 }

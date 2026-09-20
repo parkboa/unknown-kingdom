@@ -172,12 +172,22 @@ test("Online lobby shows connection status without an unrelated challenge rank",
   await page.locator('[data-start-mode="pvp"]').click();
 
   await expect(page.locator("#networkModal")).toBeVisible();
-  await expect(page.locator("#connectionInfo")).toBeVisible();
+  await expect(page.locator("#turnPill #connectionInfo")).toBeVisible();
+  await expect(page.locator(".game-info-bar")).toHaveCount(0);
+  await expect(page.locator("#connectionInfoText")).toHaveText("연결 끊김");
+  await expect(page.locator("#connectionInfo .connection-dot")).toHaveCSS("background-color", "rgb(217, 75, 67)");
   await expect(page.locator("#rankInfo")).toBeHidden();
   await expect(page.locator("#networkStatus")).toContainText(/서버|대국판|연결/);
 });
 
 test("Creating an online room stays in the waiting-room card until RPS starts", async ({ page }) => {
+  await page.route("**/js/auth-config.js", route => route.fulfill({
+    contentType: "application/javascript",
+    body: "export const AUTH_CONFIG={enabled:true,webBase:'/auth',socketUrl:'ws://127.0.0.1:4175/ws'};",
+  }));
+  await page.route("**/auth/session", route => route.fulfill({
+    json: { accessToken: "test-access", expiresAt: Date.now() + 300000 },
+  }));
   await page.addInitScript(() => {
     window.__mockSockets = [];
     class MockWebSocket extends EventTarget {
@@ -195,10 +205,12 @@ test("Creating an online room stays in the waiting-room card until RPS starts", 
 
       send(rawMessage) {
         const message = JSON.parse(rawMessage);
-        if (message.type === "list_rooms") {
+        if (message.type === "authenticate") {
+          this.receive({ type: "authenticated", player: { publicCode: "PUBLIC", nickname: "Guest" } });
+        } else if (message.type === "list_rooms") {
           this.receive({ type: "room_list", rooms: [] });
         } else if (message.type === "create_room") {
-          this.receive({ type: "room_created", roomCode: "ABC234", boardNumber: 7 });
+          this.receive({ type: "room_created", roomCode: "ABC234", boardNumber: 7, player: "black" });
         }
       }
 

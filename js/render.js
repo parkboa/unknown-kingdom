@@ -462,8 +462,9 @@ export function updateTurnTimerPill(turnPill, context) {
     }
   }
 
-  if (turnPill.textContent !== turnText) {
-    turnPill.textContent = turnText;
+  const turnLabel = turnPill.querySelector?.(".turn-text") || turnPill;
+  if (turnLabel.textContent !== turnText) {
+    turnLabel.textContent = turnText;
   }
   turnPill.classList.toggle("white", (context.state.winner ? context.state.winner === "white" : context.state.turn === "white"));
   turnPill.classList.toggle("draw", context.state.winner === "draw");
@@ -484,7 +485,7 @@ function renderPanel(context) {
   if (context.connectionInfo) {
     context.connectionInfo.hidden = context.state.mode !== "pvp";
     context.connectionInfo.classList.toggle("connected", context.networkReady);
-    context.connectionInfo.classList.toggle("disconnected", context.state.mode === "pvp" && !context.networkReady && !context.networkConnecting);
+    context.connectionInfo.classList.toggle("disconnected", context.state.mode === "pvp" && !context.networkReady);
   }
   if (context.connectionInfoText) context.connectionInfoText.textContent = context.connectionLabel;
   context.networkStatusGroup.hidden = context.state.mode !== "pvp";

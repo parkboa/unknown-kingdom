@@ -1,4 +1,9 @@
 import http from "node:http";
+import { randomUUID } from "node:crypto";
+import { pathToFileURL } from "node:url";
+import { authConfiguration, createAuthService } from "./auth.js";
+import { createAuthHttpHandler, fixedWindowLimiter } from "./auth-http.js";
+import { publicPlayer } from "./identity.js";
 import { WebSocketServer, WebSocket } from "ws";
 import {
   applyAction,
@@ -11,13 +16,28 @@ import {
 } from "./engine.js";
 import { declineRematch, startAutomaticTauntLock } from "./room-actions.js";
 
+export function createGameServer({ authService, env = process.env, serverInstanceId = randomUUID() } = {}) {
 const SPECIAL_UNIT_TYPES = new Set(["general", "diplomat", "wizard"]);
-const PORT = Number(process.env.PORT || 4175);
+const PORT = Number(env.PORT || 4175);
 const TAUNT_DISPLAY_MS = 3000;
 const TURN_TIMEOUT_MS = 30000;
+const configuredReconnectGraceMs = Number(env.RECONNECT_GRACE_MS || 120000);
+const RECONNECT_GRACE_MS = Number.isFinite(configuredReconnectGraceMs)
+  ? Math.max(1000, configuredReconnectGraceMs)
+  : 120000;
+const authConfig = authService?.config || authConfiguration(env);
+const auth = authService || (authConfig ? createAuthService(authConfig) : null);
+const authenticatedSockets = new Map();
 const rooms = new Map();
 const lobbySockets = new Set();
+const authHttp = createAuthHttpHandler(auth, { onAccountDeleted(player) {
+  const socket = authenticatedSockets.get(player.id);
+  if (!socket) return;
+  socket.accountDeleted = true;
+  socket.close(1000, "Account deleted");
+} });
 let nextBoardNumber = 1;
+let shuttingDown = false;
 
 function roomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -34,7 +54,9 @@ function send(socket, message) {
 
 function openRoomSummaries() {
   return Array.from(rooms.values())
-    .filter((room) => Boolean(room.players.black) !== Boolean(room.players.white))
+    .filter((room) => !room.sideChosen && ["black", "white"].some(player => (
+      !room.players[player] && !room.seatIds[player]
+    )) && Boolean(room.players.black || room.players.white))
     .map((room) => ({
       roomCode: room.code,
       boardNumber: room.boardNumber,
@@ -44,7 +66,7 @@ function openRoomSummaries() {
 }
 
 function sendRoomList(socket) {
-  send(socket, { type: "room_list", rooms: openRoomSummaries() });
+  send(socket, { type: "room_list", rooms: openRoomSummaries(), serverInstanceId });
 }
 
 function broadcastRoomList() {
@@ -58,15 +80,15 @@ function clearTurnTimer(room) {
   }
 }
 
-function resetTurnTimer(room) {
+function resetTurnTimer(room, duration = TURN_TIMEOUT_MS) {
   clearTurnTimer(room);
   if (room.state.winner || !room.sideChosen || !room.players.black || !room.players.white) {
     room.turnDeadline = null;
     return;
   }
   const tauntDelay = Math.max(0, Number(room.state.tauntUntil || 0) - Date.now());
-  const duration = TURN_TIMEOUT_MS + tauntDelay;
-  room.turnDeadline = Date.now() + duration;
+  const turnDuration = Math.max(1, duration) + tauntDelay;
+  room.turnDeadline = Date.now() + turnDuration;
 
   room.turnTimer = setTimeout(() => {
     room.turnTimer = null;
@@ -80,12 +102,13 @@ function resetTurnTimer(room) {
       dispatchAction(room.state, timedOutPlayer, { type: "timeout" }, { authoritative: true });
     }
     broadcastState(room);
-  }, duration);
+  }, turnDuration);
 }
 
-function broadcastState(room, type = "state") {
+function broadcastState(room, type = "state", { resumePausedTurn = false } = {}) {
   if (type === "match_start" || (room.sideChosen && !room.state.winner)) {
-    resetTurnTimer(room);
+    resetTurnTimer(room, resumePausedTurn && room.pausedTurnMs ? room.pausedTurnMs : TURN_TIMEOUT_MS);
+    room.pausedTurnMs = null;
   } else if (room.state.winner) {
     clearTurnTimer(room);
     room.turnDeadline = null;
@@ -97,13 +120,51 @@ function broadcastState(room, type = "state") {
     playerState.turnDeadline = room.turnDeadline;
     send(socket, {
       type,
+      serverInstanceId,
       roomCode: room.code,
       boardNumber: room.boardNumber,
       player,
+      opponentConnected: Boolean(room.players[player === "black" ? "white" : "black"]),
       turnDeadline: room.turnDeadline,
       state: playerState,
     });
   }
+}
+
+function clearReconnectTimer(room, player) {
+  if (!room.reconnectTimers?.[player]) return;
+  clearTimeout(room.reconnectTimers[player]);
+  room.reconnectTimers[player] = null;
+}
+
+function deleteRoom(room) {
+  if (rooms.get(room.code) !== room) return;
+  clearTurnTimer(room);
+  for (const player of ["black", "white"]) {
+    clearReconnectTimer(room, player);
+    if (room.players[player]?.membership?.roomCode === room.code) room.players[player].membership = null;
+  }
+  rooms.delete(room.code);
+  broadcastRoomList();
+}
+
+function pauseTurnTimer(room) {
+  if (room.turnDeadline) {
+    room.pausedTurnMs = Math.max(1, room.turnDeadline - Date.now());
+  }
+  clearTurnTimer(room);
+  room.turnDeadline = null;
+}
+
+function reserveSeatForReconnect(room, player) {
+  clearReconnectTimer(room, player);
+  room.reconnectTimers[player] = setTimeout(() => {
+    room.reconnectTimers[player] = null;
+    if (rooms.get(room.code) !== room || room.players[player]) return;
+    const opponent = player === "black" ? "white" : "black";
+    send(room.players[opponent], { type: "error", message: "Opponent did not reconnect." });
+    deleteRoom(room);
+  }, RECONNECT_GRACE_MS);
 }
 
 function requestRpsSelection(room) {
@@ -111,8 +172,10 @@ function requestRpsSelection(room) {
   for (const player of ["black", "white"]) {
     send(room.players[player], {
       type: "rps_start",
+      serverInstanceId,
       roomCode: room.code,
       boardNumber: room.boardNumber,
+      player,
     });
   }
 }
@@ -125,30 +188,44 @@ function tauntIsPlaying(room) {
   return Number(room.state.tauntUntil || 0) > Date.now();
 }
 
-function leaveRoom(socket) {
+function leaveRoom(socket, { preserveActiveSeat = false } = {}) {
   const membership = socket.membership;
   if (!membership) return;
   const room = rooms.get(membership.roomCode);
   if (!room) return;
   room.players[membership.player] = null;
-  clearTurnTimer(room);
+  pauseTurnTimer(room);
   const hasStarted = Boolean(
     room.state.deploymentCount?.black > 0
     || room.state.deploymentCount?.white > 0
     || room.state.firstDeployDone?.black
     || room.state.firstDeployDone?.white,
   );
-  if (!hasStarted) {
+  const canResume = preserveActiveSeat && auth && Boolean(room.seatIds[membership.player]);
+  if (!hasStarted && !canResume) {
     room.sideChosen = false;
   }
   const otherPlayer = membership.player === "black" ? "white" : "black";
-  send(room.players[otherPlayer], { type: "error", message: "Opponent disconnected." });
-  if (!room.players.black && !room.players.white) rooms.delete(room.code);
+  if (canResume) {
+    send(room.players[otherPlayer], { type: "error", message: "Opponent disconnected." });
+    reserveSeatForReconnect(room, membership.player);
+  } else if (room.sideChosen) {
+    send(room.players[otherPlayer], { type: "error", message: "Opponent did not reconnect." });
+    socket.membership = null;
+    deleteRoom(room);
+    return;
+  } else {
+    send(room.players[otherPlayer], { type: "error", message: "Opponent disconnected." });
+    clearReconnectTimer(room, membership.player);
+    room.seatIds[membership.player] = null;
+    if (!room.players.black && !room.players.white) deleteRoom(room);
+  }
   socket.membership = null;
   broadcastRoomList();
 }
 
-const server = http.createServer((request, response) => {
+const server = http.createServer(async (request, response) => {
+  if (await authHttp(request, response)) return;
   if (request.url === "/health") {
     response.writeHead(200, { "content-type": "application/json" });
     response.end(JSON.stringify({ ok: true, rooms: rooms.size }));
@@ -158,14 +235,20 @@ const server = http.createServer((request, response) => {
   response.end("Not found");
 });
 
-const webSocketServer = new WebSocketServer({ server, path: "/ws" });
+const webSocketServer = new WebSocketServer({ server, path: "/ws", maxPayload: 16384,
+  verifyClient: ({ origin }, done) => done(!authConfig || authConfig.origins.has(origin), 403, "Origin denied") });
 webSocketServer.on("connection", (socket) => {
+  if (webSocketServer.clients.size > 500) { socket.close(1013, "Server busy"); return; }
+  const allowMessage = fixedWindowLimiter({ limit: 60, intervalMs: 10000 });
+  const authTimer = auth ? setTimeout(() => socket.close(4401, "Authentication required"), 20000) : null;
+  let chain = Promise.resolve();
+  let pending = 0;
   socket.isAlive = true;
   socket.on("pong", () => {
     socket.isAlive = true;
   });
 
-  socket.on("message", (rawMessage) => {
+  async function handleMessage(rawMessage) {
     let message;
     try {
       message = JSON.parse(rawMessage.toString());
@@ -174,11 +257,39 @@ webSocketServer.on("connection", (socket) => {
       return;
     }
 
+    if (!message || typeof message !== "object" || Array.isArray(message)) {
+      send(socket, { type: "error", message: "Invalid message." }); return;
+    }
+    if (auth) {
+      if (message.type === "authenticate") {
+        try {
+          const identity = await auth.authenticate(message.accessToken);
+          if (socket.readyState !== WebSocket.OPEN) return;
+          if (socket.identity && socket.identity.player.id !== identity.player.id) throw new Error("Identity changed");
+          const existing = authenticatedSockets.get(identity.player.id);
+          if (existing && existing !== socket) throw new Error("Already connected");
+          socket.identity = identity;
+          socket.accessToken = message.accessToken;
+          authenticatedSockets.set(identity.player.id, socket);
+          clearTimeout(authTimer);
+          send(socket, { type: "authenticated", player: publicPlayer(identity.player), expiresAt: identity.expiresAt, serverInstanceId });
+        } catch { socket.close(4401, "Authentication failed"); }
+        return;
+      }
+      if (!socket.identity || socket.identity.expiresAt <= Date.now()) {
+        socket.close(4401, "Authentication required"); return;
+      }
+      try { await auth.authenticate(socket.accessToken); }
+      catch { socket.close(4401, "Session invalid"); return; }
+      if (socket.readyState !== WebSocket.OPEN) return;
+    }
+
     if (message.type === "create_room") {
       if (message.protocolVersion !== PROTOCOL_VERSION) {
         send(socket, { type: "error", message: `Unsupported protocol version. Expected ${PROTOCOL_VERSION}.` });
         return;
       }
+      if (rooms.size >= 500) { send(socket, { type: "error", message: "Server busy." }); return; }
       leaveRoom(socket);
       lobbySockets.delete(socket);
       const code = roomCode();
@@ -187,14 +298,17 @@ webSocketServer.on("connection", (socket) => {
         boardNumber: nextBoardNumber++,
         state: createGameState(),
         players: { black: null, white: null },
+        seatIds: { black: socket.identity?.player.id || null, white: null },
         sideChosen: false,
         rematch: new Set(),
         rps: { black: null, white: null },
+        reconnectTimers: { black: null, white: null },
+        pausedTurnMs: null,
       };
       room.players.black = socket;
       rooms.set(code, room);
       socket.membership = { roomCode: code, player: "black" };
-      send(socket, { type: "room_created", roomCode: code, boardNumber: room.boardNumber });
+      send(socket, { type: "room_created", roomCode: code, boardNumber: room.boardNumber, player: "black", serverInstanceId });
       broadcastRoomList();
       return;
     }
@@ -217,9 +331,13 @@ webSocketServer.on("connection", (socket) => {
         send(socket, { type: "error", message: "Room is unavailable." });
         return;
       }
+      const player = room.players.black ? "white" : "black";
+      if (auth && room.seatIds[player] && room.seatIds[player] !== socket.identity.player.id) {
+        send(socket, { type: "error", message: "Room is unavailable." }); return;
+      }
       leaveRoom(socket);
       lobbySockets.delete(socket);
-      const player = room.players.black ? "white" : "black";
+      room.seatIds[player] = socket.identity?.player.id || null;
       room.players[player] = socket;
       socket.membership = { roomCode: code, player };
 
@@ -228,6 +346,58 @@ webSocketServer.on("connection", (socket) => {
         broadcastState(room, "state");
       } else {
         requestRpsSelection(room);
+      }
+      broadcastRoomList();
+      return;
+    }
+
+    if (message.type === "resume_room") {
+      if (message.protocolVersion !== PROTOCOL_VERSION) {
+        send(socket, { type: "error", message: `Unsupported protocol version. Expected ${PROTOCOL_VERSION}.` });
+        return;
+      }
+      const code = typeof message.roomCode === "string" ? message.roomCode.trim().toUpperCase() : "";
+      if (typeof message.serverInstanceId === "string" && message.serverInstanceId !== serverInstanceId) {
+        send(socket, { type: "match_voided", reason: "server_restart", roomCode: code, serverInstanceId });
+        return;
+      }
+      const room = rooms.get(code);
+      const player = auth && room
+        ? ["black", "white"].find(side => room.seatIds[side] === socket.identity.player.id)
+        : null;
+      if (!room || !player || room.players[player]) {
+        send(socket, { type: "error", message: "Resume unavailable." });
+        return;
+      }
+      leaveRoom(socket);
+      lobbySockets.delete(socket);
+      clearReconnectTimer(room, player);
+      room.players[player] = socket;
+      socket.membership = { roomCode: code, player };
+      if (!room.sideChosen && room.players.black && room.players.white) {
+        requestRpsSelection(room);
+      } else if (!room.sideChosen) {
+        send(socket, {
+          type: "room_created",
+          serverInstanceId,
+          roomCode: room.code,
+          boardNumber: room.boardNumber,
+          player,
+        });
+      } else if (room.players.black && room.players.white) {
+        broadcastState(room, "state", { resumePausedTurn: true });
+      } else {
+        const playerState = stateForPlayer(room.state, player);
+        playerState.turnDeadline = null;
+        send(socket, {
+          type: "state",
+          roomCode: room.code,
+          boardNumber: room.boardNumber,
+          player,
+          opponentConnected: false,
+          turnDeadline: null,
+          state: playerState,
+        });
       }
       broadcastRoomList();
       return;
@@ -269,6 +439,7 @@ webSocketServer.on("connection", (socket) => {
           if (!blackWins) {
             const blackSocket = room.players.black;
             const whiteSocket = room.players.white;
+            [room.seatIds.black, room.seatIds.white] = [room.seatIds.white, room.seatIds.black];
             room.players.black = whiteSocket;
             room.players.white = blackSocket;
             whiteSocket.membership.player = "black";
@@ -307,6 +478,10 @@ webSocketServer.on("connection", (socket) => {
     }
     if (!room.sideChosen) {
       send(socket, { type: "error", message: "Choose a side first." });
+      return;
+    }
+    if (!room.players.black || !room.players.white) {
+      send(socket, { type: "error", message: "Opponent disconnected." });
       return;
     }
     const player = socket.membership.player;
@@ -369,11 +544,21 @@ webSocketServer.on("connection", (socket) => {
     }
     startAutomaticKingWallTaunt(room, player, message.action);
     broadcastState(room);
+  }
+  socket.on("message", rawMessage => {
+    if (!allowMessage("socket") || pending >= 8) { socket.close(1008, "Too many requests"); return; }
+    pending++;
+    chain = chain.then(() => socket.readyState === WebSocket.OPEN && handleMessage(rawMessage))
+      .catch(() => socket.close(1011, "Request failed"))
+      .finally(() => { pending--; });
   });
 
   socket.on("close", () => {
+    clearTimeout(authTimer);
+    if (socket.identity && authenticatedSockets.get(socket.identity.player.id) === socket) authenticatedSockets.delete(socket.identity.player.id);
+    socket.accessToken = null;
     lobbySockets.delete(socket);
-    leaveRoom(socket);
+    leaveRoom(socket, { preserveActiveSeat: !shuttingDown && !socket.accountDeleted });
   });
 });
 
@@ -390,17 +575,27 @@ const heartbeat = setInterval(() => {
 
 webSocketServer.on("close", () => clearInterval(heartbeat));
 
-function shutdown() {
+async function close() {
+  shuttingDown = true;
   clearInterval(heartbeat);
-  for (const socket of webSocketServer.clients) socket.close(1012, "Server restarting");
-  server.close(() => process.exit(0));
+  for (const room of rooms.values()) {
+    clearTurnTimer(room);
+    for (const player of ["black", "white"]) clearReconnectTimer(room, player);
+  }
+  for (const socket of webSocketServer.clients) socket.terminate();
+  await new Promise(resolve => webSocketServer.close(resolve));
+  if (server.listening) await new Promise(resolve => server.close(resolve));
+  await auth?.close?.();
+}
+return { server, webSocketServer, close, port: PORT };
 }
 
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
-
-server.listen(PORT, "0.0.0.0", () => {
-  const address = server.address();
-  const listeningPort = typeof address === "object" && address ? address.port : PORT;
-  console.log(`Unknown Kingdom server listening on ${listeningPort}`);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const app = createGameServer();
+  const shutdown = () => app.close().then(() => process.exit(0));
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+  app.server.listen(app.port, "0.0.0.0", () => {
+    console.log(`Unknown Kingdom server listening on ${app.server.address().port}`);
+  });
+}

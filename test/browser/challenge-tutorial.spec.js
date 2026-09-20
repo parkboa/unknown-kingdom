@@ -6,8 +6,8 @@ async function startTutorial(page) {
   await page.getByRole("button", { name: "튜토리얼", exact: true }).click();
 
   await expect(page.locator("#challengeModal")).toBeHidden();
-  await expect(page.locator("#modeInfo")).toHaveText("튜토리얼");
-  await expect(page.locator("#rankInfo")).toBeHidden();
+  await expect(page.locator(".game-info-bar")).toHaveCount(0);
+  await expect(page.locator("#connectionInfo")).toBeHidden();
   await expect(page.locator("#tutorialPanel")).toBeVisible();
   await expect(page.locator("#tutorialMessage")).toBeEmpty();
   await expect(page.locator("#startTutorialBtn")).toBeHidden();

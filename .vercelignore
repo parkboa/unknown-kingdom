@@ -1,2 +1,15 @@
 README.md
 DESIGN_NOTES.md
+
+# Never upload local credentials or verification artifacts.
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+*.local.env
+**/*.local.env
+artifacts/
+playwright-report/
+test-results/
+ios/

@@ -19,3 +19,13 @@ export function isPveTimerEnabled() {
 export function setPveTimerEnabled(enabled) {
   localStorage.setItem(PVE_TIMER_SETTING_KEY, enabled ? "enabled" : "disabled");
 }
+
+const SPECIAL_CHARACTER_SETTING_KEY = "daeguk-special-character";
+
+export function isSpecialCharacterEnabled() {
+  return localStorage.getItem(SPECIAL_CHARACTER_SETTING_KEY) !== "disabled";
+}
+
+export function setSpecialCharacterEnabled(enabled) {
+  localStorage.setItem(SPECIAL_CHARACTER_SETTING_KEY, enabled ? "enabled" : "disabled");
+}

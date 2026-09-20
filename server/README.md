@@ -34,6 +34,17 @@ Online clients must use WebSocket protocol version 3. After two clients join,
 rock-paper-scissors assigns the winner to Black and the other player to White.
 Older protocol versions are rejected explicitly.
 
+## Match reconnection
+
+Authenticated seats are reserved after a socket drops. The client can send
+`resume_room` with the room code and protocol version to reclaim only the seat
+owned by the same player identity. While either player is absent, the room turn
+timer is paused and actions are rejected. The default grace period is 120 seconds
+and can be changed with `RECONNECT_GRACE_MS` (minimum 1000 ms).
+
+Room state is currently process-local. A server restart, redeploy, or request
+routed to a different server instance cannot resume the match.
+
 Current King rules:
 
 - A King has one life; its first capture ends the match.
@@ -55,3 +66,12 @@ After deployment, connect the frontend with:
 ```text
 https://unknown-kingdom.vercel.app/?server=wss://YOUR-SERVICE.onrender.com/ws
 ```
+
+## Guest authentication
+
+Requires Node.js 22 or later. See [guest auth setup](../docs/GUEST_AUTH_SETUP.md) and
+[environment template](.env.example). Authentication is staged behind `AUTH_MODE=required`;
+the checked-in client remains disabled until database, same-origin proxy and deployment
+configuration are ready. The SQL migration is applied explicitly, never on server startup.
+Account deletion additionally requires `002_account_deletion.sql` and a server-only
+`SUPABASE_SECRET_KEY`; never expose that key to browser or mobile assets.
