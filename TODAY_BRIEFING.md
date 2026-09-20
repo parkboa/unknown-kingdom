@@ -77,6 +77,8 @@ Playwright가 이미 `scripts/serve.mjs`(포트 4185)를 띄우고 뷰포트 393
 
 ## 오늘의 작업 기록
 
+- [CODEX] 로컬 구현·문서 보존 커밋 2c5636a 후 origin/main 737e294의 6개 커밋 통합. 충돌 검토 결과 로컬 후속 구현을 유지하고 원격 CODEX 기록 보존. npm test 194개 및 모바일 빌드·공백 검사 통과. 푸시·배포 없음, 로컬 검증 스크린샷은 미추적 유지.
+
 - [CODEX] index.html 설정 항목 순서를 배경음악 → 효과음 → 특수 유닛 캐릭터·대사로 변경. HTML 순서 확인 및 git diff --check 통과.
 
 - [CODEX] 환경설정에 특수 유닛 캐릭터·대사 표시 토글 추가(기본 켜짐, 로컬 저장). 끄면 캐릭터 컷인 대기를 생략하고 발동 애니메이션은 유지하며 튜토리얼 안내는 보존. 변경: app.js, index.html, js/settings.js, js/config.js. 검증: npm test 194개 통과, 캐릭터 on/off와 3종 발동 효과 6개 경우 확인, 모바일 빌드 및 git diff --check 통과.
@@ -225,6 +227,7 @@ Playwright가 이미 `scripts/serve.mjs`(포트 4185)를 띄우고 뷰포트 393
 - [CODEX] 2026-09-09: 게스트 최초 가입용 Turnstile 대화창과 토큰 전달, 취소·재시도를 연결하고 WebSocket을 CAPTCHA 완료 뒤 열도록 수정했다. `npm test`, 인증/CAPTCHA 브라우저 4개, 모바일 자산 빌드 통과. 운영 site key·Supabase CAPTCHA 활성화는 Cloudflare 로그인 대기 중이며 배포하지 않았다.
 
 - [CODEX] 2026-09-09: Cloudflare 운영 호스트용 Turnstile 위젯 생성, 공개 사이트 키 연결, Supabase CAPTCHA 보호 활성화 완료. 실제 가입 API에서 CAPTCHA 누락·잘못된 토큰 모두 400/captcha_failed 거절을 확인했다. 사이트 키 연결 후 빌드·diff 검사 통과. Render/Vercel 인증 코드 배포와 정상 CAPTCHA 통과 검증은 남아 있다.
+- [CODEX] 2026-09-09: 게스트 인증/CAPTCHA 전환 배포본을 준비했다. 운영 사이트 키와 동일 출처 인증 프록시, 서버 인증 필수 모드를 연결한다. 운영 DB TLS 접속·최소 권한, 인증 브라우저 4개 및 자산 빌드 검증 완료. 미완료 UI/iOS 수정은 배포본에서 제외했다.
 
 ## [CODEX]
 
