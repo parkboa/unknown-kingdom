@@ -199,7 +199,7 @@ iPhone 세로 화면만 지원한다. 현행 App Store Connect 기준으로 현�
 | 2 | 튜토리얼 보드 | 단계별로 익히는 9×9 전술 | Learn 9×9 Tactics Step by Step | 안내 문구와 강조 칸이 보이게 캡처 |
 | 3 | AI 설정 또는 대국 | 5단계 AI와 벌이는 수읽기 | Outthink Five Levels of AI | 실제 제공되는 난이도만 표시 |
 | 4 | 특수 유닛 발동 장면 | 장군·외교관·마법사의 반전 | Turn the Match with Hidden Units | 숨은 정보가 상대 화면에 노출되지 않게 함 |
-| 5 | 온라인 대기실 | 비공개 방에서 온라인 대국 | Play Online in a Private Room | 공개 ID·방 코드·검증용 계정 정보는 가리거나 전용 캡처 상태 사용 |
+| 5 | 한국어: 마법사 순간이동 / 영어: 설정 | 숨은 유닛으로 판을 뒤집으세요 | Privacy and Account Controls | 실제 공개 ID나 방 코드를 노출하지 않음 |
 
 제작 규칙:
 
@@ -220,7 +220,7 @@ iPhone 세로 화면만 지원한다. 현행 App Store Connect 기준으로 현�
 - [ ] 저작권 표기 최종 확인
 - [ ] Cloudflare Turnstile 관련 App Privacy 추가 데이터 유형 여부 최종 확인
 - [ ] 추상적 포획 표현의 Cartoon or Fantasy Violence 빈도 최종 선택
-- [ ] 한국어·영어 6.9형 스크린샷 각 5장 제작·검수
+- [x] 한국어·영어 6.9형 스크린샷 각 5장 제작·검수
 - [ ] 리뷰 연락 담당자 정보를 App Store Connect에 직접 입력
 - [ ] 정식 `tzib.studio` Privacy·Support URL 공개와 로그인 없는 접근 확인
 - [ ] 서명된 Archive 업로드 뒤 정확한 빌드 `1.0.1 (2)` 연결
@@ -233,3 +233,14 @@ iPhone 세로 화면만 지원한다. 현행 App Store Connect 기준으로 현�
 - App Privacy: https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy
 - Age rating: https://developer.apple.com/help/app-store-connect/manage-app-information/set-an-app-age-rating
 - Submit an app: https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/submit-an-app
+
+## 10. 스크린샷 완료 기록
+
+`artifacts/app-store/1.0.1/`에 한국어·영어 각 5장을 저장했다. 모두 출시 후보
+`1.0.1 (2)`를 iPhone 17 Pro Max Simulator(iOS 26.5)에서 직접 캡처한
+`1320×2868` 세로 JPEG이며 알파 채널이 없다. 전수 육안 검수에서 잘림, 디버그 로그,
+내부 UUID·토큰·공개 온라인 ID 노출이 없음을 확인했다.
+
+온라인 대기실은 캡처 과정에서 새 운영 게스트와 CAPTCHA를 만들지 않기 위해 제외했다.
+현재 세트는 현지화별 5장으로 Apple의 1~10장 요구 범위를 충족한다. 파일 순서와 각 장면은
+`artifacts/app-store/1.0.1/README.md`에 기록했다.

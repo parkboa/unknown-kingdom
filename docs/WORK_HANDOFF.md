@@ -50,8 +50,12 @@ AGENTS.md와 docs/WORK_HANDOFF.md를 읽고 이어서 작업해줘.
   `1.0.1 (2)`이며 사용자 검증 자료 `artifacts/live-auth-browser.png`는 포함하지 않았다.
 - App Store 한·영 설명·키워드, Privacy·연령 등급·심사 메모와 스크린샷 계획 초안을
   `docs/APP_STORE_SUBMISSION_DRAFT.md`에 작성했다.
-- 다음 행동: 해당 후보를 기준으로 한국어·영어 6.9형 스크린샷을 제작하고 단계 F 수동
-  검증을 준비한다.
+- iPhone 17 Pro Max Simulator(iOS 26.5)의 출시 후보에서 한국어·영어 6.9형
+  `1320×2868` JPEG를 각 5장 만들고 규격·알파 채널·화면·민감정보 노출을 검수했다.
+  위치는 `artifacts/app-store/1.0.1/`이다. 온라인 캡처는 새 계정/CAPTCHA 생성을 피해
+  제외했다.
+- 다음 행동: 운영자가 제출 문구·Privacy·연령 등급과 스크린샷을 최종 검토하고 단계 F
+  수동 검증 순서를 확정한다.
 
 ## 최신 배포 결과 — 2026-09-20
 
@@ -105,8 +109,8 @@ AGENTS.md와 docs/WORK_HANDOFF.md를 읽고 이어서 작업해줘.
 - 출시 후보: 버전 `1.0.1 (2)`, 앱·코드 커밋
   `c3f49ea89f16b7d4f4b2395feeb12705e9ad79fe`. 이후 상태 문서 커밋은 앱 실행 자산을
   변경하지 않는다.
-- 다음 단일 행동: 출시 후보를 기준으로 한국어·영어 6.9형 스크린샷을 제작하고 단계 F
-  수동 검증을 준비한다. 입력 초안은 `docs/APP_STORE_SUBMISSION_DRAFT.md`에 있다.
+- 다음 단일 행동: 운영자가 `docs/APP_STORE_SUBMISSION_DRAFT.md`와
+  `artifacts/app-store/1.0.1/`을 최종 검토하고 단계 F 수동 검증 순서를 확정한다.
 
 ### 완료된 이전 목표 — iOS 인증과 로그 억제
 
@@ -239,8 +243,10 @@ AGENTS.md와 docs/WORK_HANDOFF.md를 읽고 이어서 작업해줘.
   `c3f49ea89f16b7d4f4b2395feeb12705e9ad79fe`. 사용자 검증 자료는 포함하지 않았다.
 - 새 확인: `docs/APP_STORE_SUBMISSION_DRAFT.md`에 한·영 스토어 문구, Privacy·연령 등급·
   심사 메모와 현행 6.9형 스크린샷 규격·구성을 기록했다.
-- 다음 단일 행동: 출시 후보를 기준으로 한국어·영어 6.9형 스크린샷을 제작하고 단계 F
-  수동 검증을 준비한다.
+- 추가 완료: 출시 후보를 iPhone 17 Pro Max Simulator에서 직접 캡처한 한국어·영어
+  `1320×2868` JPEG 각 5장을 `artifacts/app-store/1.0.1/`에 저장하고 검수했다.
+- 다음 단일 행동: 운영자가 제출 초안과 스크린샷을 최종 검토하고 단계 F 수동 검증
+  순서를 확정한다.
 - 재실행 금지: 완료된 웹/DB/CAPTCHA/계정 유지·재접속 검증과 자동 테스트의 이유 없는 반복,
   기존 운영 계정/Keychain 삭제, 신규 게스트 반복 생성.
 - 사용자 입력 필요: 미리보기의 일반 사이트 문구 최종 승인. `tzib.studio` 사용자 정의
