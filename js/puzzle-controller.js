@@ -1,10 +1,8 @@
 import { DEPLOY_ORDER, SIZE } from "./config.js";
 import { inBounds } from "./board.js";
-import { AI_RANK_ORDER, PUZZLES, RANK_ORDER } from "./puzzles.js";
+import { AI_RANK_ORDER, PUZZLES } from "./puzzles.js";
 
 export const CHALLENGE_PROGRESS_KEY = "daeguk-challenge-progress-v1";
-export const TUTORIAL_SPECIAL_SURROUND_DELAY_MS = 1400;
-export const TUTORIAL_SPECIAL_ACTIVATE_DELAY_MS = 1800;
 
 export const TUTORIAL_STEPS = [
   { owner: "white", unitType: "king", row: 7, col: 4, setup: "empty" },
@@ -90,20 +88,6 @@ export function markAiRankDefeated(rankKey) {
 export function isPuzzleComplete(index) {
   const puzzle = PUZZLES[index];
   return Boolean(puzzle && challengeProgress.completedPuzzleIds.includes(puzzle.id));
-}
-
-export function isPuzzleUnlocked(index) {
-  if (index === 0) return true;
-  const prevPuzzle = PUZZLES[index - 1];
-  return Boolean(prevPuzzle && challengeProgress.completedPuzzleIds.includes(prevPuzzle.id));
-}
-
-export function firstUnresolvedRankIndex() {
-  const unresolvedIndex = RANK_ORDER.findIndex((rankKey) => {
-    const rankPuzzles = PUZZLES.filter((p) => p.rank === rankKey);
-    return rankPuzzles.some((p) => !challengeProgress.completedPuzzleIds.includes(p.id));
-  });
-  return unresolvedIndex >= 0 ? unresolvedIndex : RANK_ORDER.length - 1;
 }
 
 export function localizedPuzzleText(value, language = "ko") {

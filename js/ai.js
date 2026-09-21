@@ -2073,34 +2073,3 @@ export function chooseAiTeleportDestination(state, neighbors, aiPlayer, humanPla
   candidates.sort((a, b) => b.score - a.score || compareCandidates(a, b, aiPlayer));
   return candidates[0] || null;
 }
-
-export function chooseAiKingSwapTarget(state, {
-  aiPlayer,
-  humanPlayer,
-  kingEscapeType,
-  neighbors,
-  isFortressConnected,
-}) {
-  const pending = state.pendingKingSwap;
-  if (!pending || pending.owner !== aiPlayer) return null;
-
-  const candidates = [];
-  for (let row = 0; row < SIZE; row += 1) {
-    for (let col = 0; col < SIZE; col += 1) {
-      const escapeType = kingEscapeType(aiPlayer, pending.row, pending.col, row, col);
-      if (!escapeType) continue;
-      const adjacentEnemies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === humanPlayer).length;
-      const adjacentAllies = neighbors(row, col).filter(([nextRow, nextCol]) => state.board[nextRow][nextCol]?.owner === aiPlayer).length;
-      const fortressSafety = escapeType === "swap" && isFortressConnected(aiPlayer, row, col) ? 20 : 0;
-      const homeBoardSafety = (aiPlayer === "black" ? SIZE - 1 - row : row) * 2;
-      candidates.push({
-        row,
-        col,
-        score: fortressSafety + homeBoardSafety + adjacentAllies * 3 - adjacentEnemies * 8 + (escapeType === "escape" ? 4 : 0),
-      });
-    }
-  }
-
-  candidates.sort((a, b) => b.score - a.score || compareCandidates(a, b, aiPlayer));
-  return candidates[0] || null;
-}

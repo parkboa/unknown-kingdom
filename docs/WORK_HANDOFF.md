@@ -1,6 +1,6 @@
 # 작업 계획 및 모델 인계
 
-최종 갱신: 2026-09-14 / Codex. 이 문서는 새 대화의 시작점이다. 과거 대화 전체를 다시 읽지 않는다.
+최종 갱신: 2026-09-21 / Codex. 이 문서는 새 대화의 시작점이다. 과거 대화 전체를 다시 읽지 않는다.
 
 ## 매일 시작할 때 붙여 넣기
 
@@ -20,6 +20,35 @@ AGENTS.md와 docs/WORK_HANDOFF.md를 읽고 이어서 작업해줘.
 - 운영 읽기 전용 조회: 이전 공개 ID B29FF31CFB0410BCF422의 players 0, 새 ID F95B344D25E36FC78013의 players/identities/auth.users 연결은 각 1. 이전 게임 계정 제거와 신규 계정 연결 확인.
 - 한계: 삭제 전 내부 Auth UUID를 확보하지 않아 이전 auth.users 행의 직접 부재 및 기존 토큰 재접속 차단은 이 조회로 증명하지 못함. 이전 ID 기준 LEFT JOIN의 auth_users=0을 독립적인 Auth 삭제 증거로 해석하지 않는다. 재삭제나 추가 계정 생성은 하지 않았다. 이는 발견된 기능 결함이 아니라 검증 근거의 한계다. 출시 전 최종 검증에서는 테스트 계정의 공개 ID와 내부 Auth UUID 연결을 삭제 전에 확보하고 삭제 후 직접 대조한다.
 
+## 계정 삭제 증거 보강 완료 — 2026-09-21
+
+- 기존 교체 계정 `F95B344D25E36FC78013`과 별개로, 현재 검증 브라우저의 공개 ID는
+  `BB3C1C9F58C4C9BBEA77`이다. 이 ID의 active player·identity가 운영 DB에 각 1개
+  존재함을 삭제 전에 읽기 전용으로 확인했다.
+- 삭제 전 내부 player ID와 Auth UUID는 Git 밖의 권한 `0600` 임시 파일에만 보관했다.
+  UUID와 비밀값은 문서·Git에 기록하지 않았고 검증 완료 뒤 임시 파일을 제거했다.
+- 사용자가 온라인 대기실에 직접 진입했고 CAPTCHA는 표시되지 않았다. 기존 유효 세션이
+  복원된 정상 흐름이며 새 게스트는 만들지 않았다. 화면의 공개 ID와 DB 매핑이 일치한다.
+- 사용자가 `뒤로 → 설정 → 계정 삭제 → 영구 삭제`를 직접 수행했고 화면의
+  “계정을 삭제했습니다. 다음 온라인 대국 때 새 게스트 계정이 만들어집니다.” 문구를
+  확인했다. 저장한 삭제 전 기준으로 운영 DB의 player와 identity는 모두 0개다.
+- 전용 게임 DB 로그인은 `auth.users`·`auth.sessions` 직접 조회 권한이 없어 Supabase
+  관리 화면의 읽기 전용 SQL로 동일 UUID를 대조했다. 결과는 `auth.users=0`,
+  `auth.sessions=0`, player=0, identity=0이다. 삭제 전 계정과 서버 세션 제거가 직접
+  확인됐다. refresh token 원문은 브라우저 삭제 흐름에서 안전하게 폐기되어 추출하거나
+  재생하지 않았다.
+- 사용자가 새 공개 ID `5869A1237488DAADC8D2`를 전달했다. 이전 ID와 다르며 운영
+  읽기 전용 조회 결과 player=1, identity=1, `auth.users`=1, `auth.sessions`=1이다.
+  삭제 전·후·재생성의 계정 삭제 종단 증거가 완성됐다. 기존 refresh token 원문은
+  보안상 추출·재생하지 않았고, 기존 Auth 세션 0과 새 인증 흐름·새 ID 생성으로 복원
+  불가를 확인했다.
+- 최종 자동 검사 완료: `npm test` 194개, `npm run test:browser` 41개,
+  `node --check app.js`, `git diff --check`, `npm run ios:sync`, 원본·`dist-mobile`·iOS
+  핵심 자산 일치, 서명 없는 Release iOS Simulator 빌드가 모두 통과했다. Pods Embed
+  반복 실행 경고와 AppIntents 미사용 알림 외 컴파일 오류는 없다.
+- 다음 행동: 현재 출시 변경만 선별 커밋해 버전 `1.0.1 (2)`의 출시 후보 SHA를
+  확정한다. 사용자 검증 자료 `artifacts/live-auth-browser.png`는 포함하지 않는다.
+
 ## 최신 배포 결과 — 2026-09-20
 
 - `0a33cb5dbf5635f0a4a5be8f85514bb5c9ac4778` main 푸시 완료. Vercel 커밋 상태 success, Render 배포 dep-dankf1rtqb8s73akv7rg Live(45.1초) 확인.
@@ -35,11 +64,18 @@ AGENTS.md와 docs/WORK_HANDOFF.md를 읽고 이어서 작업해줘.
 
 ## 현재 목표와 다음 행동
 
-현재 목표: **계정 삭제 기능과 개인정보·지원 안내 출시 준비.**
+현재 목표: **통합 출시 계획에 따라 코드 감사를 시작하고 iOS 출시를 완료한 뒤 Android로 이어간다.**
 
-- 출시 단일 기준 문서: `docs/APP_STORE_RELEASE_CHECKLIST.md`. 기존 개인정보·TestFlight·
-  1.0 정리 문서는 구현과 과거 검증 근거로 보존하고, 앞으로의 순서·상태·일정은 이
-  체크리스트를 우선한다.
+- 전체 순서·승인 경계·완료 기준의 상위 문서는 `docs/INTEGRATED_RELEASE_PLAN.md`다.
+  `docs/APP_STORE_RELEASE_CHECKLIST.md`는 iOS 세부 체크리스트로 사용한다.
+- 2026-09-21 출시 작업 기반은 게임 `main`과 `origin/main`의 `7f7b702`, 일반 사이트
+  `tzib-studio`의 `main`과 `origin/main`은 `ef451b5`로 일치한다. 게임 저장소의
+  미추적 `artifacts/live-auth-browser.png`는 사용자 검증 자료로 보존한다.
+- 일반 사이트의 정식 목표 경로는 `/privacy/daeguk/`와 `/support/daeguk/`다.
+  GitHub Pages Actions 첫 배포가 성공했고 `https://parkboa.github.io/tzib-studio/`에서
+  홈페이지·한영 법적 페이지·호환 리디렉션을 검증했다. 미리보기에는
+  `noindex, nofollow`가 유지된다. `tzib.studio` DNS와 사용자 정의 도메인은 변경하지
+  않았으며 App Review 제출 직전 별도 승인으로 전환한다.
 - 2026-09-14 지원 이메일 확인 완료: 사용자가 외부 메일로
   `support@tzib.studio`와 `daeguk@tzib.studio` 모두 실제 수신되는 것을 확인했다.
   두 주소는 현재 `parkboahs@gmail.com`으로 전달되며 수신 준비는 출시 차단 항목이 아니다.
@@ -49,7 +85,10 @@ AGENTS.md와 docs/WORK_HANDOFF.md를 읽고 이어서 작업해줘.
 - 사용자 확정값: 스튜디오 도메인 `tzib.studio`, 게임 주소 `daeguk@tzib.studio`, 공통 지원 주소 `support@tzib.studio`. 제안 URL은 `/daeguk/privacy`, `/daeguk/support`이며 실제 도메인 호스팅 경로 확인이 남아 있다.
 - 추가 확정값: 법적 운영자 `Boahs Park`, 운영자 소재 국가 캐나다, 목표 이용자는 전연령 일반 이용자. 한·영 `privacy.html`·`support.html`과 앱 설정 링크, Vercel 경로 rewrite를 로컬에 추가했다. App Store `Made for Kids`는 전연령과 별개이므로 자동 선택하지 않고 콘텐츠 설문으로 실제 등급을 정한다.
 - 검증: 웹 단위 39개, 서버 18개, 계정 삭제·인증·네이티브·6개 화면 크기 한영 레이아웃 브라우저 20개, 개인정보·지원 페이지와 앱 링크 브라우저 3개, 모바일 빌드, iOS 자산 복사·핵심 파일 일치, 서명 없는 iOS 시뮬레이터 빌드, 공백 검사 통과. 모바일 한국어 삭제 확인 화면을 PNG로 직접 확인했다.
-- 미배포: 운영 DB 마이그레이션과 Render 비밀 저장, 실제 테스트 계정 삭제는 하지 않았다. 배포 전에 `server/migrations/002_account_deletion.sql` 적용과 서버 전용 `SUPABASE_SECRET_KEY` 저장이 필요하다. 이 키는 웹·iOS·Vercel 공개 환경에 넣지 않는다.
+- 최신 상태: 운영 DB 마이그레이션과 Render 서버 비밀 저장은 완료됐다. 삭제 전 Auth
+  UUID를 확보한 전용 테스트 게스트로 기존 Auth 사용자·세션·player·identity가 모두
+  제거되고, 새 인증 흐름에서 다른 공개 ID와 새 Auth/player/identity 연결이 생성됨을
+  확인했다. refresh token 원문은 추출·재생하지 않았다.
 
 - 서버는 인증된 내부 player ID로 흑/백 좌석을 예약하고 연결 종료 뒤 기본 2분(`RECONNECT_GRACE_MS`) 동안 방·보드·현재 차례·남은 턴 시간을 메모리에 보존한다. 한 명 또는 두 명 모두 끊겨도 같은 ID의 `resume_room`만 복귀할 수 있고, 대기 중에는 턴 입력과 타이머가 정지한다. 진행 중 대국은 공개 방 목록에 노출하지 않는다.
 - 클라이언트는 비밀값 없이 방 코드·진영·공개 ID만 localStorage에 저장한다. 예상치 못한 종료 시 점증 간격으로 유예 시간까지 자동 재접속하며, 페이지/앱 재실행 뒤 온라인 모드에 들어가도 저장된 대국 복귀를 먼저 시도한다. 복귀가 만료됐으면 새 방을 자동 생성하지 않고 대기실로 돌아간다. 명시적으로 대국을 나가면 복귀 표를 삭제한다.
@@ -59,10 +98,8 @@ AGENTS.md와 docs/WORK_HANDOFF.md를 읽고 이어서 작업해줘.
 - 서버 장애 정책 완료: 서버 프로세스마다 공개 인스턴스 ID를 발급하고 대국 복귀표에 함께 저장한다. 재접속한 서버의 ID가 달라지면 일반 연결 만료와 구분해 해당 대국을 승패 없이 무효 처리하고, 복귀표를 삭제한 뒤 대기실에서 한영 사과 안내를 표시한다. 승패·랭킹 기록은 현재 제품에 없으므로 추가 기록 변경은 없다.
 - 배포·검증: 격리된 운영 저장소에서 전체 테스트 191개, 인증/장애 브라우저 흐름 4개, 모바일 빌드와 공백 검사를 통과했다. `737e294`(`feat: void matches after server restart`)로 main에 push했고 Vercel 성공 상태, 공개 `server-fault-1`·`match_voided` 자산, Render health 정상 응답을 확인했다. 원본 iOS 자산도 다시 복사해 핵심 network.js 일치를 확인했다.
 - 한계: 방 상태는 계속 서버 메모리에만 있으며 실제 복원은 하지 않는다. 서버 장애 시 양쪽 모두 패배 없이 무효 처리하는 현재 합의에 따른 의도된 동작이다. 이번 배포 시점 이전 형식으로 저장된 복귀표에는 서버 인스턴스 ID가 없어 최초 1회는 일반 복귀 불가 안내로 끝날 수 있고, 새 배포 이후 생성된 대국부터 장애 원인을 정확히 구분한다.
-- 다음 단일 행동: 운영 `origin/main` 최신 커밋에서 격리된 출시 작업 공간을 만들고,
-  현재 로컬 변경 중 계정 삭제·개인정보·지원·App Store 출시 필수 파일만 선별 통합한다.
-  그 뒤 공개 URL 승인, 사용자 확인을 거친 SQL 002·Render 서버 비밀 적용과 실제 삭제
-  검증을 `docs/APP_STORE_RELEASE_CHECKLIST.md` 순서로 진행한다.
+- 다음 단일 행동: 검증된 출시 변경만 선별 커밋해 버전 `1.0.1 (2)`의 출시 후보 SHA를
+  확정한다. `artifacts/live-auth-browser.png`는 커밋하지 않고 보존한다.
 
 ### 완료된 이전 목표 — iOS 인증과 로그 억제
 
@@ -181,24 +218,21 @@ AGENTS.md와 docs/WORK_HANDOFF.md를 읽고 이어서 작업해줘.
 
 ## 모델 간 인계 상태 — 다음 작업자가 갱신
 
-- 갱신자/날짜: Codex / 2026-09-14
-- 이번 변경: DAEGUK iOS 출시 준비의 상태·순서·App Store 입력값·일정을
-  `docs/APP_STORE_RELEASE_CHECKLIST.md` 하나로 통합했다. 기존 문서는 과거 구현·검증
-  근거로 보존한다.
-- 새 확인: 사용자가 `support@tzib.studio`와 `daeguk@tzib.studio` 모두
-  `parkboahs@gmail.com`으로 실제 수신되는 것을 확인했다. 수신 준비는 완료이며 현재 답장
-  주소가 개인 Gmail로 보일 수 있는 점은 출시 후 메일 운영 개선 항목이다.
-- 마지막 성공: 계정 삭제·법적 페이지 구현 당시의 웹 단위 39개, 서버 18개, 관련 브라우저
-  23개, 한영 3개 화면 크기 레이아웃, 모바일 빌드, iOS 자산 복사·일치, 서명 없는 iOS
-  시뮬레이터 빌드가 통과했다. 이번 문서 통합은 공백 검사로 확인했다.
-- 완료 결과: 계정 삭제 코드와 공개 안내 페이지는 로컬에서 준비됐지만 운영 기능은 아니다.
-  운영 DB·Render·공개 URL·App Store에는 이번 작업으로 변경을 가하지 않았다.
-- 다음 단일 행동: 운영 `origin/main` 최신 커밋에서 격리된 출시 작업 공간을 만들고 계정
-  삭제·개인정보·지원·출시 필수 변경만 선별 통합한다.
+- 갱신자/날짜: Codex / 2026-09-21
+- 이번 변경: 삭제 전 Auth UUID를 확보한 전용 테스트 게스트로 계정 삭제 종단 증거를
+  완성하고, 코드 위생 정리와 iOS 출시 후보 자동 검증을 마쳤다.
+- 새 확인: 기존 공개 ID `BB3C1C9F58C4C9BBEA77`은 삭제 뒤 player·identity·Auth
+  사용자·Auth 세션이 모두 0이다. 새 공개 ID `5869A1237488DAADC8D2`는 네 항목이
+  모두 1이며 기존 계정과 다른 새 인증 연결이다. 내부 Auth UUID와 토큰은 기록하지 않는다.
+- 마지막 성공: `npm test` 194개, `npm run test:browser` 41개, JS 구문·공백 검사,
+  iOS sync와 핵심 자산 일치, 서명 없는 Release iOS Simulator 빌드가 모두 통과했다.
+- 완료 결과: 통합 계획 단계 0~3, 단계 4의 계정 삭제 증거·자동 검증, 단계 5의 GitHub
+  Pages 미리보기까지 완료했다. 프로덕션 정식 도메인과 DNS는 변경하지 않았다.
+- 다음 단일 행동: 검증된 출시 변경만 선별 커밋해 버전 `1.0.1 (2)`의 출시 후보 SHA를
+  확정한다. `artifacts/live-auth-browser.png`는 커밋하지 않는다.
 - 재실행 금지: 완료된 웹/DB/CAPTCHA/계정 유지·재접속 검증과 자동 테스트의 이유 없는 반복,
   기존 운영 계정/Keychain 삭제, 신규 게스트 반복 생성.
-- 사용자 입력 필요: 공개 Privacy/Support 문구·경로 승인. 이후 SQL 002 적용, Render
-  `SUPABASE_SECRET_KEY` 저장, 공개 URL 전환과 App Store 제출은 각 단계에서 명시적 확인을
-  받은 뒤 실행한다.
+- 사용자 입력 필요: 미리보기의 일반 사이트 문구 최종 승인. `tzib.studio` 사용자 정의
+  도메인·DNS 전환과 App Store 제출은 각 단계에서 명시적 확인을 받은 뒤 실행한다.
 
 이 구역은 다음 모델이 최신 상태로 교체한다. 장문의 일지는 누적하지 않는다. 과거 상세 사항이 필요할 때만 관련 문서를 링크한다.

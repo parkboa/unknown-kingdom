@@ -195,17 +195,3 @@ export function createUnitLabels(language) {
     wizard: TEXT[language].wizard,
   };
 }
-
-export function createSpecialHelp(language) {
-  return {
-    general: language === "ko"
-      ? "장군의 집단이 완전히 포위되면 포획 판정 전에 인접한 적 유닛을 제거합니다."
-      : "When its group is fully surrounded, the General removes adjacent enemy units before capture is resolved.",
-    diplomat: language === "ko"
-      ? "외교관의 집단이 완전히 포위되면 포획 판정 전에 인접한 적 유닛을 아군 병사로 전환합니다."
-      : "When its group is fully surrounded, the Diplomat converts adjacent enemy units into friendly Soldiers before capture is resolved.",
-    wizard: language === "ko"
-      ? "마법사의 집단이 완전히 포위되면 인접한 적을 제거해 포위를 깨고 생존합니다. 이후 빈 칸으로 순간이동하거나 제자리에 남을 수 있습니다."
-      : "When its group is fully surrounded, the Wizard removes adjacent enemies, breaks the surround, and survives. It may then teleport to an empty cell or stay in place.",
-  };
-}

@@ -52,7 +52,6 @@ import {
   CHALLENGE_RANK_LABELS,
   PUZZLES,
   RANK_LABELS,
-  RANK_ORDER,
 } from "./js/puzzles.js?v=progression-2";
 import {
   dispatchSharedLocalAction,
@@ -78,7 +77,6 @@ import {
 import {
   arePrimaryModesUnlocked,
   challengeProgress,
-  firstUnresolvedRankIndex,
   isAiRankUnlocked,
   isValidPuzzlePiece,
   localizedPuzzleText,
@@ -441,12 +439,6 @@ const unitInputs = document.querySelectorAll("input[name='unit']");
 
 function sideName(side) {
   return text(side);
-}
-
-function visiblePveRanks() {
-  const unresolved = firstUnresolvedRankIndex();
-  const startIndex = Math.max(0, Math.min(unresolved, RANK_ORDER.length - 4));
-  return RANK_ORDER.slice(startIndex, startIndex + 4);
 }
 
 function markPuzzleComplete(index) {
@@ -2121,15 +2113,6 @@ function runAiTurn() {
   }
 }
 
-function forEachPiece(callback) {
-  for (let row = 0; row < SIZE; row += 1) {
-    for (let col = 0; col < SIZE; col += 1) {
-      const piece = state.board[row][col];
-      if (piece) callback(piece, row, col);
-    }
-  }
-}
-
 function render() {
   completeTutorialPuzzleIfNeeded();
   const viewerSide = state.mode === "pvp"
@@ -2288,7 +2271,6 @@ function render() {
     : null;
   fortressFrame.classList.toggle("tutorial-highlight-black-wall", tutorialWallHighlight === "black");
   fortressFrame.classList.toggle("tutorial-highlight-white-wall", tutorialWallHighlight === "white");
-  const teleportActive = Boolean(state.teleporting);
   const teleportUi = teleportUiState(state, viewerSide);
   const matchResultAnnouncementActive = Boolean(
     matchEnded && networkModal?.hidden !== false,
@@ -3007,9 +2989,6 @@ function handleNetworkMessage(message) {
 
   if (message.type === "match_start" || message.type === "state") {
     const previousDeploymentKey = lastDeploymentKey(state?.lastMove, state?.board);
-    const previousTeleportKey = state?.teleporting
-      ? `${state.teleporting.owner}:${state.teleporting.row}:${state.teleporting.col}`
-      : "";
     const previousPendingSpecial = state?.pendingSpecial;
     const previousBoard = state?.board;
     networkSession.roomCode = message.roomCode || networkSession.roomCode;
@@ -3023,9 +3002,6 @@ function handleNetworkMessage(message) {
       pendingDeploymentAnimation = { row: state.lastMove.row, col: state.lastMove.col };
       playPlacementSound();
     }
-    const nextTeleportKey = state?.teleporting
-      ? `${state.teleporting.owner}:${state.teleporting.row}:${state.teleporting.col}`
-      : "";
     if (message.type === "match_start") {
       lastTauntEventId = 0;
       if (cutsceneTimer !== null) {
