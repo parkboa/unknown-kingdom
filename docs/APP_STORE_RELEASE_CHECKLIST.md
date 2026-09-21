@@ -152,10 +152,10 @@ Turnstile과 Apple을 포함한 제3자 처리 및 App Store Connect에서 실�
 
 ### 단계 A — 출시 후보 작업 공간 고정
 
-- [ ] `origin/main` 최신 커밋에서 격리된 작업 공간 생성
-- [ ] 현재 로컬 변경 중 출시 필수 항목만 목록화
-- [ ] 계정 삭제·공개 URL·관련 테스트만 선별 적용
-- [ ] 버전과 출시 후보 커밋을 식별
+- [x] `origin/main`의 출시 작업 기반 `7f7b702` 확인
+- [x] 현재 로컬 변경 중 출시 필수 항목 목록화
+- [x] 검증된 코드 정리·출시 문서만 선별 적용
+- [x] 버전 `1.0.1 (2)`와 출시 후보 앱·코드 커밋 `c3f49ea` 식별
 
 완료 조건: 깨끗한 작업 공간에서 출시 후보 변경만 diff로 설명할 수 있다.
 
@@ -239,7 +239,7 @@ git diff --check
 
 - [ ] Apple Developer 계약 상태와 App Store Connect 앱 레코드 확인
 - [ ] 앱 이름, Bundle ID와 SKU 확인
-- [ ] 마케팅 버전·빌드 번호 확정 및 문서 갱신
+- [x] 마케팅 버전 `1.0.1`·빌드 번호 `2` 확정 및 문서 갱신
 - [ ] 설명, 키워드, 카테고리, 저작권, 배포 지역과 가격 입력
 - [ ] App Privacy 응답, Privacy Policy URL과 Support URL 입력
 - [ ] 콘텐츠 설문으로 연령 등급 확정
@@ -282,8 +282,9 @@ Apple 처리 후 내부 TestFlight에서 설치한 정확한 빌드로 단계 F�
 
 ## 7. 즉시 다음 행동
 
-검증된 출시 변경만 선별 커밋해 버전 `1.0.1 (2)`의 출시 후보 SHA를 확정한다.
-사용자 검증 자료 `artifacts/live-auth-browser.png`는 커밋하지 않고 그대로 보존한다.
+출시 후보 앱·코드 커밋 `c3f49ea89f16b7d4f4b2395feeb12705e9ad79fe`를 기준으로
+App Store 설명·키워드·스크린샷·Privacy·연령 등급·심사 메모와 단계 F 수동 검증을
+준비한다. 사용자 검증 자료 `artifacts/live-auth-browser.png`는 커밋하지 않고 보존한다.
 
 GitHub Pages 미리보기는 이미 공개되어 있다. `tzib.studio` 사용자 정의 도메인·DNS
 전환과 App Store 제출은 실제 외부 상태를 바꾸므로 해당 단계에 도달했을 때 사용자의

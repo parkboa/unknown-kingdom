@@ -25,6 +25,7 @@
 
 - 위치: `/Users/boahspark/Projects/AI-Workspace/projects/daeguk/unknown-kingdom`
 - 출시 작업 기반: `main`과 `origin/main`의 `7f7b702`
+- 출시 후보 앱·코드 커밋: `c3f49ea89f16b7d4f4b2395feeb12705e9ad79fe`
 - 보호 대상: 미추적 `artifacts/live-auth-browser.png`는 사용자 검증 자료로 유지한다.
 - iOS 앱, 웹 게임, Node 서버, 인증·계정 삭제, 테스트와 출시 문서는 이 저장소가
   담당한다.
@@ -158,7 +159,7 @@ git diff --check
 - [x] 최종 자동 검사와 iOS 자산 sync
 - [x] 원본·`dist-mobile`·iOS 자산 핵심 파일 일치 확인
 - [x] 서명 없는 Release 또는 simulator 컴파일 확인
-- [ ] 버전·빌드 번호와 출시 후보 SHA 확정
+- [x] 버전 `1.0.1 (2)`와 출시 후보 SHA `c3f49ea` 확정
 - [ ] App Store 설명·스크린샷·Privacy·연령 등급·심사 메모 준비
 
 사용자가 직접 수행하는 항목:
@@ -182,6 +183,9 @@ player ID를 Git 밖의 권한 제한 임시 파일에 확보했다. 앱의 삭�
 `node --check app.js`, `git diff --check`, `npm run ios:sync`, 핵심 자산 일치와 서명 없는
 Release iOS Simulator 빌드가 모두 통과했다. Xcode의 Pods Embed 단계 반복 실행 경고와
 AppIntents 미사용 알림 외 컴파일 오류는 없다.
+
+출시 후보 앱·코드 커밋은 `c3f49ea89f16b7d4f4b2395feeb12705e9ad79fe`다. 이후
+상태 기록용 문서 커밋은 앱 실행 자산을 변경하지 않는다.
 
 ### 단계 5 — 일반 사이트 공개 전환
 
@@ -266,8 +270,9 @@ App Review 제출 직전에 사용자 최종 승인을 받고 실행한다. 공�
 
 ## 7. 현재 다음 단일 행동
 
-**단계 4에서 검증된 출시 변경만 선별 커밋해 버전 `1.0.1 (2)`의 출시 후보 SHA를
-확정한다.** 사용자 검증 자료 `artifacts/live-auth-browser.png`는 커밋하지 않는다.
+**단계 4에서 출시 후보 `c3f49ea`를 기준으로 App Store 설명·키워드·스크린샷·Privacy·
+연령 등급·심사 메모와 수동 검증을 준비한다.** 사용자 검증 자료
+`artifacts/live-auth-browser.png`는 커밋하지 않는다.
 
 GitHub Pages 미리보기는 활성화되어 있다. `tzib.studio` DNS와 사용자 정의 도메인은
 App Review 공개 전환 승인을 받을 때까지 변경하지 않는다.
