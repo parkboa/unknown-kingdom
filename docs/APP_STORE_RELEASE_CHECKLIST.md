@@ -57,6 +57,7 @@ iOS와 Android를 포함한 전체 순서와 승인 경계는 `INTEGRATED_RELEAS
 - [ ] App Review 제출 직전 일반 사이트와 정식 URL 공개
 - [x] 삭제 전 Auth UUID를 확보한 테스트 게스트로 계정 삭제 증거 보강
 - [x] 최종 출시 후보 자동 검증
+- [x] App Store 한·영 메타데이터·Privacy·연령 등급·심사 메모·스크린샷 계획 초안
 - [ ] 최종 출시 후보 수동 검증
 - [ ] App Store Connect 앱 정보·개인정보·연령 등급·스크린샷 입력
 - [ ] 서명된 Release Archive 업로드와 내부 TestFlight 확인
@@ -240,6 +241,7 @@ git diff --check
 - [ ] Apple Developer 계약 상태와 App Store Connect 앱 레코드 확인
 - [ ] 앱 이름, Bundle ID와 SKU 확인
 - [x] 마케팅 버전 `1.0.1`·빌드 번호 `2` 확정 및 문서 갱신
+- [x] 한·영 설명·키워드, Privacy·연령 등급·심사 메모 입력 초안 작성
 - [ ] 설명, 키워드, 카테고리, 저작권, 배포 지역과 가격 입력
 - [ ] App Privacy 응답, Privacy Policy URL과 Support URL 입력
 - [ ] 콘텐츠 설문으로 연령 등급 확정
@@ -283,8 +285,9 @@ Apple 처리 후 내부 TestFlight에서 설치한 정확한 빌드로 단계 F�
 ## 7. 즉시 다음 행동
 
 출시 후보 앱·코드 커밋 `c3f49ea89f16b7d4f4b2395feeb12705e9ad79fe`를 기준으로
-App Store 설명·키워드·스크린샷·Privacy·연령 등급·심사 메모와 단계 F 수동 검증을
-준비한다. 사용자 검증 자료 `artifacts/live-auth-browser.png`는 커밋하지 않고 보존한다.
+한국어·영어 6.9형 스크린샷을 제작하고 단계 F 수동 검증을 준비한다. 입력 초안은
+`APP_STORE_SUBMISSION_DRAFT.md`를 따른다. 사용자 검증 자료
+`artifacts/live-auth-browser.png`는 커밋하지 않고 보존한다.
 
 GitHub Pages 미리보기는 이미 공개되어 있다. `tzib.studio` 사용자 정의 도메인·DNS
 전환과 App Store 제출은 실제 외부 상태를 바꾸므로 해당 단계에 도달했을 때 사용자의

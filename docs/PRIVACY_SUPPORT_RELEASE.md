@@ -51,9 +51,9 @@
 - 스튜디오 도메인: `https://tzib.studio`
 - 게임 문의: `daeguk@tzib.studio`
 - 공통 지원·개인정보 문의: `support@tzib.studio`
-- Privacy Policy URL: `https://tzib.studio/daeguk/privacy` (페이지 로컬 생성 완료, 호스팅 경로 확정 후 배포)
+- Privacy Policy URL: `https://tzib.studio/privacy/daeguk/` (GitHub Pages 미리보기 검증 완료, 정식 도메인 공개 전환 대기)
 - User Privacy Choices URL: 위 Privacy Policy URL 또는 별도 삭제 안내 앵커. 선택 항목이지만 같은 URL 사용을 권장한다.
-- Support URL: `https://tzib.studio/daeguk/support` (페이지 로컬 생성 완료, 호스팅 경로 확정 후 배포)
+- Support URL: `https://tzib.studio/support/daeguk/` (GitHub Pages 미리보기 검증 완료, 정식 도메인 공개 전환 대기)
 - App Privacy 예상 답변: `Identifiers > User ID`, 앱 기능 목적, 사용자와 연결됨, 추적에 사용하지 않음. Turnstile을 포함한 제3자 처리와 실제 App Store Connect/호스팅 설정을 기준으로 제출 직전 다시 확인한다.
 - 현재 코드에는 광고 SDK, 제품 분석 SDK, 위치·연락처·사진·마이크·카메라 수집이 없다.
 

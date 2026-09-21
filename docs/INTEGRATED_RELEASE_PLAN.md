@@ -160,7 +160,8 @@ git diff --check
 - [x] 원본·`dist-mobile`·iOS 자산 핵심 파일 일치 확인
 - [x] 서명 없는 Release 또는 simulator 컴파일 확인
 - [x] 버전 `1.0.1 (2)`와 출시 후보 SHA `c3f49ea` 확정
-- [ ] App Store 설명·스크린샷·Privacy·연령 등급·심사 메모 준비
+- [x] App Store 설명·키워드·Privacy·연령 등급·심사 메모·스크린샷 계획 초안
+- [ ] 한국어·영어 6.9형 스크린샷 제작과 최종 메타데이터 승인
 
 사용자가 직접 수행하는 항목:
 
@@ -270,8 +271,9 @@ App Review 제출 직전에 사용자 최종 승인을 받고 실행한다. 공�
 
 ## 7. 현재 다음 단일 행동
 
-**단계 4에서 출시 후보 `c3f49ea`를 기준으로 App Store 설명·키워드·스크린샷·Privacy·
-연령 등급·심사 메모와 수동 검증을 준비한다.** 사용자 검증 자료
+**단계 4에서 출시 후보 `c3f49ea`를 기준으로 한국어·영어 6.9형 스크린샷을 제작하고
+수동 검증을 준비한다.** 입력 초안은 `APP_STORE_SUBMISSION_DRAFT.md`를 사용한다.
+사용자 검증 자료
 `artifacts/live-auth-browser.png`는 커밋하지 않는다.
 
 GitHub Pages 미리보기는 활성화되어 있다. `tzib.studio` DNS와 사용자 정의 도메인은
