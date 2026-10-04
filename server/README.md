@@ -55,7 +55,16 @@ client received it. They never include
 tokens, player/public IDs, addresses, nicknames, message contents or close reasons.
 The timings start when the server accepts the WebSocket, so a delay before the
 `opened` event still requires comparison with the user's attempt time. Logging
-does not change authentication, single-player connection policy or time limits.
+does not log authentication credentials or change authentication time limits.
+
+For an authenticated player in the lobby (no room membership), the newest
+verified connection replaces the previous lobby connection. This also covers
+proxies that delay or lose a close frame after the app leaves the lobby. The
+predecessor stops handling commands immediately, closes with code 4409 (not an
+automatic retry code), and is terminated after one second if no close reply
+arrives. A late predecessor close cannot unregister its replacement. This means
+opening the same account's lobby on another device replaces the older lobby;
+connections with a room membership remain protected from duplicate takeover.
 
 Current King rules:
 

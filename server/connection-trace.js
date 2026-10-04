@@ -1,6 +1,6 @@
 const EVENTS = new Set([
   'opened', 'auth_started', 'auth_verified', 'auth_failed', 'duplicate_rejected',
-  'auth_deadline', 'lobby_started', 'lobby_authorized', 'lobby_rejected',
+  'auth_deadline', 'lobby_started', 'lobby_authorized', 'lobby_rejected', 'lobby_replaced',
   'lobby_sent', 'closed', 'heartbeat_terminated', 'request_failed',
 ]);
 
