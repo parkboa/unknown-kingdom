@@ -279,8 +279,19 @@ webSocketServer.on("connection", (socket) => {
           if (socket.identity && socket.identity.player.id !== identity.player.id) throw new Error("Identity changed");
           const existing = authenticatedSockets.get(identity.player.id);
           if (existing && existing !== socket) {
-            socket.trace('duplicate_rejected', { previousState: existing.readyState });
-            throw new Error("Already connected");
+            // A verified player may replace their lobby connection even when
+            // the proxy has not delivered its close yet. Never take a room seat.
+            if (!lobbySockets.has(existing) || existing.membership) {
+              socket.trace('duplicate_rejected', { previousState: existing.readyState });
+              throw new Error("Already connected");
+            }
+            socket.trace('lobby_replaced', { previousState: existing.readyState });
+            lobbySockets.delete(existing);
+            existing.close(4409, "Lobby connection replaced");
+            // A missing close acknowledgement must not retain the old transport.
+            const terminateTimer = setTimeout(() => existing.terminate(), 1000);
+            terminateTimer.unref();
+            existing.once('close', () => clearTimeout(terminateTimer));
           }
           socket.identity = identity;
           socket.accessToken = message.accessToken;
