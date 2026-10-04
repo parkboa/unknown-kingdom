@@ -1,6 +1,8 @@
 import { BlockList, isIP } from 'node:net';
 
 const privatePeers = new BlockList();
+privatePeers.addSubnet('127.0.0.0', 8);
+privatePeers.addAddress('::1', 'ipv6');
 privatePeers.addSubnet('10.0.0.0', 8);
 privatePeers.addSubnet('172.16.0.0', 12);
 privatePeers.addSubnet('192.168.0.0', 16);
@@ -30,4 +32,20 @@ export function requestClient(req, { renderProxy = false } = {}) {
   const trustedPeer = renderProxy && family && privatePeers.check(peer, family === 6 ? 'ipv6' : 'ipv4');
   const visitor = trustedPeer ? normalizeAddress(req.headers['cf-connecting-ip']) : null;
   return { address: visitor || peer || 'unknown', source: visitor ? 'render-client' : 'socket-peer' };
+}
+
+export function ingressSummary(req) {
+  const peer = normalizeAddress(req.socket.remoteAddress);
+  const classify = value => {
+    const address = normalizeAddress(value);
+    if (!address) return value === undefined ? 'missing' : 'invalid';
+    if (address === '::1' || address.startsWith('127.')) return 'loopback';
+    return privatePeers.check(address, isIP(address) === 6 ? 'ipv6' : 'ipv4') ? 'private' : 'public';
+  };
+  const forwarded = typeof req.headers['x-forwarded-for'] === 'string'
+    ? req.headers['x-forwarded-for'].split(',').slice(-8) : [];
+  return { peer: classify(peer), cf: classify(req.headers['cf-connecting-ip']),
+    trueClient: classify(req.headers['true-client-ip']), xReal: classify(req.headers['x-real-ip']),
+    forwarded: forwarded.map(classify), forwardedPeerLast: normalizeAddress(forwarded.at(-1)) === peer,
+    cfRay: typeof req.headers['cf-ray'] === 'string' };
 }

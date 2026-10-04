@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { createAuthHttpHandler } from './auth-http.js';
-import { normalizeAddress, requestClient } from './client-address.js';
+import { normalizeAddress, requestClient, ingressSummary } from './client-address.js';
 import { authConfiguration, createAuthService } from './auth.js';
 
 function fixture({ renderProxy = true, sessionError } = {}) {
@@ -46,7 +46,9 @@ test('Render ingress separates visitors sharing a socket peer and keeps existing
   assert.equal((await f.request({ visitor: '198.51.100.2' })).status, 200);
   assert.equal((await f.request({ body: { refreshToken: 'saved-token' } })).status, 200);
   assert.deepEqual(f.calls.at(-1), { refresh: 'saved-token', captcha: undefined });
-  assert.deepEqual(f.logs, ['Auth limiter address source: render-client']);
+  assert.equal(f.logs.length, 1);
+  assert.match(f.logs[0], /^Auth limiter address source: render-client /);
+  assert.ok(!f.logs[0].includes('198.51.100.'));
   f.advance(12500);
   assert.equal((await f.request()).headers['retry-after'], '3588');
   f.advance(3600000 - 12500);
@@ -137,4 +139,19 @@ test('Render trust is enabled only by the runtime marker', () => {
   assert.equal(authConfiguration(env).renderProxy, false);
   assert.equal(authConfiguration({ ...env, RENDER: 'false' }).renderProxy, false);
   assert.equal(authConfiguration({ ...env, RENDER: 'true' }).renderProxy, true);
+});
+
+test('ingress diagnostics report only address classes, never addresses or arbitrary headers', () => {
+  const req = { socket: { remoteAddress: '127.0.0.1' }, headers: { 'cf-connecting-ip': '198.51.100.1',
+    'true-client-ip': '198.51.100.1', 'x-forwarded-for': '203.0.113.1, 10.0.0.1', 'cf-ray': 'ray-secret', cookie: 'secret' } };
+  assert.deepEqual(ingressSummary(req), { peer: 'loopback', cf: 'public', trueClient: 'public', xReal: 'missing',
+    forwarded: ['public', 'private'], forwardedPeerLast: false, cfRay: true });
+});
+
+test('Render loopback ingress can supply the visitor header but ordinary localhost deployments cannot', () => {
+  for (const peer of ['127.0.0.1', '::1', '::ffff:127.0.0.1']) {
+    const req = { socket: { remoteAddress: peer }, headers: { 'cf-connecting-ip': '198.51.100.1' } };
+    assert.equal(requestClient(req, { renderProxy: true }).address, '198.51.100.1');
+    assert.equal(requestClient(req, { renderProxy: false }).source, 'socket-peer');
+  }
 });

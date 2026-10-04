@@ -84,15 +84,16 @@ Refreshing an existing session does not use the creation quota. Account deletion
 uses the general request quota. These fixed windows are process-local and reset
 on restart; users behind the same NAT still share a quota.
 
-On Render (`RENDER=true`), a private ingress socket may supply the Cloudflare
+On Render (`RENDER=true`), a private or loopback ingress socket may supply the Cloudflare
 `CF-Connecting-IP` header as the visitor address. Direct connections and other
 deployments use the socket address. Missing, multiple or malformed visitor headers
 fall back to the socket address. `X-Forwarded-For` is never trusted: a caller can
 insert values into that chain. IPv6 spelling variants and IPv4-mapped IPv6 are
 normalized. This relies on Render's ingress routing through Cloudflare; if ingress
 changes, revisit the trust boundary before enabling another forwarding header.
-The server logs the selected source once per classification, without logging any
-IP addresses, credentials or request bodies. `render-client` confirms that the
+The server logs the selected source and address classes once per classification
+(at most 16 variants), without logging IP addresses, credentials or request bodies.
+`render-client` confirms that the
 visitor header was usable; `socket-peer` on Render indicates the fallback path.
 
 Local rejection returns HTTP 429 with `error: "RATE_LIMITED"`, `scope` of
