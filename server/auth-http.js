@@ -1,8 +1,9 @@
 import { publicPlayer } from './identity.js';
+import { requestClient } from './client-address.js';
 
 export function fixedWindowLimiter({ limit, intervalMs, maxKeys = 10000, now = Date.now }) {
   const windows = new Map();
-  return key => {
+  const allow = key => {
     const time = now();
     for (const [id, window] of windows) if (time >= window.until) windows.delete(id);
     let window = windows.get(key);
@@ -13,11 +14,15 @@ export function fixedWindowLimiter({ limit, intervalMs, maxKeys = 10000, now = D
     }
     return ++window.count <= limit;
   };
+  allow.retryAfter = key => Math.max(1, Math.ceil(((windows.get(key)?.until ?? now() + intervalMs) - now()) / 1000));
+  return allow;
 }
 
-export function createAuthHttpHandler(auth, { onAccountDeleted = () => {} } = {}) {
-  const allowRequest = fixedWindowLimiter({ limit: 30, intervalMs: 60000 });
-  const allowGuest = fixedWindowLimiter({ limit: 5, intervalMs: 3600000 });
+export function createAuthHttpHandler(auth, { onAccountDeleted = () => {}, now = Date.now, log = console.info } = {}) {
+  const allowRequest = fixedWindowLimiter({ limit: 30, intervalMs: 60000, now });
+  // Keep a per-network creation limit, with room for account-deletion verification.
+  const allowGuest = fixedWindowLimiter({ limit: 10, intervalMs: 3600000, now });
+  const reportedSources = new Set();
   return async (req, res) => {
     if (!req.url?.startsWith('/auth/')) return false;
     const reply = (status, body, headers = {}) => {
@@ -30,15 +35,24 @@ export function createAuthHttpHandler(auth, { onAccountDeleted = () => {} } = {}
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Expose-Headers', 'Retry-After');
     if (req.method === 'OPTIONS') {
       res.setHeader('Access-Control-Allow-Methods', 'POST, DELETE');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       reply(204, null); return true;
     }
-    // Do not trust arbitrary X-Forwarded-For headers. Edge CAPTCHA provides per-user abuse protection
-    // behind proxies; this additional limit intentionally uses the actual socket peer.
-    const ip = req.socket.remoteAddress;
-    if (!allowRequest(ip)) { reply(429, { error: 'RATE_LIMITED' }); return true; }
+    const client = requestClient(req, auth.config);
+    const ip = client.address;
+    if (auth.config.renderProxy && !reportedSources.has(client.source)) {
+      reportedSources.add(client.source);
+      // Log the ingress classification once, never addresses, credentials or bodies.
+      log(`Auth limiter address source: ${client.source}`);
+    }
+    const limited = (scope, limiter) => {
+      const retryAfterSeconds = limiter.retryAfter(ip);
+      reply(429, { error: 'RATE_LIMITED', scope, retryAfterSeconds }, { 'Retry-After': String(retryAfterSeconds) });
+    };
+    if (!allowRequest(ip)) { limited('requests', allowRequest); return true; }
     const sessionRequest = req.url === '/auth/session' && req.method === 'POST';
     const deletionRequest = req.url === '/auth/account' && req.method === 'DELETE';
     if (!sessionRequest && !deletionRequest) { reply(404, { error: 'NOT_FOUND' }); return true; }
@@ -65,14 +79,17 @@ export function createAuthHttpHandler(auth, { onAccountDeleted = () => {} } = {}
         return true;
       }
       if (!refresh && body.create !== true) { reply(401, { error: 'NO_SESSION' }); return true; }
-      if (!refresh && !allowGuest(ip)) { reply(429, { error: 'RATE_LIMITED' }); return true; }
+      if (!refresh && !allowGuest(ip)) { limited('guest_creation', allowGuest); return true; }
       if (body.captchaToken !== undefined && (typeof body.captchaToken !== 'string' || body.captchaToken.length > 4096)) throw new Error('Invalid captcha');
       const session = await auth.session(refresh, body.captchaToken);
       const data = { accessToken: session.accessToken, expiresAt: session.expiresAt, player: publicPlayer(session.player) };
       if (native) data.refreshToken = session.refreshToken;
       else res.setHeader('Set-Cookie', `${cookieName}=${session.refreshToken}; HttpOnly; Path=/; SameSite=Strict; Max-Age=2592000${auth.config.secureCookies ? '; Secure' : ''}`);
       reply(200, data);
-    } catch { reply(401, { error: 'AUTH_FAILED' }); }
+    } catch (error) {
+      if (error?.status === 429) reply(429, { error: 'RATE_LIMITED', scope: 'upstream' });
+      else reply(401, { error: 'AUTH_FAILED' });
+    }
     return true;
   };
 }

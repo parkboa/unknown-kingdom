@@ -75,3 +75,39 @@ the checked-in client remains disabled until database, same-origin proxy and dep
 configuration are ready. The SQL migration is applied explicitly, never on server startup.
 Account deletion additionally requires `002_account_deletion.sql` and a server-only
 `SUPABASE_SECRET_KEY`; never expose that key to browser or mobile assets.
+
+### Authentication rate limits
+
+The server allows 30 authentication requests per minute and 10 new guest creation
+attempts per hour per network address. Failed creation attempts also count.
+Refreshing an existing session does not use the creation quota. Account deletion
+uses the general request quota. These fixed windows are process-local and reset
+on restart; users behind the same NAT still share a quota.
+
+On Render (`RENDER=true`), a private ingress socket may supply the Cloudflare
+`CF-Connecting-IP` header as the visitor address. Direct connections and other
+deployments use the socket address. Missing, multiple or malformed visitor headers
+fall back to the socket address. `X-Forwarded-For` is never trusted: a caller can
+insert values into that chain. IPv6 spelling variants and IPv4-mapped IPv6 are
+normalized. This relies on Render's ingress routing through Cloudflare; if ingress
+changes, revisit the trust boundary before enabling another forwarding header.
+The server logs the selected source once per classification, without logging any
+IP addresses, credentials or request bodies. `render-client` confirms that the
+visitor header was usable; `socket-peer` on Render indicates the fallback path.
+
+Local rejection returns HTTP 429 with `error: "RATE_LIMITED"`, `scope` of
+`requests` or `guest_creation`, `retryAfterSeconds`, and a CORS-exposed
+`Retry-After` header. Supabase HTTP 429 is preserved as HTTP 429 with
+`scope: "upstream"`; no provider error detail or guessed expiry is returned.
+Existing apps remain compatible, but need a separate update to display the retry
+duration. CAPTCHA verification is still performed by Supabase on new guests.
+
+This change separates native clients that contact Render directly. A web request
+rewritten through Vercel can still appear as the Vercel egress address. Supabase
+also sees this server's egress address because end-user IP forwarding is not
+enabled there; its own anonymous signup limit remains independent of this local
+quota. No Supabase setting, API key, subscription or CAPTCHA policy is changed.
+
+References: [Render runtime marker](https://render.com/docs/environment-variables),
+[Cloudflare visitor headers](https://developers.cloudflare.com/fundamentals/reference/http-headers/),
+[Supabase upstream limits](https://supabase.com/docs/guides/auth/rate-limits).
