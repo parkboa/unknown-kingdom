@@ -25,7 +25,7 @@ export function authConfiguration(env = process.env) {
   const origins = new Set(env.AUTH_ALLOWED_ORIGINS.split(',').map(v => v.trim()));
   if (origins.has('*') || origins.has('null') || origins.has('')) throw new Error('Explicit origins required');
   return { url: url.origin, key: env.SUPABASE_PUBLISHABLE_KEY, secretKey, databaseUrl: env.DATABASE_URL, origins,
-    secureCookies: env.AUTH_INSECURE_LOCALHOST !== 'true' };
+    secureCookies: env.AUTH_INSECURE_LOCALHOST !== 'true', renderProxy: env.RENDER === 'true' };
 }
 
 export async function verifyAccessToken(token, { issuer, key }) {
@@ -110,7 +110,8 @@ export function createAuthService(config) {
       const result = refreshToken
         ? await auth.refreshSession({ refresh_token: refreshToken })
         : await auth.signInAnonymously({ options: { captchaToken } });
-      if (result.error || !result.data.session) throw new Error('Authentication failed');
+      if (result.error) throw result.error;
+      if (!result.data.session) throw new Error('Authentication failed');
       const session = result.data.session;
       const identity = await this.authenticate(session.access_token);
       return { ...identity, accessToken: session.access_token, refreshToken: session.refresh_token };
@@ -118,13 +119,14 @@ export function createAuthService(config) {
     async deleteAccount(refreshToken) {
       if (typeof refreshToken !== 'string' || !refreshToken) throw new Error('Session required');
       const result = await client().auth.refreshSession({ refresh_token: refreshToken });
-      if (result.error || !result.data.session?.user?.id) throw new Error('Authentication failed');
+      if (result.error) throw result.error;
+      if (!result.data.session?.user?.id) throw new Error('Authentication failed');
       const session = result.data.session;
       const claims = await verifyAccessToken(session.access_token, { issuer, key });
       if (session.user.id !== claims.sub) throw new Error('Identity mismatch');
       const player = await store.resolve(claims);
       const deleted = await admin.auth.admin.deleteUser(claims.sub, false);
-      if (deleted.error) throw new Error('Account deletion failed');
+      if (deleted.error) throw deleted.error;
       await store.remove(claims, player.id);
       return player;
     },
