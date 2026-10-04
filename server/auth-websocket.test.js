@@ -8,13 +8,13 @@ const origin='https://game.test';
 function message(socket) {
   return Promise.race([once(socket,'message').then(([data])=>JSON.parse(data)), new Promise((_,reject)=>{const t=setTimeout(()=>reject(new Error('Message timeout')),3000);t.unref();})]);
 }
-async function fixture(t,{serverInstanceId}={}) {
+async function fixture(t,{serverInstanceId, connectionLogger = () => {}}={}) {
   const revoked=new Set();
   const app=createGameServer({authService:{config:{origins:new Set([origin]),secureCookies:true},authenticate:async token=>{
     if(!['alice','bob','eve'].includes(token)||revoked.has(token)) throw new Error('Unauthorized');
     await new Promise(resolve=>setTimeout(resolve,5));
     return {player:{id:token,publicCode:`PUBLIC-${token}`,nickname:'Guest',status:'active'},expiresAt:Date.now()+300000};
-  }},env:{PORT:'0'},serverInstanceId});
+  }},env:{PORT:'0'},serverInstanceId,connectionLogger});
   app.server.listen(0,'127.0.0.1');await once(app.server,'listening');
   t.after(()=>app.close());
   const url=`ws://127.0.0.1:${app.server.address().port}/ws`;
@@ -25,6 +25,28 @@ async function fixture(t,{serverInstanceId}={}) {
   };
   return {connect,revoked,url};
 }
+test('lobby tracing separates auth, duplicate connections, room listing and close without logging identity', async t => {
+  const entries = [];
+  const { connect } = await fixture(t, { connectionLogger: (_label, raw) => entries.push(JSON.parse(raw)) });
+  const alice = await connect('alice');
+  let next = message(alice);
+  alice.send(JSON.stringify({ type: 'list_rooms' }));
+  assert.equal((await next).type, 'room_list');
+  const first = entries.filter(entry => entry.connectionId === 1);
+  assert.deepEqual(first.map(entry => entry.event), ['opened', 'auth_started', 'auth_verified', 'lobby_started', 'lobby_authorized', 'lobby_sent']);
+  assert.equal(Number.isFinite(first[2].durationMs), true);
+  assert.equal(Number.isFinite(first[4].durationMs), true);
+  const duplicate = await connect();
+  let closed = once(duplicate, 'close');
+  duplicate.send(JSON.stringify({ type: 'authenticate', accessToken: 'alice' }));
+  assert.equal((await closed)[0], 4401);
+  assert.equal(entries.some(entry => entry.event === 'duplicate_rejected' && entry.previousState === WebSocket.OPEN), true);
+  closed = once(alice, 'close'); alice.close(); await closed;
+  // Wait until server-side close cleanup has also completed.
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(entries.some(entry => entry.connectionId === 1 && entry.event === 'closed' && entry.authenticated), true);
+  assert.equal(/alice|PUBLIC|accessToken|playerId/.test(JSON.stringify(entries)), false);
+});
 test('required authentication rejects unauthenticated commands, forged tokens and unapproved origins',async t=>{
   const {connect,url}=await fixture(t);
   for(const command of [{type:'list_rooms'},{type:'authenticate',accessToken:'forged'}]){
