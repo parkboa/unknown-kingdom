@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { authConfiguration, createAuthService } from "./auth.js";
 import { createAuthHttpHandler, fixedWindowLimiter } from "./auth-http.js";
 import { publicPlayer } from "./identity.js";
+import { createConnectionTrace } from "./connection-trace.js";
 import { WebSocketServer, WebSocket } from "ws";
 import {
   applyAction,
@@ -16,7 +17,7 @@ import {
 } from "./engine.js";
 import { declineRematch, startAutomaticTauntLock } from "./room-actions.js";
 
-export function createGameServer({ authService, env = process.env, serverInstanceId = randomUUID() } = {}) {
+export function createGameServer({ authService, env = process.env, serverInstanceId = randomUUID(), connectionLogger = console.info } = {}) {
 const SPECIAL_UNIT_TYPES = new Set(["general", "diplomat", "wizard"]);
 const PORT = Number(env.PORT || 4175);
 const TAUNT_DISPLAY_MS = 3000;
@@ -38,6 +39,7 @@ const authHttp = createAuthHttpHandler(auth, { onAccountDeleted(player) {
 } });
 let nextBoardNumber = 1;
 let shuttingDown = false;
+let nextConnectionId = 1;
 
 function roomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -66,7 +68,9 @@ function openRoomSummaries() {
 }
 
 function sendRoomList(socket) {
+  if (socket?.readyState !== WebSocket.OPEN) return;
   send(socket, { type: "room_list", rooms: openRoomSummaries(), serverInstanceId });
+  socket.trace?.('lobby_sent');
 }
 
 function broadcastRoomList() {
@@ -238,9 +242,14 @@ const server = http.createServer(async (request, response) => {
 const webSocketServer = new WebSocketServer({ server, path: "/ws", maxPayload: 16384,
   verifyClient: ({ origin }, done) => done(!authConfig || authConfig.origins.has(origin), 403, "Origin denied") });
 webSocketServer.on("connection", (socket) => {
+  socket.trace = createConnectionTrace(nextConnectionId++, { log: connectionLogger });
+  socket.trace('opened');
   if (webSocketServer.clients.size > 500) { socket.close(1013, "Server busy"); return; }
   const allowMessage = fixedWindowLimiter({ limit: 60, intervalMs: 10000 });
-  const authTimer = auth ? setTimeout(() => socket.close(4401, "Authentication required"), 20000) : null;
+  const authTimer = auth ? setTimeout(() => {
+    socket.trace('auth_deadline');
+    socket.close(4401, "Authentication required");
+  }, 20000) : null;
   let chain = Promise.resolve();
   let pending = 0;
   socket.isAlive = true;
@@ -262,26 +271,52 @@ webSocketServer.on("connection", (socket) => {
     }
     if (auth) {
       if (message.type === "authenticate") {
+        const started = performance.now();
+        socket.trace('auth_started');
         try {
           const identity = await auth.authenticate(message.accessToken);
           if (socket.readyState !== WebSocket.OPEN) return;
           if (socket.identity && socket.identity.player.id !== identity.player.id) throw new Error("Identity changed");
           const existing = authenticatedSockets.get(identity.player.id);
-          if (existing && existing !== socket) throw new Error("Already connected");
+          if (existing && existing !== socket) {
+            // A verified player may replace their lobby connection even when
+            // the proxy has not delivered its close yet. Never take a room seat.
+            if (!lobbySockets.has(existing) || existing.membership) {
+              socket.trace('duplicate_rejected', { previousState: existing.readyState });
+              throw new Error("Already connected");
+            }
+            socket.trace('lobby_replaced', { previousState: existing.readyState });
+            lobbySockets.delete(existing);
+            existing.close(4409, "Lobby connection replaced");
+            // A missing close acknowledgement must not retain the old transport.
+            const terminateTimer = setTimeout(() => existing.terminate(), 1000);
+            terminateTimer.unref();
+            existing.once('close', () => clearTimeout(terminateTimer));
+          }
           socket.identity = identity;
           socket.accessToken = message.accessToken;
           authenticatedSockets.set(identity.player.id, socket);
           clearTimeout(authTimer);
+          socket.trace('auth_verified', { durationMs: performance.now() - started });
           send(socket, { type: "authenticated", player: publicPlayer(identity.player), expiresAt: identity.expiresAt, serverInstanceId });
-        } catch { socket.close(4401, "Authentication failed"); }
+        } catch {
+          socket.trace('auth_failed', { durationMs: performance.now() - started });
+          socket.close(4401, "Authentication failed");
+        }
         return;
       }
       if (!socket.identity || socket.identity.expiresAt <= Date.now()) {
         socket.close(4401, "Authentication required"); return;
       }
+      const started = performance.now();
+      if (message.type === 'list_rooms') socket.trace('lobby_started');
       try { await auth.authenticate(socket.accessToken); }
-      catch { socket.close(4401, "Session invalid"); return; }
+      catch {
+        if (message.type === 'list_rooms') socket.trace('lobby_rejected', { durationMs: performance.now() - started });
+        socket.close(4401, "Session invalid"); return;
+      }
       if (socket.readyState !== WebSocket.OPEN) return;
+      if (message.type === 'list_rooms') socket.trace('lobby_authorized', { durationMs: performance.now() - started });
     }
 
     if (message.type === "create_room") {
@@ -549,11 +584,12 @@ webSocketServer.on("connection", (socket) => {
     if (!allowMessage("socket") || pending >= 8) { socket.close(1008, "Too many requests"); return; }
     pending++;
     chain = chain.then(() => socket.readyState === WebSocket.OPEN && handleMessage(rawMessage))
-      .catch(() => socket.close(1011, "Request failed"))
+      .catch(() => { socket.trace('request_failed'); socket.close(1011, "Request failed"); })
       .finally(() => { pending--; });
   });
 
-  socket.on("close", () => {
+  socket.on("close", (code) => {
+    socket.trace('closed', { code, authenticated: Boolean(socket.identity) });
     clearTimeout(authTimer);
     if (socket.identity && authenticatedSockets.get(socket.identity.player.id) === socket) authenticatedSockets.delete(socket.identity.player.id);
     socket.accessToken = null;
@@ -565,6 +601,7 @@ webSocketServer.on("connection", (socket) => {
 const heartbeat = setInterval(() => {
   for (const socket of webSocketServer.clients) {
     if (socket.isAlive === false) {
+      socket.trace?.('heartbeat_terminated');
       socket.terminate();
       continue;
     }
