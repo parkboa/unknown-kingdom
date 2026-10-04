@@ -1,5 +1,5 @@
 import { publicPlayer } from './identity.js';
-import { requestClient } from './client-address.js';
+import { requestClient, ingressSummary } from './client-address.js';
 
 export function fixedWindowLimiter({ limit, intervalMs, maxKeys = 10000, now = Date.now }) {
   const windows = new Map();
@@ -43,10 +43,12 @@ export function createAuthHttpHandler(auth, { onAccountDeleted = () => {}, now =
     }
     const client = requestClient(req, auth.config);
     const ip = client.address;
-    if (auth.config.renderProxy && !reportedSources.has(client.source)) {
-      reportedSources.add(client.source);
+    const summary = auth.config.renderProxy ? JSON.stringify(ingressSummary(req)) : '';
+    const classification = `${client.source} ${summary}`;
+    if (auth.config.renderProxy && !reportedSources.has(classification) && reportedSources.size < 16) {
+      reportedSources.add(classification);
       // Log the ingress classification once, never addresses, credentials or bodies.
-      log(`Auth limiter address source: ${client.source}`);
+      log(`Auth limiter address source: ${classification}`);
     }
     const limited = (scope, limiter) => {
       const retryAfterSeconds = limiter.retryAfter(ip);
