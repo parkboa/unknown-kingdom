@@ -45,6 +45,18 @@ and can be changed with `RECONNECT_GRACE_MS` (minimum 1000 ms).
 Room state is currently process-local. A server restart, redeploy, or request
 routed to a different server instance cannot resume the match.
 
+Connection lifecycle logs use `Game connection stage:` followed by structured
+metadata: a process-local connection counter, event, elapsed milliseconds, auth
+or lobby-validation duration, close code and authenticated/previous-state flags.
+They distinguish connection establishment, token verification, duplicate refusal,
+lobby validation and response queuing, close, and heartbeat termination. A
+`lobby_sent` event means the response was queued on an open socket, not that the
+client received it. They never include
+tokens, player/public IDs, addresses, nicknames, message contents or close reasons.
+The timings start when the server accepts the WebSocket, so a delay before the
+`opened` event still requires comparison with the user's attempt time. Logging
+does not change authentication, single-player connection policy or time limits.
+
 Current King rules:
 
 - A King has one life; its first capture ends the match.
