@@ -4,6 +4,41 @@ import { validateNetworkMessage } from "./protocol.js?v=server-fault-1";
 
 const RESUME_STORAGE_KEY = "daeguk.online.resume.v1";
 const DEFAULT_RECONNECT_DELAYS = [500, 1000, 2000, 4000, 8000, ...Array(11).fill(10000)];
+const DEFAULT_LOBBY_RECONNECT_DELAYS = [500, 1500];
+// A replacement connection must wait for our previous close handshake. Keep this
+// outside the session: the UI replaces its session immediately when going back.
+const closingSockets = new Map();
+
+function closeSessionSocket(session) {
+  session.stopSocketTimers?.();
+  const socket = session.socket;
+  if (!socket || socket.readyState === 3) return;
+  const pending = closingSockets.get(session.url) || new Set();
+  const closed = session.socketClosed;
+  pending.add(closed);
+  closingSockets.set(session.url, pending);
+  closed.then(() => {
+    pending.delete(closed);
+    if (!pending.size && closingSockets.get(session.url) === pending) closingSockets.delete(session.url);
+  });
+  socket.close();
+}
+
+async function waitForClosingSockets(url, timeoutMs) {
+  const pending = closingSockets.get(url);
+  if (!pending?.size) return;
+  let timer;
+  try {
+    await Promise.race([
+      Promise.all([...pending]),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(Object.assign(new Error('Previous connection is still closing'), { code: 'CLOSE_PENDING' })), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 function readResumeTicket(storage) {
   try {
@@ -86,7 +121,7 @@ export function disconnectNetwork(session) {
   session.cancelled = true;
   clearTimeout(session.reconnectTimer);
   if (session.roomCode) clearResumeTicket(session.storage || globalThis.localStorage, session.roomCode);
-  if (session.socket) session.socket.close();
+  closeSessionSocket(session);
   return createNetworkSession();
 }
 
@@ -105,34 +140,66 @@ export function connectNetwork(command, {
   WebSocketImpl = WebSocket,
   storage = globalThis.localStorage,
   reconnectDelays = DEFAULT_RECONNECT_DELAYS,
+  lobbyReconnectDelays = DEFAULT_LOBBY_RECONNECT_DELAYS,
+  closeWaitMs = 5000,
+  connectionTimeoutMs = 30000,
 }) {
   const session = createNetworkSession();
   session.storage = storage;
+  session.url = url;
+  let lobbyReconnectAttempt = 0;
   onStatus(connectingMessage);
   // Complete human verification before starting the server's WebSocket auth deadline.
-  getIdentity(url).then(identity => {
+  async function startConnection() {
+    const identity = await getIdentity(url);
+    if (session.cancelled) return;
+    await waitForClosingSockets(url, closeWaitMs);
     if (!session.cancelled) openSocket(identity);
-  }).catch(error => {
+  }
+  function reportConnectionFailure(error) {
     if (session.cancelled) return;
     onClose(session);
+    if (error?.code === 'CLOSE_PENDING') {
+      onStatus(`${unavailableMessage} (CLOSE_PENDING)`, session);
+      return;
+    }
     // Closing the lobby resets its text; report failure after that reset.
     const code = ['NATIVE_BRIDGE_UNAVAILABLE', 'RATE_LIMITED', 'ORIGIN_DENIED', 'AUTH_FAILED'].includes(error?.code)
       ? error.code : 'AUTH_FAILED';
     console.warn('Guest authentication failed:', code);
     onStatus(`${authenticationFailedMessage} (${code})`, session);
-  });
+  }
+  startConnection().catch(reportConnectionFailure);
 
   function openSocket(initialIdentity) {
     const socket = new WebSocketImpl(url);
     session.socket = socket;
+    let resolveClosed;
+    session.socketClosed = new Promise(resolve => { resolveClosed = resolve; });
 
     let authPending = false;
     let started = false;
     let refreshTimer;
+    let timedOut = false;
+    let ended = false;
+    const isCurrent = () => !session.cancelled && !timedOut && !ended && session.socket === socket;
+    const connectionTimer = setTimeout(() => {
+      if (!isCurrent()) return;
+      timedOut = true;
+      session.connected = false;
+      session.ready = false;
+      closeSessionSocket(session);
+      onClose(session, { reconnecting: false });
+      onStatus(`${unavailableMessage} (CONNECTION_TIMEOUT)`, session);
+    }, connectionTimeoutMs);
+    session.stopSocketTimers = () => {
+      clearTimeout(refreshTimer);
+      clearTimeout(connectionTimer);
+    };
     async function authenticate(identity) {
       try {
         identity = identity === undefined ? await getIdentity(url) : identity;
-        if (socket.readyState !== WebSocketImpl.OPEN) return;
+        if (!isCurrent() || socket.readyState !== WebSocketImpl.OPEN) return;
         if (identity) {
           authPending = true;
           socket.send(JSON.stringify({ type: 'authenticate', accessToken: identity.accessToken }));
@@ -141,9 +208,11 @@ export function connectNetwork(command, {
         } else {
           session.connected = true;
           started = true;
+          clearTimeout(connectionTimer);
           socket.send(JSON.stringify(command));
         }
       } catch {
+        if (!isCurrent()) return;
         onStatus(authenticationFailedMessage, session);
         socket.close();
       }
@@ -151,11 +220,13 @@ export function connectNetwork(command, {
     socket.addEventListener("open", () => authenticate(initialIdentity));
 
     socket.addEventListener("message", (event) => {
+      if (!isCurrent()) return;
       try {
         const message = JSON.parse(event.data);
         if (message?.type === 'authenticated' && authPending) {
           if (typeof message.player?.publicCode !== 'string' || typeof message.player?.nickname !== 'string') throw new Error('Invalid profile');
           authPending = false;
+          clearTimeout(connectionTimer);
           session.connected = true;
           session.profile = message.player;
           const previousServerInstanceId = session.serverInstanceId;
@@ -206,7 +277,7 @@ export function connectNetwork(command, {
           session.player = null;
           session.matchVoided = true;
           session.serverInstanceId = message.serverInstanceId || session.serverInstanceId;
-          onMessage(message);
+          onMessage(message, session);
           socket.send(JSON.stringify({ type: "list_rooms" }));
           return;
         }
@@ -220,15 +291,19 @@ export function connectNetwork(command, {
           session.reconnectAttempt = 0;
           writeResumeTicket(storage, session);
         }
-        onMessage(message);
+        onMessage(message, session);
       } catch {
         onStatus(invalidMessage, session);
       }
     });
 
     socket.addEventListener("close", (event) => {
+      const wasCurrent = isCurrent();
+      ended = true;
+      resolveClosed();
       clearTimeout(refreshTimer);
-      if (session.socket !== socket) return;
+      clearTimeout(connectionTimer);
+      if (!wasCurrent) return;
       session.connected = false;
       session.ready = false;
       const canResume = Boolean(session.roomCode && session.player && session.profile?.publicCode);
@@ -237,12 +312,18 @@ export function connectNetwork(command, {
         onClose(session, { reconnecting: true });
         onStatus(reconnectingMessage, session);
         session.reconnectTimer = setTimeout(() => {
-          getIdentity(url).then(identity => {
-            if (!session.cancelled) openSocket(identity);
-          }).catch(() => {
-            if (!session.cancelled) openSocket(undefined);
-          });
+          startConnection().catch(reportConnectionFailure);
         }, delay);
+        return;
+      }
+      // Only the read-only lobby command is safe to replay without a room ticket.
+      // Never retry a rejected credential (4401), or duplicate create/join commands.
+      if (command.type === 'list_rooms' && !canResume && [1006, 1012, 1013].includes(event.code)
+          && lobbyReconnectAttempt < lobbyReconnectDelays.length) {
+        const delay = lobbyReconnectDelays[lobbyReconnectAttempt++];
+        onClose(session, { reconnecting: true });
+        onStatus(reconnectingMessage, session);
+        session.reconnectTimer = setTimeout(() => startConnection().catch(reportConnectionFailure), delay);
         return;
       }
       onClose(session, { reconnecting: false });
@@ -253,7 +334,7 @@ export function connectNetwork(command, {
     });
 
     socket.addEventListener("error", () => {
-      onStatus(unavailableMessage, session);
+      if (isCurrent()) onStatus(unavailableMessage, session);
     });
   }
 

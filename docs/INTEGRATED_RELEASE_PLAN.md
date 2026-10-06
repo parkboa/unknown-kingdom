@@ -1,6 +1,14 @@
 # DAEGUK 통합 출시 작업 계획
 
-최종 갱신: 2026-09-21 / Codex
+최종 갱신: 2026-10-05 / Codex
+
+현재 상태: **1.0.1 (3) 승인 / Pending Developer Release** 확인.
+사용자가 직접 수동 공개를 진행한다. 아래 접수·준비 기록은 과거 이력이다.
+
+최신실제상태: 2026-10-04 23:41 EDT iOS1.0.1(3) 재심사접수,
+**Waiting for Review**. 정보요청답변6항목·영상4편전송, Notes갱신완료.
+제출ID`ce44e104-56a2-463a-acbd-56975040e302`, 공개는수동선택.
+다음은Apple심사결과확인과승인후수동공개다. 빌드2제출표기는과거이력이다.
 
 이 문서는 DAEGUK의 코드 정리, iOS 출시, TZIB 공개 사이트 전환, Android 출시를
 하나의 순서와 완료 기준으로 관리하는 상위 기준 문서다. iOS 세부 입력값과 수동 검증은
@@ -210,11 +218,12 @@ App Review 제출 직전에 사용자 최종 승인을 받고 실행한다. 공�
 
 ### 단계 6 — TestFlight, App Review와 iOS 공개
 
-- [ ] 서명된 Release Archive 생성·업로드
-- [ ] App Store Connect에 정식 Privacy·Support URL 입력
-- [ ] 내부 TestFlight 설치와 출시 차단 흐름의 짧은 최종 확인
-- [ ] 제출 빌드·버전 연결과 출시 방식 선택
-- [ ] `Add for Review`와 `Submit for Review`
+- [x] 로컬 서명된 Release Archive 생성 (2026-10-02, Xcode 27 / 최소 iOS 15)
+- [x] App Store 배포용 export·업로드 (1.0.1 (2))
+- [x] App Store Connect 정식 Privacy·Support URL 저장 및 개인정보 라벨 게시
+- [x] 내부 TestFlight 설치와 핵심 흐름 문제 없음 사용자 확인 (2026-10-03)
+- [x] 제출 빌드 2·버전 1.0.1 연결과 수동 공개 선택
+- [x] `Add for Review`와 `Submit for Review` 완료 — Waiting for Review (2026-10-03)
 - [ ] 심사 중 문의·거절 사유 대응
 - [ ] 승인 후 선택한 방식으로 공개
 - [ ] 공개 직후 앱 설치, 인증, 온라인 서버, 법적 URL 확인
@@ -272,9 +281,18 @@ App Review 제출 직전에 사용자 최종 승인을 받고 실행한다. 공�
 
 ## 7. 현재 다음 단일 행동
 
-**단계 4에서 출시 후보 `c3f49ea`의 제출 초안과 한국어·영어 스크린샷 각 5장을
-운영자가 최종 검토하고, 단계 F 수동 검증 순서를 확정한다.** 입력 초안은
-`APP_STORE_SUBMISSION_DRAFT.md`, 이미지는 `artifacts/app-store/1.0.1/`에 있다.
+**사용자가 승인된 1.0.1 (3)을 App Store Connect에서 수동 공개한다.**
+Codex는 검증된 로컬 출시 소스와 기록을 기존 공개 저장소에 커밋·푸시한다.
+다음 버전용 별도 비공개 저장소는 논의 중이며 아직 만들지 않았다.
+
+### 과거 준비 기록
+
+2026-10-02: DAEGUK Bundle ID와 App Store Connect 앱 `6818672488`을 등록하고,
+한·영 문구·부제·카테고리·심사 메모를 초안으로 저장했다. Xcode 27에서 iOS 14 대상이
+빌드 오류로 거절돼 최소 버전을 15로 변경했다. 모바일 sync, Release Simulator 빌드,
+기존 Apple Development 서명을 사용하는 로컬 Release Archive와 서명 검증을 통과했다.
+배포용 export·업로드와 TestFlight는 아직 진행하지 않았다. 앱 실행 자산은 기존 `c3f49ea`와
+같지만 네이티브 최소 버전 설정이 바뀌었으므로 최종 후보 SHA는 변경 커밋 후 다시 고정한다.
 사용자 검증 자료 `artifacts/live-auth-browser.png`는 커밋하지 않는다.
 
 GitHub Pages 미리보기는 활성화되어 있다. `tzib.studio` DNS와 사용자 정의 도메인은

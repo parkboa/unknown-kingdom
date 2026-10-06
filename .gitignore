@@ -17,3 +17,9 @@ __pycache__/
 .env.*
 !.env.example
 *.local.env
+
+# Local review evidence and raw captures; selected store screenshots are tracked separately.
+artifacts/app-review/
+artifacts/release-audit-*/
+artifacts/live-auth-browser.png
+artifacts/app-store/**/sc_unknown_*.png

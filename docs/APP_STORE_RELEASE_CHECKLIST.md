@@ -1,6 +1,15 @@
 # DAEGUK App Store 출시 체크리스트
 
-최종 갱신: 2026-09-21 / Codex
+최종 갱신: 2026-10-05 / Codex
+
+현재 상태: **1.0.1 (3) 승인 / Pending Developer Release** 확인.
+사용자가 직접 수동 공개를 진행한다. 실제 공개 완료는 아직 확인하지 않았다.
+아래 접수·준비 기록은 해당 날짜의 이력이다.
+
+최신접수: 2026-10-04 23:41 EDT **Waiting for Review / 1.0.1(3)**.
+추가요청6개답변·영상4편전송/Notes갱신완료, 빌드3으로재심사접수했다.
+수동공개선택유지. 기존빌드2접수표기는이력이다. 근거는
+`artifacts/app-review/2026-10-04/video-package/submission-receipt.json`.
 
 이 문서는 DAEGUK iOS 출시의 세부 체크리스트다. 코드 정리, TZIB 일반 사이트 공개,
 iOS와 Android를 포함한 전체 순서와 승인 경계는 `INTEGRATED_RELEASE_PLAN.md`를 상위
@@ -17,12 +26,11 @@ iOS와 Android를 포함한 전체 순서와 승인 경계는 `INTEGRATED_RELEAS
 - 운영자 소재 국가: 캐나다
 - Bundle ID: `com.boahspark.daeguk`
 - Xcode 마케팅 버전: `1.0.1`
-- Xcode 빌드 번호: `2`
+- Xcode 빌드 번호: `3`
 - 지원 기기: iPhone
-- 최소 iOS: 14.0
+- 최소 iOS: 15.0 (2026-10-02 Xcode 27 빌드 호환성 반영)
 - 화면 방향: 세로
-- 현재 앱 버전은 `1.0.1 (2)`이다. 기존 `TESTFLIGHT.md`의 `1.0 (1)` 표기는
-  과거 값이므로 다음 출시 후보를 만들 때 이 문서와 함께 갱신한다.
+- 현재 앱 버전은 `1.0.1 (3)`이다. 빌드 1·2의 기록은 과거 이력이다.
 
 ## 2. 2026-09-21 현재 상태 요약
 
@@ -126,16 +134,18 @@ HTTPS로 다시 검증한 정식 경로를 사용한다.
 - Vercel: 웹 게임 호스팅과 인증 프록시
 - Apple: App Store 배포 및 활성화한 스토어·진단 서비스
 
-### App Store Privacy 예상 답변
+### App Store Privacy 저장 답변 — 2026-10-03
 
 - 수집 여부: `Yes`
-- 데이터 유형: `Identifiers > User ID`
+- 데이터 유형: `Gameplay Content`, `User ID`, `Device ID`, `Other Data Types`
 - 목적: `App Functionality`
 - 사용자와 연결됨: `Yes`
 - 추적에 사용: `No`
 
-Turnstile과 Apple을 포함한 제3자 처리 및 App Store Connect에서 실제 활성화한 진단
-설정을 제출 직전에 다시 확인한다.
+앱 코드와 Apple 정의, Cloudflare Turnstile IP·TLS fingerprint·User-Agent·sitekey/origin
+보안 처리를 대조했다. 실명 없는 계정이어도 계정/기기 연결이 있어 연결됨으로 저장했다.
+사용자의 최종 동의 후 App Store Connect **Published** 표시를 확인했다.
+한·영 개인정보처리방침과 계정 삭제 안내 Privacy Choices URL도 저장됐다.
 
 ### 연령과 계정 삭제
 
@@ -239,29 +249,35 @@ git diff --check
 
 ### 단계 G — App Store Connect와 TestFlight
 
-- [ ] Apple Developer 계약 상태와 App Store Connect 앱 레코드 확인
-- [ ] 앱 이름, Bundle ID와 SKU 확인
+- [x] 무료 앱 계약 Active와 App Store Connect 앱 레코드 확인 (2026-10-03)
+- [x] 앱 이름, Bundle ID와 SKU 확인 (`DAEGUK`, `com.boahspark.daeguk`, `daeguk-ios`)
 - [x] 마케팅 버전 `1.0.1`·빌드 번호 `2` 확정 및 문서 갱신
 - [x] 한·영 설명·키워드, Privacy·연령 등급·심사 메모 입력 초안 작성
-- [ ] 설명, 키워드, 카테고리, 저작권, 배포 지역과 가격 입력
-- [ ] App Privacy 응답, Privacy Policy URL과 Support URL 입력
-- [ ] 콘텐츠 설문으로 연령 등급 확정
-- [ ] 스크린샷과 필요한 미리보기 준비
-- [ ] 수출 규정 응답 확인 (`ITSAppUsesNonExemptEncryption=false` 현재 설정)
-- [ ] 심사 메모에 게스트 계정과 `설정 → 계정 삭제` 경로 작성
-- [ ] 서명된 Release Archive 생성·업로드
-- [ ] Apple 처리 완료와 빌드 상태 확인
-- [ ] 내부 TestFlight 그룹에 배포
+- [x] 한·영 설명·프로모션·키워드·부제, 카테고리·저작권 입력
+- [x] 배포 지역과 가격 입력 (무료, 한국·미국·캐나다 / 2026-10-02)
+- [x] App Privacy 응답 게시, 한·영 Privacy Policy URL과 Support URL 저장 확인
+- [x] 콘텐츠 설문 연령 확정 (한국 ALL / 일반 9+, 판타지 폭력 None·무기 Infrequent)
+- [x] 콘텐츠 권리 No third-party content 저장·Saved 확인 (2026-10-03)
+- [x] 스크린샷 준비·등록 (한국어·English U.S. 6.9형 각 5장 / 2026-10-02)
+- [x] `ITSAppUsesNonExemptEncryption=false` 유지, 빌드 2의 Add for Review 필수 검증 통과
+- [x] 심사 메모에 게스트 계정과 `설정 → 계정 삭제` 경로 작성
+- [x] 로컬 서명된 Release Archive 생성 (2026-10-02, Xcode 27 / iOS 15 최소 버전)
+- [x] App Store 배포용 export·서명 검증 (`build/export-1.0.1-2/App.ipa`)
+- [x] App Store Connect 바이너리 업로드 (2026-10-02, Xcode 업로드 성공 / Apple 처리 중)
+- [x] Apple 처리 완료와 빌드 상태 확인 (TestFlight 1.0.1 / Build 2 / Ready to Submit)
+- [x] 내부 TestFlight 그룹에 배포 (`DAEGUK Internal`, 빌드 1.0.1 (2), 본인 계정 Invited)
 
 Apple 처리 후 내부 TestFlight에서 설치한 정확한 빌드로 단계 F의 출시 차단 흐름을
 짧게 다시 확인한다.
 
 ### 단계 H — App Review와 출시
 
-- [ ] TestFlight 출시 차단 결함 0개 확인
-- [ ] 제출할 빌드와 App Store 버전 연결
-- [ ] 자동·수동·예약 출시 중 공개 방식을 결정
-- [ ] `Add for Review` 후 `Submit for Review`
+- [x] TestFlight 1.0.1 (2) 실기기 핵심 흐름 문제 없음 사용자 확인 (2026-10-03)
+- [x] 제출할 빌드와 App Store 버전 연결 (1.0.1 / Build 2, 초안 저장·심사 제출 전)
+- [x] 공개 방식 Manually release this version 확인
+- [x] Add for Review 완료 (Ready for Review / Item Ready to Submit)
+- [x] 첫 출시 iPhone용 지정, Mac·Vision Pro 배포 해제 저장·Saved 확인
+- [x] Submit for Review 접수 완료, Waiting for Review / 1.0.1 (2) 확인 (2026-10-03 14:28 EDT)
 - [ ] 심사 메시지와 상태 모니터링
 - [ ] 승인 후 선택한 방식으로 공개
 - [ ] 공개 직후 로그인, 지원·개인정보 URL과 온라인 서버 상태 확인

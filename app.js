@@ -32,7 +32,7 @@ import {
   disconnectNetwork as closeNetworkConnection,
   sendNetworkCommand,
   sendNetworkAction as sendNetworkMessage,
-} from "./js/network.js?v=account-delete-1";
+} from "./js/network.js?v=lobby-reentry-1";
 import { deleteOnlineAccount } from "./js/auth.js?v=account-delete-1";
 import {
   createInitialState,
@@ -2922,7 +2922,9 @@ function connectNetwork(command) {
     onStatus: (message, session) => {
       if (!session || networkSession === session) setNetworkStatus(message);
     },
-    onMessage: handleNetworkMessage,
+    onMessage: (message, session) => {
+      if (networkSession === session) handleNetworkMessage(message);
+    },
     onClose: (session, { reconnecting } = {}) => {
       if (networkSession === session) {
         if (!reconnecting || !session.roomCode) showNetworkRoomControls();

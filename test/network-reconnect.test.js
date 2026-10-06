@@ -57,6 +57,160 @@ const identity = {
 const profile = { publicCode: "PUBLIC-ALICE", nickname: "Guest" };
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 
+function lobbyOptions(overrides = {}) {
+  return {
+    url: 'wss://game.test/ws', connectingMessage: 'connecting',
+    reconnectingMessage: 'reconnecting', disconnectedMessage: 'disconnected',
+    unavailableMessage: 'unavailable', invalidMessage: 'invalid',
+    onStatus() {}, onMessage() {}, onClose() {},
+    getIdentity: async () => identity, WebSocketImpl: FakeSocket,
+    storage: memoryStorage(), ...overrides,
+  };
+}
+
+class SlowClosingSocket extends FakeSocket {
+  close() { this.readyState = 2; }
+  finishClose() { this.readyState = 3; this.emit('close', { code: 1000 }); }
+}
+
+test('rapid lobby reentry waits for the old close handshake and ignores its late events', async () => {
+  FakeSocket.instances = [];
+  const oldMessages = [], oldStatuses = [], oldCloses = [];
+  const first = connectNetwork({ type: 'list_rooms' }, lobbyOptions({
+    WebSocketImpl: SlowClosingSocket,
+    onMessage: message => oldMessages.push(message),
+    onStatus: status => oldStatuses.push(status),
+    onClose: () => oldCloses.push(true),
+  }));
+  await tick();
+  const old = first.socket;
+  old.receive({ type: 'authenticated', player: profile });
+  disconnectNetwork(first);
+  const second = connectNetwork({ type: 'list_rooms' }, lobbyOptions());
+  await tick();
+  assert.equal(FakeSocket.instances.length, 1);
+  old.receive({ type: 'room_list', rooms: [] });
+  old.emit('error', {});
+  assert.deepEqual(oldMessages, []);
+  assert.deepEqual(oldStatuses, ['connecting']);
+  old.finishClose();
+  await tick();
+  assert.equal(FakeSocket.instances.length, 2);
+  assert.deepEqual(oldCloses, []);
+  assert.equal(second.socket.sent[0].type, 'authenticate');
+  disconnectNetwork(second);
+});
+
+test('going back again while awaiting the previous close never opens a cancelled connection', async () => {
+  FakeSocket.instances = [];
+  const first = connectNetwork({ type: 'list_rooms' }, lobbyOptions({ WebSocketImpl: SlowClosingSocket }));
+  await tick();
+  disconnectNetwork(first);
+  const cancelled = connectNetwork({ type: 'list_rooms' }, lobbyOptions());
+  await tick();
+  disconnectNetwork(cancelled);
+  const current = connectNetwork({ type: 'list_rooms' }, lobbyOptions());
+  first.socket.finishClose();
+  await tick();
+  assert.equal(FakeSocket.instances.length, 2);
+  assert.equal(cancelled.socket, null);
+  assert.equal(current.socket.sent[0].type, 'authenticate');
+  disconnectNetwork(current);
+});
+
+test('a stalled close fails within a bound instead of opening a duplicate socket', async () => {
+  FakeSocket.instances = [];
+  const first = connectNetwork({ type: 'list_rooms' }, lobbyOptions({ WebSocketImpl: SlowClosingSocket }));
+  await tick();
+  disconnectNetwork(first);
+  const statuses = [];
+  const second = connectNetwork({ type: 'list_rooms' }, lobbyOptions({
+    closeWaitMs: 5, onStatus: status => statuses.push(status),
+  }));
+  await new Promise(resolve => setTimeout(resolve, 15));
+  assert.deepEqual(statuses, ['connecting', 'unavailable (CLOSE_PENDING)']);
+  assert.equal(second.socket, null);
+  assert.equal(FakeSocket.instances.length, 1);
+  first.socket.finishClose();
+  disconnectNetwork(second);
+});
+
+test('lobby transport failures retry only the configured number of times', async () => {
+  FakeSocket.instances = [];
+  const statuses = [];
+  const messages = [];
+  const session = connectNetwork({ type: 'list_rooms' }, lobbyOptions({
+    lobbyReconnectDelays: [0, 0], onStatus: status => statuses.push(status),
+    onMessage: message => messages.push(message),
+  }));
+  await tick();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const old = session.socket;
+    old.close(1006);
+    old.receive({ type: 'room_list', rooms: [] });
+    await tick(); await tick();
+  }
+  assert.equal(FakeSocket.instances.length, 3);
+  assert.deepEqual(messages, []);
+  assert.deepEqual(statuses, ['connecting', 'reconnecting', 'reconnecting', 'disconnected (1006)']);
+  disconnectNetwork(session);
+});
+
+test('credential rejection and mutating lobby commands are never automatically replayed', async () => {
+  for (const [type, code] of [['list_rooms', 4401], ['create_room', 1006], ['join_room', 1006]]) {
+    FakeSocket.instances = [];
+    const statuses = [];
+    const session = connectNetwork({ type }, lobbyOptions({
+      lobbyReconnectDelays: [0], onStatus: status => statuses.push(status),
+    }));
+    await tick();
+    session.socket.close(code);
+    await tick(); await tick();
+    assert.equal(FakeSocket.instances.length, 1);
+    assert.equal(statuses.at(-1), `disconnected (${code})`);
+    disconnectNetwork(session);
+  }
+});
+
+test('a pending identity refresh cannot authenticate after going back', async () => {
+  FakeSocket.instances = [];
+  let finishRefresh, calls = 0;
+  const session = connectNetwork({ type: 'list_rooms' }, lobbyOptions({
+    getIdentity: async () => ++calls === 1
+      ? { ...identity, expiresAt: Date.now() + 45000 }
+      : new Promise(resolve => { finishRefresh = resolve; }),
+    WebSocketImpl: SlowClosingSocket,
+  }));
+  await tick();
+  session.socket.receive({ type: 'authenticated', player: profile });
+  await new Promise(resolve => setTimeout(resolve, 1050));
+  assert.equal(calls, 2);
+  const socket = session.socket;
+  disconnectNetwork(session);
+  // A late native refresh result must be ignored even if close has not reached the peer.
+  socket.readyState = FakeSocket.OPEN;
+  finishRefresh(identity);
+  await tick();
+  assert.equal(socket.sent.filter(message => message.type === 'authenticate').length, 1);
+  socket.finishClose();
+});
+
+test('a stalled WebSocket authentication has a deadline and ignores late success', async () => {
+  FakeSocket.instances = [];
+  const statuses = [], messages = [];
+  const session = connectNetwork({ type: 'list_rooms' }, lobbyOptions({
+    connectionTimeoutMs: 10, onStatus: status => statuses.push(status),
+    onMessage: message => messages.push(message),
+  }));
+  await new Promise(resolve => setTimeout(resolve, 25));
+  session.socket.receive({ type: 'authenticated', player: profile });
+  session.socket.receive({ type: 'room_list', rooms: [] });
+  assert.equal(session.connected, false);
+  assert.deepEqual(messages, []);
+  assert.equal(statuses.at(-1), 'unavailable (CONNECTION_TIMEOUT)');
+  disconnectNetwork(session);
+});
+
 test("unexpected socket closure resumes the saved room instead of creating a new match", async () => {
   FakeSocket.instances = [];
   const storage = memoryStorage();
